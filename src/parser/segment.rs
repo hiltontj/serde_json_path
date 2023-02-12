@@ -1,0 +1,320 @@
+use nom::bytes::complete::tag;
+use nom::character::complete::char;
+use nom::{
+    branch::alt,
+    bytes::complete::take_while1,
+    character::complete::{alpha1, digit1, space0},
+    combinator::{map, recognize},
+    multi::{fold_many0, separated_list1},
+    sequence::{delimited, pair, preceded},
+    IResult,
+};
+use serde_json::Value;
+
+use super::selector::{parse_selector, parse_wildcard_selector, Selector};
+use super::QueryValue;
+
+#[derive(Debug, PartialEq)]
+pub struct PathSegment {
+    pub kind: PathSegmentKind,
+    pub segment: Segment,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum PathSegmentKind {
+    Child,
+    Descendant,
+}
+
+impl PathSegment {
+    pub fn is_child(&self) -> bool {
+        matches!(self.kind, PathSegmentKind::Child)
+    }
+
+    pub fn is_descendant(&self) -> bool {
+        matches!(self.kind, PathSegmentKind::Descendant)
+    }
+}
+
+impl QueryValue for PathSegment {
+    fn query_value<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
+        let mut query = self.segment.query_value(current, root);
+        if matches!(self.kind, PathSegmentKind::Descendant) {
+            query.append(&mut descend(self, current, root));
+        }
+        query
+    }
+}
+
+fn descend<'b>(segment: &PathSegment, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
+    let mut query = Vec::new();
+    if let Some(list) = current.as_array() {
+        for v in list {
+            query.append(&mut segment.query_value(v, root));
+        }
+    } else if let Some(obj) = current.as_object() {
+        for (_, v) in obj {
+            query.append(&mut segment.query_value(v, root));
+        }
+    }
+    query
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Segment {
+    LongHand(Vec<Selector>),
+    DotName(String),
+    Wildcard,
+}
+
+impl Segment {
+    pub fn as_long_hand(&self) -> Option<&[Selector]> {
+        match self {
+            Segment::LongHand(v) => Some(v.as_slice()),
+            _ => None,
+        }
+    }
+
+    pub fn is_long_hand(&self) -> bool {
+        self.as_long_hand().is_some()
+    }
+
+    pub fn as_dot_name(&self) -> Option<&str> {
+        match self {
+            Segment::DotName(s) => Some(s.as_str()),
+            _ => None,
+        }
+    }
+
+    pub fn is_dot_name(&self) -> bool {
+        self.as_dot_name().is_some()
+    }
+
+    pub fn is_wildcard(&self) -> bool {
+        matches!(self, Segment::Wildcard)
+    }
+}
+
+impl QueryValue for Segment {
+    fn query_value<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
+        let mut query = Vec::new();
+        match self {
+            Segment::LongHand(selectors) => {
+                for selector in selectors {
+                    query.append(&mut selector.query_value(current, root));
+                }
+            }
+            Segment::DotName(key) => {
+                if let Some(obj) = current.as_object() {
+                    if let Some(v) = obj.get(key) {
+                        query.push(v);
+                    }
+                }
+            }
+            Segment::Wildcard => {
+                if let Some(list) = current.as_array() {
+                    for v in list {
+                        query.push(v);
+                    }
+                } else if let Some(obj) = current.as_object() {
+                    for (_, v) in obj {
+                        query.push(v);
+                    }
+                }
+            }
+        }
+        query
+    }
+}
+
+// TODO - I have no idea if this is correct, supposed to be %x80-10FFFF
+fn is_non_ascii_unicode(chr: char) -> bool {
+    chr >= '\u{0080}'
+}
+
+fn parse_non_ascii_unicode(input: &str) -> IResult<&str, &str> {
+    take_while1(is_non_ascii_unicode)(input)
+}
+
+fn parse_name_first(input: &str) -> IResult<&str, &str> {
+    alt((alpha1, recognize(char('_')), parse_non_ascii_unicode))(input)
+}
+
+fn parse_name_char(input: &str) -> IResult<&str, &str> {
+    alt((digit1, parse_name_first))(input)
+}
+
+pub fn parse_dot_member_name(input: &str) -> IResult<&str, String> {
+    map(
+        recognize(pair(
+            parse_name_first,
+            fold_many0(parse_name_char, String::new, |mut s, item| {
+                s.push_str(item);
+                s
+            }),
+        )),
+        |s| s.to_string(),
+    )(input)
+}
+
+fn parse_dot_member_name_shorthand(input: &str) -> IResult<&str, Segment> {
+    map(preceded(char('.'), parse_dot_member_name), Segment::DotName)(input)
+}
+
+fn parse_multi_selector(input: &str) -> IResult<&str, Vec<Selector>> {
+    separated_list1(
+        delimited(space0, char(','), space0), // TODO - space delimited, and similar parser helpers
+        parse_selector,
+    )(input)
+}
+
+fn parse_child_long_hand(input: &str) -> IResult<&str, Segment> {
+    delimited(
+        pair(char('['), space0),
+        map(parse_multi_selector, Segment::LongHand),
+        pair(space0, char(']')),
+    )(input)
+}
+
+fn parse_dot_wildcard_shorthand(input: &str) -> IResult<&str, Segment> {
+    map(preceded(char('.'), parse_wildcard_selector), |_| {
+        Segment::Wildcard
+    })(input)
+}
+
+fn parse_child_segment(input: &str) -> IResult<&str, Segment> {
+    alt((
+        parse_dot_wildcard_shorthand,
+        parse_dot_member_name_shorthand,
+        parse_child_long_hand,
+    ))(input)
+}
+
+fn parse_descendant_segment(input: &str) -> IResult<&str, Segment> {
+    preceded(
+        tag(".."),
+        alt((
+            map(parse_wildcard_selector, |_| Segment::Wildcard),
+            map(parse_dot_member_name, Segment::DotName),
+            parse_child_segment,
+        )),
+    )(input)
+}
+
+pub fn parse_segment(input: &str) -> IResult<&str, PathSegment> {
+    alt((
+        map(parse_descendant_segment, |inner| PathSegment {
+            kind: PathSegmentKind::Descendant,
+            segment: inner,
+        }),
+        map(parse_child_segment, |inner| PathSegment {
+            kind: PathSegmentKind::Child,
+            segment: inner,
+        }),
+    ))(input)
+}
+
+#[cfg(test)]
+mod tests {
+    use nom::combinator::all_consuming;
+
+    use crate::parser::selector::{slice::Slice, Index, Name, Selector};
+
+    use super::{
+        parse_child_long_hand, parse_child_segment, parse_descendant_segment,
+        parse_dot_member_name_shorthand, Segment,
+    };
+
+    #[test]
+    fn dot_member_names() {
+        assert!(matches!(
+            parse_dot_member_name_shorthand(".name"),
+            Ok(("", Segment::DotName(s))) if s == "name",
+        ));
+        assert!(matches!(
+            parse_dot_member_name_shorthand(".foo_bar"),
+            Ok(("", Segment::DotName(s))) if s == "foo_bar",
+        ));
+        assert!(parse_dot_member_name_shorthand(". space").is_err());
+        assert!(all_consuming(parse_dot_member_name_shorthand)(".no-dash").is_err());
+        assert!(parse_dot_member_name_shorthand(".1no_num_1st").is_err());
+    }
+
+    #[test]
+    fn child_long_hand() {
+        {
+            let (_, sk) = parse_child_long_hand(r#"["name"]"#).unwrap();
+            let s = sk.as_long_hand().unwrap();
+            assert_eq!(s[0], Selector::Name(Name::from("name")));
+        }
+        {
+            let (_, sk) = parse_child_long_hand(r#"['name']"#).unwrap();
+            let s = sk.as_long_hand().unwrap();
+            assert_eq!(s[0], Selector::Name(Name::from("name")));
+        }
+        {
+            let (_, sk) = parse_child_long_hand(r#"["name","test"]"#).unwrap();
+            let s = sk.as_long_hand().unwrap();
+            assert_eq!(s[0], Selector::Name(Name::from("name")));
+            assert_eq!(s[1], Selector::Name(Name::from("test")));
+        }
+        {
+            let (_, sk) = parse_child_long_hand(r#"['name',10,0:3]"#).unwrap();
+            let s = sk.as_long_hand().unwrap();
+            assert_eq!(s[0], Selector::Name(Name::from("name")));
+            assert_eq!(s[1], Selector::Index(Index(10)));
+            assert_eq!(
+                s[2],
+                Selector::ArraySlice(Slice::new().with_start(0).with_end(3))
+            );
+        }
+        {
+            let (_, sk) = parse_child_long_hand(r#"[::,*]"#).unwrap();
+            let s = sk.as_long_hand().unwrap();
+            assert_eq!(s[0], Selector::ArraySlice(Slice::new()));
+            assert_eq!(s[1], Selector::Wildcard);
+        }
+    }
+
+    #[test]
+    fn child_segment() {
+        {
+            let (_, sk) = parse_child_segment(".name").unwrap();
+            assert_eq!(sk.as_dot_name(), Some("name"));
+        }
+        {
+            let (_, sk) = parse_child_segment(".*").unwrap();
+            assert!(sk.is_wildcard());
+        }
+        {
+            let (_, sk) = parse_child_segment("[*]").unwrap();
+            let s = sk.as_long_hand().unwrap();
+            assert_eq!(s[0], Selector::Wildcard);
+        }
+    }
+
+    #[test]
+    fn descendant_semgent() {
+        {
+            let (_, sk) = parse_descendant_segment("..['name']").unwrap();
+            let s = sk.as_long_hand().unwrap();
+            assert_eq!(s[0], Selector::Name(Name::from("name")));
+        }
+        {
+            let (_, sk) = parse_descendant_segment("..name").unwrap();
+            assert_eq!(sk.as_dot_name().unwrap(), "name");
+        }
+        {
+            let (_, sk) = parse_descendant_segment("...name").unwrap();
+            assert_eq!(sk.as_dot_name().unwrap(), "name");
+        }
+        {
+            let (_, sk) = parse_descendant_segment("..*").unwrap();
+            assert!(sk.is_wildcard());
+        }
+        {
+            let (_, sk) = parse_descendant_segment("...*").unwrap();
+            assert!(sk.is_wildcard());
+        }
+    }
+}

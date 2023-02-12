@@ -1,0 +1,192 @@
+json-path = root-identifier segments
+segments  = *(S segment)
+
+root-identifier  = "$"
+
+selector =  ( name-selector  /
+              index-selector /
+              slice-selector /
+              filter-selector
+            )
+
+name-selector       = string-literal
+
+string-literal      = %x22 *double-quoted %x22 /     ; "string"
+                      %x27 *single-quoted %x27       ; 'string'
+
+double-quoted       = unescaped /
+                      %x27      /                    ; '
+                      ESC %x22  /                    ; \"
+                      ESC escapable
+
+single-quoted       = unescaped /
+                      %x22      /                    ; "
+                      ESC %x27  /                    ; \'
+                      ESC escapable
+
+ESC                 = %x5C                           ; \  backslash
+
+unescaped           = %x20-21 /                      ; s. RFC 8259
+                      %x23-26 /                      ; omit "
+                      %x28-5B /                      ; omit '
+                      %x5D-10FFFF                    ; omit \
+
+escapable           = ( %x62 / %x66 / %x6E / %x72 / %x74 /
+                         ; \b \f \n \r \t
+                         ; b / ;  BS backspace U+0008
+                         ; t / ;  HT horizontal tab U+0009
+                         ; n / ;  LF line feed U+000A
+                         ; f / ;  FF form feed U+000C
+                         ; r / ;  CR carriage return U+000D
+                         "/" / ;  /  slash (solidus) U+002F
+                         "\" / ; \ backslash (reverse solidus) U+005C
+                         (%x75 hexchar) ;  uXXXX      U+XXXX
+                      )
+
+hexchar = non-surrogate / (high-surrogate "\" %x75 low-surrogate)
+
+non-surrogate = ((DIGIT / "A"/"B"/"C" / "E"/"F") 3HEXDIG) / ("D" %x30-37 2HEXDIG )
+high-surrogate = "D" ("8"/"9"/"A"/"B") 2HEXDIG
+low-surrogate = "D" ("C"/"D"/"E"/"F") 2HEXDIG
+
+HEXDIG = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
+
+wildcard = "*"
+
+index-selector = int                             ; decimal integer
+
+int            = "0" / (["-"] DIGIT1 *DIGIT)     ; -  optional
+DIGIT1         = %x31-39                         ; 1-9 non-zero digit
+
+slice-selector =  [start S] ":" S [end S] [":" [S step ]]
+
+start          = int       ; included in selection
+end            = int       ; not included in selection
+step           = int       ; default: 1
+
+B              =    %x20 / ; Space
+                    %x09 / ; Horizontal tab
+                    %x0A / ; Line feed or New line
+                    %x0D   ; Carriage return
+S              = *B        ; optional blank space
+RS             = 1*B       ; required blank space
+
+filter-selector = "?" S boolean-expr
+
+boolean-expr      = logical-or-expr
+logical-or-expr   = logical-and-expr *(S "||" S logical-and-expr)
+                      ; disjunction
+                      ; binds less tightly than conjunction
+logical-and-expr  = basic-expr *(S "&&" S basic-expr)
+                      ; conjunction
+                      ; binds more tightly than disjunction
+
+basic-expr        = paren-expr /
+                    relation-expr
+                    exist-expr
+exist-expr        = [logical-not-op S] filter-path
+                       ; path existence or non-existence
+filter-path       = rel-path / json-path / function-expression
+rel-path          = current-node-identifier segments
+current-node-identifier = "@"
+
+paren-expr        = [logical-not-op S] "(" S boolean-expr S ")"
+                                      ; parenthesized expression
+logical-not-op    = "!"               ; logical NOT operator
+
+relation-expr     = comp-expr         ; comparison test
+
+comp-expr    = comparable S comp-op S comparable
+comparable   = number / string-literal /        ; primitive ...
+               true / false / null /            ; values only
+               singular-path /                  ; Singular Path value
+               function-expression
+comp-op      = "==" / "!=" /                    ; comparison ...
+               "<"  / ">"  /                    ; operators
+               "<=" / ">="
+
+singular-path     = rel-singular-path / abs-singular-path /
+                    function-expression
+rel-singular-path = current-node-identifier singular-path-segments
+abs-singular-path = root-identifier singular-path-segments
+singular-path-segments = *(S (name-segment / index-segment))
+name-segment      = "[" name-selector "]" / dot-member-name-shorthand
+index-segment     = "[" index-selector "]"
+
+number       = (int / "-0") [ frac ] [ exp ]       ; decimal number
+frac         = "." 1*DIGIT                         ; decimal fraction
+exp          = "e" [ "-" / "+" ] 1*DIGIT           ; decimal exponent
+true         = %x74.72.75.65                       ; true
+false        = %x66.61.6c.73.65                    ; false
+null         = %x6e.75.6c.6c                       ; null
+
+function-name           = function-name-first *function-name-char
+function-name-first     = LCALPHA
+function-name-char      = DIGIT / function-name-first / "_"
+LCALPHA                 = %x61-7A  ; "a".."z"
+
+function-expression     = function-name "(" S [function-argument
+                             *(S "," S function-argument)] S ")"
+function-argument       = filter-path / comparable
+
+segment = child-segment / descendant-segment
+
+child-segment             = (child-longhand /
+                             dot-wildcard-shorthand /
+                             dot-member-name-shorthand)
+
+child-longhand            = "[" S selector 1*(S "," S selector) S "]"
+
+dot-wildcard-shorthand    = "." wildcard
+
+dot-member-name-shorthand = "." dot-member-name
+dot-member-name           = name-first *name-char
+name-first                = ALPHA /
+                            "_"   /            ; _
+                            %x80-10FFFF
+                              ; any non-ASCII Unicode character
+name-char                 = DIGIT / name-first
+
+DIGIT                     =  %x30-39              ; 0-9
+ALPHA                     =  %x41-5A / %x61-7A    ; A-Z / a-z
+
+descendant-segment               = (descendant-child /
+                                    descendant-wildcard-shorthand /
+                                    descendant-member-name-shorthand)
+descendant-child                 = ".." child-segment
+
+descendant-wildcard-shorthand    = ".." wildcard
+descendant-member-name-shorthand = ".." dot-member-name
+
+normalized-path      = root-identifier *(normal-index-segment)
+normal-index-segment = "[" normal-selector "]"
+normal-selector      = normal-name-selector / normal-index-selector
+normal-name-selector = %x27 *normal-single-quoted %x27 ; 'string'
+normal-single-quoted = normal-unescaped /
+                       ESC normal-escapable
+normal-unescaped     = %x20-26 /                 ; omit control codes
+                       %x28-5B /                 ; omit '
+                       %x5D-10FFFF               ; omit \
+normal-escapable     = ( %x62 / %x66 / %x6E / %x72 / %x74 /
+                           ; \b \f \n \r \t
+                           ; b /         ;  BS backspace U+0008
+                           ; t /         ;  HT horizontal tab U+0009
+                           ; n /         ;  LF line feed U+000A
+                           ; f /         ;  FF form feed U+000C
+                           ; r /         ;  CR carriage return U+000D
+                         "'" /           ;  ' apostrophe U+0027
+                         "\" / ; \ backslash (reverse solidus) U+005C
+                         (%x75 normal-hexchar)
+                                        ; certain values u00xx U+00XX
+                        )
+normal-hexchar       = "0" "0"
+                       (
+                          ("0" %x30-37) / ; "00"-"07"
+                          ("0" %x62) / ; "0b" ; omit U+0008-U+000A
+                          ("0" %x65-66) /
+                            ; "0e"-"0f" ; omit U+000C-U+000D
+                          ("1" normal-HEXDIG)
+                        )
+normal-HEXDIG        = DIGIT / %x61-66   ; "0"-"9", "a"-"f"
+normal-index-selector = "0" / (DIGIT1 *DIGIT)
+                          ; non-negative decimal integer
