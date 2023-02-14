@@ -23,52 +23,6 @@ pub enum Selector {
     Filter(Filter),
 }
 
-impl Selector {
-    pub fn as_name(&self) -> Option<&str> {
-        match self {
-            Selector::Name(n) => Some(n.0.as_str()),
-            _ => None,
-        }
-    }
-
-    pub fn is_name(&self) -> bool {
-        self.as_name().is_some()
-    }
-
-    pub fn is_wildcard(&self) -> bool {
-        matches!(self, Selector::Wildcard)
-    }
-
-    pub fn as_index(&self) -> Option<isize> {
-        match self {
-            Selector::Index(i) => Some(i.0),
-            _ => None,
-        }
-    }
-
-    pub fn is_index(&self) -> bool {
-        self.as_index().is_some()
-    }
-
-    pub fn as_array_slice(&self) -> Option<&Slice> {
-        match self {
-            Selector::ArraySlice(s) => Some(s),
-            _ => None,
-        }
-    }
-
-    pub fn is_array_slice(&self) -> bool {
-        self.as_array_slice().is_some()
-    }
-
-    pub fn as_filter(&self) -> Option<&Filter> {
-        match self {
-            Selector::Filter(f) => Some(f),
-            _ => None,
-        }
-    }
-}
-
 impl QueryValue for Selector {
     fn query_value<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
         let mut query = Vec::new();
@@ -98,7 +52,7 @@ pub fn parse_wildcard_selector(input: &str) -> IResult<&str, Selector> {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Name(String);
+pub struct Name(pub String);
 
 impl Name {
     pub fn as_str(&self) -> &str {
@@ -131,13 +85,7 @@ fn parse_name_selector(input: &str) -> IResult<&str, Selector> {
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct Index(pub(crate) isize);
-
-impl Index {
-    pub fn as_isize(&self) -> isize {
-        self.0
-    }
-}
+pub struct Index(pub isize);
 
 impl QueryValue for Index {
     fn query_value<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {

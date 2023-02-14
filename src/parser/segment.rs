@@ -26,16 +26,6 @@ pub enum PathSegmentKind {
     Descendant,
 }
 
-impl PathSegment {
-    pub fn is_child(&self) -> bool {
-        matches!(self.kind, PathSegmentKind::Child)
-    }
-
-    pub fn is_descendant(&self) -> bool {
-        matches!(self.kind, PathSegmentKind::Descendant)
-    }
-}
-
 impl QueryValue for PathSegment {
     fn query_value<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
         let mut query = self.segment.query_value(current, root);
@@ -68,6 +58,7 @@ pub enum Segment {
 }
 
 impl Segment {
+    #[cfg(test)]
     pub fn as_long_hand(&self) -> Option<&[Selector]> {
         match self {
             Segment::LongHand(v) => Some(v.as_slice()),
@@ -75,23 +66,12 @@ impl Segment {
         }
     }
 
-    pub fn is_long_hand(&self) -> bool {
-        self.as_long_hand().is_some()
-    }
-
+    #[cfg(test)]
     pub fn as_dot_name(&self) -> Option<&str> {
         match self {
             Segment::DotName(s) => Some(s.as_str()),
             _ => None,
         }
-    }
-
-    pub fn is_dot_name(&self) -> bool {
-        self.as_dot_name().is_some()
-    }
-
-    pub fn is_wildcard(&self) -> bool {
-        matches!(self, Segment::Wildcard)
     }
 }
 
@@ -284,7 +264,7 @@ mod tests {
         }
         {
             let (_, sk) = parse_child_segment(".*").unwrap();
-            assert!(sk.is_wildcard());
+            assert!(matches!(sk, Segment::Wildcard));
         }
         {
             let (_, sk) = parse_child_segment("[*]").unwrap();
@@ -310,11 +290,11 @@ mod tests {
         }
         {
             let (_, sk) = parse_descendant_segment("..*").unwrap();
-            assert!(sk.is_wildcard());
+            assert!(matches!(sk, Segment::Wildcard));
         }
         {
             let (_, sk) = parse_descendant_segment("...*").unwrap();
-            assert!(sk.is_wildcard());
+            assert!(matches!(sk, Segment::Wildcard));
         }
     }
 }

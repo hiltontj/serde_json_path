@@ -4,11 +4,11 @@ use serde_json::Value;
 
 use self::segment::{parse_segment, PathSegment};
 
-pub(crate) mod primitive;
+pub mod primitive;
 pub mod segment;
 pub mod selector;
 
-pub(crate) trait QueryValue {
+pub trait QueryValue {
     fn query_value<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value>;
 }
 
@@ -22,16 +22,6 @@ pub struct Path {
 pub enum PathKind {
     Root,
     Current,
-}
-
-impl Path {
-    pub fn is_root(&self) -> bool {
-        matches!(self.kind, PathKind::Root)
-    }
-
-    pub fn is_current(&self) -> bool {
-        matches!(self.kind, PathKind::Current)
-    }
 }
 
 impl QueryValue for Path {
@@ -70,13 +60,19 @@ pub fn parse_path(input: &str) -> IResult<&str, Path> {
 
 #[cfg(test)]
 mod tests {
+    use crate::parser::{
+        segment::Segment,
+        selector::{Name, Selector},
+        PathKind,
+    };
+
     use super::parse_path;
 
     #[test]
     fn root_path() {
         {
             let (_, p) = parse_path("$").unwrap();
-            assert!(p.is_root());
+            assert!(matches!(p.kind, PathKind::Root));
         }
         {
             let (_, p) = parse_path("$.name").unwrap();
@@ -86,8 +82,8 @@ mod tests {
             let (_, p) = parse_path("$.names['first_name']..*").unwrap();
             assert_eq!(p.segments[0].segment.as_dot_name().unwrap(), "names");
             let clh = p.segments[1].segment.as_long_hand().unwrap();
-            assert_eq!(clh[0].as_name().unwrap(), "first_name");
-            assert!(p.segments[2].segment.is_wildcard());
+            assert!(matches!(&clh[0], Selector::Name(Name(s)) if s == "first_name"));
+            assert!(matches!(p.segments[2].segment, Segment::Wildcard));
         }
     }
 
@@ -95,7 +91,7 @@ mod tests {
     fn current_path() {
         {
             let (_, p) = parse_path("@").unwrap();
-            assert!(p.is_current());
+            assert!(matches!(p.kind, PathKind::Current));
         }
     }
 }

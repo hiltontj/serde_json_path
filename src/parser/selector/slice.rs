@@ -16,6 +16,7 @@ pub struct Slice {
     step: Option<isize>,
 }
 
+#[cfg(test)]
 impl Slice {
     pub fn new() -> Self {
         Self::default()
@@ -110,7 +111,7 @@ fn parse_int_space_before(input: &str) -> IResult<&str, isize> {
 ///
 /// See [Section 2.5.4](https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-09.html#name-array-slice-selector)
 /// in the JSONPath standard.
-pub(super) fn parse_array_slice(input: &str) -> IResult<&str, Slice> {
+pub fn parse_array_slice(input: &str) -> IResult<&str, Slice> {
     map(
         separated_pair(
             opt(parse_int_space_after),

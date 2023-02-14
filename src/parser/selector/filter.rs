@@ -50,16 +50,6 @@ pub fn parse_filter(input: &str) -> IResult<&str, Filter> {
 #[derive(Debug, PartialEq)]
 struct BooleanExpr(Vec<LogicalAndExpr>);
 
-impl BooleanExpr {
-    pub fn or(v: Vec<LogicalAndExpr>) -> Self {
-        Self(v)
-    }
-
-    pub fn and(v: Vec<BasicExpr>) -> Self {
-        Self(vec![LogicalAndExpr(v)])
-    }
-}
-
 impl TestFilter for BooleanExpr {
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
         self.0.iter().any(|expr| expr.test_filter(current, root))
@@ -98,49 +88,13 @@ enum BasicExpr {
     NotExist(ExistExpr),
 }
 
+#[cfg(test)]
 impl BasicExpr {
-    pub fn as_paren(&self) -> Option<&BooleanExpr> {
-        match self {
-            BasicExpr::Paren(bx) => Some(bx),
-            _ => None,
-        }
-    }
-
-    pub fn is_paren(&self) -> bool {
-        self.as_paren().is_some()
-    }
-
-    pub fn as_not_paren(&self) -> Option<&BooleanExpr> {
-        match self {
-            BasicExpr::NotParen(bx) => Some(bx),
-            _ => None,
-        }
-    }
-
-    pub fn is_not_paren(&self) -> bool {
-        self.as_not_paren().is_some()
-    }
-
     pub fn as_relation(&self) -> Option<&ComparisonExpr> {
         match self {
             BasicExpr::Relation(cx) => Some(cx),
             _ => None,
         }
-    }
-
-    pub fn is_relation(&self) -> bool {
-        self.as_relation().is_some()
-    }
-
-    pub fn as_exist(&self) -> Option<&ExistExpr> {
-        match self {
-            BasicExpr::Exist(ex) => Some(ex),
-            _ => None,
-        }
-    }
-
-    pub fn is_exist(&self) -> bool {
-        self.as_exist().is_some()
     }
 }
 
@@ -321,6 +275,17 @@ enum ComparablePrimitiveKind {
 }
 
 impl Comparable {
+    pub fn as_value<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> Option<&Value> {
+        use Comparable::*;
+        match self {
+            Primitive { kind: _, value } => Some(value),
+            SingularPath(sp) => sp.eval_path(current, root),
+        }
+    }
+}
+
+#[cfg(test)]
+impl Comparable {
     pub fn is_null(&self) -> bool {
         match self {
             Comparable::Primitive { kind, value }
@@ -371,14 +336,6 @@ impl Comparable {
             _ => None,
         }
     }
-
-    pub fn as_value<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> Option<&Value> {
-        use Comparable::*;
-        match self {
-            Primitive { kind: _, value } => Some(value),
-            SingularPath(sp) => sp.eval_path(current, root),
-        }
-    }
 }
 
 fn parse_null_comparable(input: &str) -> IResult<&str, Comparable> {
@@ -415,30 +372,6 @@ enum SingularPathSegment {
     Index(Index),
 }
 
-impl SingularPathSegment {
-    pub fn as_name(&self) -> Option<&Name> {
-        match self {
-            SingularPathSegment::Name(n) => Some(n),
-            _ => None,
-        }
-    }
-
-    pub fn is_name(&self) -> bool {
-        self.as_name().is_some()
-    }
-
-    pub fn as_index(&self) -> Option<Index> {
-        match self {
-            SingularPathSegment::Index(i) => Some(*i),
-            _ => None,
-        }
-    }
-
-    pub fn is_index(&self) -> bool {
-        self.as_index().is_some()
-    }
-}
-
 fn parse_singular_path_index_segment(input: &str) -> IResult<&str, Index> {
     delimited(char('['), parse_index, char(']'))(input)
 }
@@ -466,14 +399,10 @@ fn parse_singular_path_segments(input: &str) -> IResult<&str, Vec<SingularPathSe
 #[derive(Debug, PartialEq)]
 struct SingularPath {
     kind: SingularPathKind,
-    pub(crate) segments: Vec<SingularPathSegment>,
+    pub segments: Vec<SingularPathSegment>,
 }
 
 impl SingularPath {
-    pub fn as_segments(&self) -> &[SingularPathSegment] {
-        &self.segments
-    }
-
     pub fn eval_path<'b>(&self, current: &'b Value, root: &'b Value) -> Option<&'b Value> {
         let mut target = match self.kind {
             SingularPathKind::Absolute => root,
@@ -546,7 +475,10 @@ fn parse_comparable(input: &str) -> IResult<&str, Comparable> {
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::selector::filter::ComparisonOperator;
+    use crate::parser::selector::{
+        filter::{ComparisonOperator, SingularPathSegment},
+        Index, Name,
+    };
 
     use super::{parse_basic_expr, parse_comp_expr, parse_comparable};
 
@@ -602,14 +534,14 @@ mod tests {
         {
             let (_, cmp) = parse_comparable("@.name").unwrap();
             let sp = &cmp.as_singular_path().unwrap().segments;
-            assert_eq!(sp[0].as_name().unwrap().as_str(), "name");
+            assert!(matches!(&sp[0], SingularPathSegment::Name(Name(s)) if s == "name"));
         }
         {
             let (_, cmp) = parse_comparable("$.data[0].id").unwrap();
             let sp = &cmp.as_singular_path().unwrap().segments;
-            assert_eq!(sp[0].as_name().unwrap().as_str(), "data");
-            assert_eq!(sp[1].as_index().unwrap().as_isize(), 0);
-            assert_eq!(sp[2].as_name().unwrap().as_str(), "id");
+            assert!(matches!(&sp[0], SingularPathSegment::Name(Name(s)) if s == "data"));
+            assert!(matches!(&sp[1], SingularPathSegment::Index(Index(i)) if i == &0));
+            assert!(matches!(&sp[2], SingularPathSegment::Name(Name(s)) if s == "id"));
         }
     }
 }
