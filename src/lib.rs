@@ -1,11 +1,14 @@
+use std::slice::Iter;
+
 use parser::parse_path;
+use serde::Serialize;
 use serde_json::Value;
 
 use crate::parser::QueryValue;
 
 mod parser;
 
-#[derive(Debug, Default, Eq, PartialEq)]
+#[derive(Debug, Default, Eq, PartialEq, Serialize)]
 pub struct Query<'a> {
     pub(crate) nodes: Vec<&'a Value>,
 }
@@ -33,6 +36,20 @@ impl<'a> Query<'a> {
 
     pub fn is_empty(&self) -> bool {
         self.nodes.is_empty()
+    }
+
+    pub fn iter(&self) -> Iter<'_, &Value> {
+        self.nodes.iter()
+    }
+}
+
+impl<'a> IntoIterator for Query<'a> {
+    type Item = &'a Value;
+
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.nodes.into_iter()
     }
 }
 
