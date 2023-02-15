@@ -1,6 +1,7 @@
 use nom::branch::alt;
 use nom::character::complete::char;
-use nom::{combinator::map, IResult};
+use nom::combinator::map;
+use nom::error::context;
 use serde_json::Value;
 
 use self::filter::{parse_filter, Filter};
@@ -9,7 +10,7 @@ use self::slice::Slice;
 
 use super::primitive::int::parse_int;
 use super::primitive::string::parse_string_literal;
-use super::QueryValue;
+use super::{PResult, QueryValue};
 
 pub mod filter;
 pub mod slice;
@@ -47,7 +48,7 @@ impl QueryValue for Selector {
     }
 }
 
-pub fn parse_wildcard_selector(input: &str) -> IResult<&str, Selector> {
+pub fn parse_wildcard_selector(input: &str) -> PResult<Selector> {
     map(char('*'), |_| Selector::Wildcard)(input)
 }
 
@@ -76,11 +77,11 @@ impl From<&str> for Name {
     }
 }
 
-pub fn parse_name(input: &str) -> IResult<&str, Name> {
+pub fn parse_name(input: &str) -> PResult<Name> {
     map(parse_string_literal, Name)(input)
 }
 
-fn parse_name_selector(input: &str) -> IResult<&str, Selector> {
+fn parse_name_selector(input: &str) -> PResult<Selector> {
     map(parse_name, Selector::Name)(input)
 }
 
@@ -117,30 +118,33 @@ impl From<isize> for Index {
     }
 }
 
-fn parse_index(input: &str) -> IResult<&str, Index> {
+fn parse_index(input: &str) -> PResult<Index> {
     map(parse_int, Index)(input)
 }
 
-fn parse_index_selector(input: &str) -> IResult<&str, Selector> {
+fn parse_index_selector(input: &str) -> PResult<Selector> {
     map(parse_index, Selector::Index)(input)
 }
 
-fn parse_array_slice_selector(input: &str) -> IResult<&str, Selector> {
+fn parse_array_slice_selector(input: &str) -> PResult<Selector> {
     map(parse_array_slice, Selector::ArraySlice)(input)
 }
 
-fn parse_filter_selector(input: &str) -> IResult<&str, Selector> {
+fn parse_filter_selector(input: &str) -> PResult<Selector> {
     map(parse_filter, Selector::Filter)(input)
 }
 
-pub fn parse_selector(input: &str) -> IResult<&str, Selector> {
-    alt((
-        parse_wildcard_selector,
-        parse_name_selector,
-        parse_array_slice_selector,
-        parse_index_selector,
-        parse_filter_selector,
-    ))(input)
+pub fn parse_selector(input: &str) -> PResult<Selector> {
+    context(
+        "selector",
+        alt((
+            parse_wildcard_selector,
+            parse_name_selector,
+            parse_array_slice_selector,
+            parse_index_selector,
+            parse_filter_selector,
+        )),
+    )(input)
 }
 
 #[cfg(test)]

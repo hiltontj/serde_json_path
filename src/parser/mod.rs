@@ -1,4 +1,5 @@
 use nom::character::complete::char;
+use nom::error::VerboseError;
 use nom::{branch::alt, combinator::map, multi::many0, sequence::preceded, IResult};
 use serde_json::Value;
 
@@ -7,6 +8,8 @@ use self::segment::{parse_segment, PathSegment};
 pub mod primitive;
 pub mod segment;
 pub mod selector;
+
+type PResult<'a, O> = IResult<&'a str, O, VerboseError<&'a str>>;
 
 pub trait QueryValue {
     fn query_value<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value>;
@@ -41,11 +44,11 @@ impl QueryValue for Path {
     }
 }
 
-fn parse_path_segments(input: &str) -> IResult<&str, Vec<PathSegment>> {
+fn parse_path_segments(input: &str) -> PResult<Vec<PathSegment>> {
     many0(parse_segment)(input)
 }
 
-pub fn parse_path(input: &str) -> IResult<&str, Path> {
+pub fn parse_path(input: &str) -> PResult<Path> {
     alt((
         map(preceded(char('$'), parse_path_segments), |segments| Path {
             kind: PathKind::Root,

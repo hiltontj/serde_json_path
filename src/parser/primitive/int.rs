@@ -5,10 +5,11 @@ use nom::{
     character::complete::digit0,
     combinator::{map_res, opt, recognize},
     sequence::tuple,
-    IResult,
 };
 
-fn parse_zero(input: &str) -> IResult<&str, &str> {
+use crate::parser::PResult;
+
+fn parse_zero(input: &str) -> PResult<&str> {
     tag("0")(input)
 }
 
@@ -16,22 +17,22 @@ fn is_non_zero_digit(chr: char) -> bool {
     ('1'..='9').contains(&chr)
 }
 
-pub fn parse_non_zero_first_digit(input: &str) -> IResult<&str, &str> {
+pub fn parse_non_zero_first_digit(input: &str) -> PResult<&str> {
     take_while_m_n(1, 1, is_non_zero_digit)(input)
 }
 
 /// Parse a non-zero integer as `i64`
 ///
 /// This does not allow leading `0`'s, e.g., `0123`
-fn parse_non_zero_int(input: &str) -> IResult<&str, &str> {
+fn parse_non_zero_int(input: &str) -> PResult<&str> {
     recognize(tuple((opt(char('-')), parse_non_zero_first_digit, digit0)))(input)
 }
 
-pub fn parse_int_string(input: &str) -> IResult<&str, &str> {
+pub fn parse_int_string(input: &str) -> PResult<&str> {
     alt((parse_zero, parse_non_zero_int))(input)
 }
 
-pub fn parse_int(input: &str) -> IResult<&str, isize> {
+pub fn parse_int(input: &str) -> PResult<isize> {
     map_res(parse_int_string, |i_str| i_str.parse::<isize>())(input)
 }
 

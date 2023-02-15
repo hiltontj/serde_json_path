@@ -1,5 +1,8 @@
 use nom::bytes::complete::tag;
 use nom::character::complete::char;
+use nom::combinator::cut;
+use nom::error::context;
+use nom::sequence::terminated;
 use nom::{
     branch::alt,
     bytes::complete::take_while1,
@@ -7,12 +10,11 @@ use nom::{
     combinator::{map, recognize},
     multi::{fold_many0, separated_list1},
     sequence::{delimited, pair, preceded},
-    IResult,
 };
 use serde_json::Value;
 
 use super::selector::{parse_selector, parse_wildcard_selector, Selector};
-use super::QueryValue;
+use super::{PResult, QueryValue};
 
 #[derive(Debug, PartialEq)]
 pub struct PathSegment {
@@ -112,19 +114,19 @@ fn is_non_ascii_unicode(chr: char) -> bool {
     chr >= '\u{0080}'
 }
 
-fn parse_non_ascii_unicode(input: &str) -> IResult<&str, &str> {
+fn parse_non_ascii_unicode(input: &str) -> PResult<&str> {
     take_while1(is_non_ascii_unicode)(input)
 }
 
-fn parse_name_first(input: &str) -> IResult<&str, &str> {
+fn parse_name_first(input: &str) -> PResult<&str> {
     alt((alpha1, recognize(char('_')), parse_non_ascii_unicode))(input)
 }
 
-fn parse_name_char(input: &str) -> IResult<&str, &str> {
+fn parse_name_char(input: &str) -> PResult<&str> {
     alt((digit1, parse_name_first))(input)
 }
 
-pub fn parse_dot_member_name(input: &str) -> IResult<&str, String> {
+pub fn parse_dot_member_name(input: &str) -> PResult<String> {
     map(
         recognize(pair(
             parse_name_first,
@@ -137,32 +139,34 @@ pub fn parse_dot_member_name(input: &str) -> IResult<&str, String> {
     )(input)
 }
 
-fn parse_dot_member_name_shorthand(input: &str) -> IResult<&str, Segment> {
+fn parse_dot_member_name_shorthand(input: &str) -> PResult<Segment> {
     map(preceded(char('.'), parse_dot_member_name), Segment::DotName)(input)
 }
 
-fn parse_multi_selector(input: &str) -> IResult<&str, Vec<Selector>> {
-    separated_list1(
-        delimited(space0, char(','), space0), // TODO - space delimited, and similar parser helpers
-        parse_selector,
+fn parse_multi_selector(input: &str) -> PResult<Vec<Selector>> {
+    separated_list1(delimited(space0, char(','), space0), parse_selector)(input)
+}
+
+fn parse_child_long_hand(input: &str) -> PResult<Segment> {
+    context(
+        "child long-hand segment",
+        preceded(
+            pair(char('['), space0),
+            cut(terminated(
+                map(parse_multi_selector, Segment::LongHand),
+                pair(space0, char(']')),
+            )),
+        ),
     )(input)
 }
 
-fn parse_child_long_hand(input: &str) -> IResult<&str, Segment> {
-    delimited(
-        pair(char('['), space0),
-        map(parse_multi_selector, Segment::LongHand),
-        pair(space0, char(']')),
-    )(input)
-}
-
-fn parse_dot_wildcard_shorthand(input: &str) -> IResult<&str, Segment> {
+fn parse_dot_wildcard_shorthand(input: &str) -> PResult<Segment> {
     map(preceded(char('.'), parse_wildcard_selector), |_| {
         Segment::Wildcard
     })(input)
 }
 
-fn parse_child_segment(input: &str) -> IResult<&str, Segment> {
+fn parse_child_segment(input: &str) -> PResult<Segment> {
     alt((
         parse_dot_wildcard_shorthand,
         parse_dot_member_name_shorthand,
@@ -170,7 +174,7 @@ fn parse_child_segment(input: &str) -> IResult<&str, Segment> {
     ))(input)
 }
 
-fn parse_descendant_segment(input: &str) -> IResult<&str, Segment> {
+fn parse_descendant_segment(input: &str) -> PResult<Segment> {
     preceded(
         tag(".."),
         alt((
@@ -181,7 +185,7 @@ fn parse_descendant_segment(input: &str) -> IResult<&str, Segment> {
     )(input)
 }
 
-pub fn parse_segment(input: &str) -> IResult<&str, PathSegment> {
+pub fn parse_segment(input: &str) -> PResult<PathSegment> {
     alt((
         map(parse_descendant_segment, |inner| PathSegment {
             kind: PathSegmentKind::Descendant,
@@ -196,7 +200,7 @@ pub fn parse_segment(input: &str) -> IResult<&str, PathSegment> {
 
 #[cfg(test)]
 mod tests {
-    use nom::combinator::all_consuming;
+    use nom::{combinator::all_consuming, error::convert_error};
 
     use crate::parser::selector::{slice::Slice, Index, Name, Selector};
 
@@ -253,6 +257,14 @@ mod tests {
             let s = sk.as_long_hand().unwrap();
             assert_eq!(s[0], Selector::ArraySlice(Slice::new()));
             assert_eq!(s[1], Selector::Wildcard);
+        }
+        {
+            let i = "[010]";
+            let err = parse_child_long_hand("[010]").unwrap_err();
+            match err {
+                nom::Err::Error(e) | nom::Err::Failure(e) => println!("{}", convert_error(i, e)),
+                _ => panic!("wrong error kind: {err:?}"),
+            }
         }
     }
 

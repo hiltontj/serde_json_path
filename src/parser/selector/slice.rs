@@ -3,11 +3,10 @@ use nom::{
     character::complete::{char, multispace0},
     combinator::{map, opt},
     sequence::{preceded, separated_pair, terminated},
-    IResult,
 };
 use serde_json::Value;
 
-use crate::parser::{primitive::int::parse_int, QueryValue};
+use crate::parser::{primitive::int::parse_int, PResult, QueryValue};
 
 #[derive(Debug, PartialEq, Default)]
 pub struct Slice {
@@ -99,11 +98,11 @@ fn normalize_slice_index(index: isize, len: isize) -> Option<isize> {
     }
 }
 
-fn parse_int_space_after(input: &str) -> IResult<&str, isize> {
+fn parse_int_space_after(input: &str) -> PResult<isize> {
     terminated(parse_int, multispace0)(input)
 }
 
-fn parse_int_space_before(input: &str) -> IResult<&str, isize> {
+fn parse_int_space_before(input: &str) -> PResult<isize> {
     preceded(multispace0, parse_int)(input)
 }
 
@@ -111,7 +110,7 @@ fn parse_int_space_before(input: &str) -> IResult<&str, isize> {
 ///
 /// See [Section 2.5.4](https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-09.html#name-array-slice-selector)
 /// in the JSONPath standard.
-pub fn parse_array_slice(input: &str) -> IResult<&str, Slice> {
+pub fn parse_array_slice(input: &str) -> PResult<Slice> {
     map(
         separated_pair(
             opt(parse_int_space_after),

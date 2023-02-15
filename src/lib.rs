@@ -1,5 +1,6 @@
-use std::slice::Iter;
+use std::{ops::Deref, slice::Iter};
 
+use nom::error::{convert_error, VerboseError};
 use parser::parse_path;
 use serde::Serialize;
 use serde_json::Value;
@@ -54,18 +55,32 @@ impl<'a> IntoIterator for Query<'a> {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error<T> {
-    #[error("invalid JSON Path string")]
-    InvalidJsonPathString(#[from] nom::Err<nom::error::Error<T>>),
+pub enum Error {
+    #[error("invalid JSONPath string:\n{message}")]
+    InvalidJsonPathString { message: String },
+}
+
+impl<T> From<(T, VerboseError<T>)> for Error
+where
+    T: Deref<Target = str>,
+{
+    fn from((i, e): (T, VerboseError<T>)) -> Self {
+        Self::InvalidJsonPathString {
+            message: convert_error(i, e),
+        }
+    }
 }
 
 pub trait JsonPathExt {
-    fn json_path<'a>(&self, path_str: &'a str) -> Result<Query, Error<&'a str>>;
+    fn json_path(&self, path_str: &str) -> Result<Query, Error>;
 }
 
 impl JsonPathExt for Value {
-    fn json_path<'a>(&self, path_str: &'a str) -> Result<Query, Error<&'a str>> {
-        let (_, path) = parse_path(path_str)?;
+    fn json_path(&self, path_str: &str) -> Result<Query, Error> {
+        let (_, path) = parse_path(path_str).map_err(|err| match err {
+            nom::Err::Error(e) | nom::Err::Failure(e) => (path_str, e),
+            nom::Err::Incomplete(_) => unreachable!("we do not use streaming parsers"),
+        })?;
         let nodes = path.query_value(self, self);
         Ok(Query { nodes })
     }

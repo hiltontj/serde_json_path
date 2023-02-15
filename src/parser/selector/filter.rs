@@ -2,14 +2,14 @@ use nom::character::complete::{char, space0};
 use nom::combinator::map;
 use nom::multi::{many0, separated_list1};
 use nom::sequence::{delimited, pair, preceded, separated_pair, tuple};
-use nom::{branch::alt, bytes::complete::tag, combinator::value, IResult};
+use nom::{branch::alt, bytes::complete::tag, combinator::value};
 use serde_json::{Number, Value};
 
 use crate::parser::primitive::number::parse_number;
 use crate::parser::primitive::string::parse_string_literal;
 use crate::parser::primitive::{parse_bool, parse_null};
 use crate::parser::segment::parse_dot_member_name;
-use crate::parser::{parse_path, Path, QueryValue};
+use crate::parser::{parse_path, PResult, Path, QueryValue};
 
 use super::{parse_index, parse_name, Index, Name};
 
@@ -37,7 +37,7 @@ impl QueryValue for Filter {
     }
 }
 
-pub fn parse_filter(input: &str) -> IResult<&str, Filter> {
+pub fn parse_filter(input: &str) -> PResult<Filter> {
     map(
         preceded(pair(char('?'), space0), parse_boolean_expr),
         Filter,
@@ -65,14 +65,14 @@ impl TestFilter for LogicalAndExpr {
     }
 }
 
-fn parse_logical_and(input: &str) -> IResult<&str, LogicalAndExpr> {
+fn parse_logical_and(input: &str) -> PResult<LogicalAndExpr> {
     map(
         separated_list1(tuple((space0, tag("&&"), space0)), parse_basic_expr),
         LogicalAndExpr,
     )(input)
 }
 
-fn parse_boolean_expr(input: &str) -> IResult<&str, BooleanExpr> {
+fn parse_boolean_expr(input: &str) -> PResult<BooleanExpr> {
     map(
         separated_list1(tuple((space0, tag("||"), space0)), parse_logical_and),
         BooleanExpr,
@@ -124,22 +124,22 @@ impl TestFilter for ExistExpr {
     }
 }
 
-fn parse_exist_expr_inner(input: &str) -> IResult<&str, ExistExpr> {
+fn parse_exist_expr_inner(input: &str) -> PResult<ExistExpr> {
     map(parse_path, ExistExpr)(input)
 }
 
-fn parse_exist_expr(input: &str) -> IResult<&str, BasicExpr> {
+fn parse_exist_expr(input: &str) -> PResult<BasicExpr> {
     map(parse_exist_expr_inner, BasicExpr::Exist)(input)
 }
 
-fn parse_not_exist_expr(input: &str) -> IResult<&str, BasicExpr> {
+fn parse_not_exist_expr(input: &str) -> PResult<BasicExpr> {
     map(
         preceded(pair(char('!'), space0), parse_exist_expr_inner),
         BasicExpr::NotExist,
     )(input)
 }
 
-fn parse_paren_expr_inner(input: &str) -> IResult<&str, BooleanExpr> {
+fn parse_paren_expr_inner(input: &str) -> PResult<BooleanExpr> {
     delimited(
         pair(char('('), space0),
         parse_boolean_expr,
@@ -147,18 +147,18 @@ fn parse_paren_expr_inner(input: &str) -> IResult<&str, BooleanExpr> {
     )(input)
 }
 
-fn parse_paren_expr(input: &str) -> IResult<&str, BasicExpr> {
+fn parse_paren_expr(input: &str) -> PResult<BasicExpr> {
     map(parse_paren_expr_inner, BasicExpr::Paren)(input)
 }
 
-fn parse_not_parent_expr(input: &str) -> IResult<&str, BasicExpr> {
+fn parse_not_parent_expr(input: &str) -> PResult<BasicExpr> {
     map(
         preceded(pair(char('!'), space0), parse_paren_expr_inner),
         BasicExpr::NotParen,
     )(input)
 }
 
-fn parse_basic_expr(input: &str) -> IResult<&str, BasicExpr> {
+fn parse_basic_expr(input: &str) -> PResult<BasicExpr> {
     alt((
         parse_not_parent_expr,
         parse_paren_expr,
@@ -223,7 +223,7 @@ fn number_less_than(n1: &Number, n2: &Number) -> bool {
     }
 }
 
-fn parse_comp_expr(input: &str) -> IResult<&str, ComparisonExpr> {
+fn parse_comp_expr(input: &str) -> PResult<ComparisonExpr> {
     map(
         separated_pair(
             parse_comparable,
@@ -244,7 +244,7 @@ enum ComparisonOperator {
     GreaterThanEqualTo,
 }
 
-fn parse_comparison_operator(input: &str) -> IResult<&str, ComparisonOperator> {
+fn parse_comparison_operator(input: &str) -> PResult<ComparisonOperator> {
     use ComparisonOperator::*;
     alt((
         value(EqualTo, tag("==")),
@@ -338,28 +338,28 @@ impl Comparable {
     }
 }
 
-fn parse_null_comparable(input: &str) -> IResult<&str, Comparable> {
+fn parse_null_comparable(input: &str) -> PResult<Comparable> {
     map(parse_null, |_| Comparable::Primitive {
         kind: ComparablePrimitiveKind::Null,
         value: Value::Null,
     })(input)
 }
 
-fn parse_bool_comparable(input: &str) -> IResult<&str, Comparable> {
+fn parse_bool_comparable(input: &str) -> PResult<Comparable> {
     map(parse_bool, |b| Comparable::Primitive {
         kind: ComparablePrimitiveKind::Bool,
         value: Value::Bool(b),
     })(input)
 }
 
-fn parse_number_comparable(input: &str) -> IResult<&str, Comparable> {
+fn parse_number_comparable(input: &str) -> PResult<Comparable> {
     map(parse_number, |n| Comparable::Primitive {
         kind: ComparablePrimitiveKind::Number,
         value: Value::Number(n),
     })(input)
 }
 
-fn parse_string_comparable(input: &str) -> IResult<&str, Comparable> {
+fn parse_string_comparable(input: &str) -> PResult<Comparable> {
     map(parse_string_literal, |s| Comparable::Primitive {
         kind: ComparablePrimitiveKind::String,
         value: Value::String(s),
@@ -372,18 +372,18 @@ enum SingularPathSegment {
     Index(Index),
 }
 
-fn parse_singular_path_index_segment(input: &str) -> IResult<&str, Index> {
+fn parse_singular_path_index_segment(input: &str) -> PResult<Index> {
     delimited(char('['), parse_index, char(']'))(input)
 }
 
-fn parse_singular_path_name_segment(input: &str) -> IResult<&str, Name> {
+fn parse_singular_path_name_segment(input: &str) -> PResult<Name> {
     alt((
         delimited(char('['), parse_name, char(']')),
         map(preceded(char('.'), parse_dot_member_name), Name),
     ))(input)
 }
 
-fn parse_singular_path_segments(input: &str) -> IResult<&str, Vec<SingularPathSegment>> {
+fn parse_singular_path_segments(input: &str) -> PResult<Vec<SingularPathSegment>> {
     many0(preceded(
         space0,
         alt((
@@ -440,7 +440,7 @@ enum SingularPathKind {
     Relative,
 }
 
-fn parse_singular_path(input: &str) -> IResult<&str, SingularPath> {
+fn parse_singular_path(input: &str) -> PResult<SingularPath> {
     alt((
         map(
             preceded(char('$'), parse_singular_path_segments),
@@ -459,11 +459,11 @@ fn parse_singular_path(input: &str) -> IResult<&str, SingularPath> {
     ))(input)
 }
 
-fn parse_singular_path_comparable(input: &str) -> IResult<&str, Comparable> {
+fn parse_singular_path_comparable(input: &str) -> PResult<Comparable> {
     map(parse_singular_path, Comparable::SingularPath)(input)
 }
 
-fn parse_comparable(input: &str) -> IResult<&str, Comparable> {
+fn parse_comparable(input: &str) -> PResult<Comparable> {
     alt((
         parse_null_comparable,
         parse_bool_comparable,

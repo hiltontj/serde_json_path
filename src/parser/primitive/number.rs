@@ -6,21 +6,22 @@ use nom::{
     character::complete::{char, digit0, digit1, one_of},
     combinator::{map_res, opt, recognize},
     sequence::{preceded, tuple},
-    IResult,
 };
 use serde_json::Number;
 
+use crate::parser::PResult;
+
 use super::int::parse_int_string;
 
-fn parse_fractional(input: &str) -> IResult<&str, &str> {
+fn parse_fractional(input: &str) -> PResult<&str> {
     preceded(char('.'), digit1)(input)
 }
 
-fn parse_exponent(input: &str) -> IResult<&str, &str> {
+fn parse_exponent(input: &str) -> PResult<&str> {
     recognize(tuple((one_of("eE"), opt(one_of("-+")), digit0)))(input)
 }
 
-fn parse_number_string(input: &str) -> IResult<&str, &str> {
+fn parse_number_string(input: &str) -> PResult<&str> {
     recognize(tuple((
         alt((parse_int_string, tag("-0"))),
         opt(parse_fractional),
@@ -28,7 +29,7 @@ fn parse_number_string(input: &str) -> IResult<&str, &str> {
     )))(input)
 }
 
-pub fn parse_number(input: &str) -> IResult<&str, Number> {
+pub fn parse_number(input: &str) -> PResult<Number> {
     map_res(parse_number_string, Number::from_str)(input)
 }
 

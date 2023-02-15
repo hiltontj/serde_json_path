@@ -7,10 +7,11 @@ use nom::{
     combinator::{map, map_opt, map_res, value},
     multi::fold_many0,
     sequence::{delimited, preceded},
-    IResult,
 };
 
-fn parse_unicode(input: &str) -> IResult<&str, char> {
+use crate::parser::PResult;
+
+fn parse_unicode(input: &str) -> PResult<char> {
     let parse_hex = take_while_m_n(1, 6, |c: char| c.is_ascii_hexdigit());
     let parse_delimited_hex = preceded(char('u'), delimited(char('{'), parse_hex, char('}')));
     let parse_u32 = map_res(parse_delimited_hex, move |hex| u32::from_str_radix(hex, 16));
@@ -23,14 +24,14 @@ enum Quotes {
     Double,
 }
 
-fn parse_escaped_quote(quoted_with: Quotes) -> impl Fn(&str) -> IResult<&str, char> {
+fn parse_escaped_quote(quoted_with: Quotes) -> impl Fn(&str) -> PResult<char> {
     move |input: &str| match quoted_with {
         Quotes::Single => value('\u{0027}', char('\''))(input),
         Quotes::Double => value('\u{0022}', char('"'))(input),
     }
 }
 
-fn parse_escaped_char(quoted_with: Quotes) -> impl Fn(&str) -> IResult<&str, char> {
+fn parse_escaped_char(quoted_with: Quotes) -> impl Fn(&str) -> PResult<char> {
     move |input: &str| {
         preceded(
             char('\\'),
@@ -49,7 +50,7 @@ fn parse_escaped_char(quoted_with: Quotes) -> impl Fn(&str) -> IResult<&str, cha
     }
 }
 
-fn parse_literal(quoted_with: Quotes) -> impl Fn(&str) -> IResult<&str, &str> {
+fn parse_literal(quoted_with: Quotes) -> impl Fn(&str) -> PResult<&str> {
     move |input: &str| {
         let not_quote_slash = match quoted_with {
             Quotes::Single => is_not("'\\"),
@@ -59,7 +60,7 @@ fn parse_literal(quoted_with: Quotes) -> impl Fn(&str) -> IResult<&str, &str> {
     }
 }
 
-fn parse_fragment(quoted_with: Quotes) -> impl Fn(&str) -> IResult<&str, StringFragment<'_>> {
+fn parse_fragment(quoted_with: Quotes) -> impl Fn(&str) -> PResult<StringFragment<'_>> {
     move |input: &str| {
         alt((
             map(parse_literal(quoted_with), StringFragment::Literal),
@@ -73,7 +74,7 @@ enum StringFragment<'a> {
     EscapedChar(char),
 }
 
-fn parse_internal(quoted_with: Quotes) -> impl Fn(&str) -> IResult<&str, String> {
+fn parse_internal(quoted_with: Quotes) -> impl Fn(&str) -> PResult<String> {
     move |input: &str| {
         fold_many0(
             parse_fragment(quoted_with),
@@ -89,15 +90,15 @@ fn parse_internal(quoted_with: Quotes) -> impl Fn(&str) -> IResult<&str, String>
     }
 }
 
-fn parse_single_quoted(input: &str) -> IResult<&str, String> {
+fn parse_single_quoted(input: &str) -> PResult<String> {
     delimited(char('\''), parse_internal(Quotes::Single), char('\''))(input)
 }
 
-fn parse_double_quoted(input: &str) -> IResult<&str, String> {
+fn parse_double_quoted(input: &str) -> PResult<String> {
     delimited(char('"'), parse_internal(Quotes::Double), char('"'))(input)
 }
 
-pub fn parse_string_literal(input: &str) -> IResult<&str, String> {
+pub fn parse_string_literal(input: &str) -> PResult<String> {
     alt((parse_single_quoted, parse_double_quoted))(input)
 }
 
