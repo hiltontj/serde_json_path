@@ -43,26 +43,21 @@ fn spec_example_json() -> Value {
 #[test]
 fn spec_example_1() {
     let value = spec_example_json();
-    let q = value.json_path("$.store.book[*].author").unwrap();
-    let nodes = q.as_node_list().unwrap();
-    assert_eq!(nodes.len(), 4);
-    assert_eq!(nodes[2], "Herman Melville");
+    let nodes = value.json_path("$.store.book[*].author").unwrap().all();
+    assert_eq!(nodes, vec!["Nigel Rees", "Evelyn Waugh", "Herman Melville", "J. R. R. Tolkien"]);
 }
 
 #[test]
 fn spec_example_2() {
     let value = spec_example_json();
-    let q = value.json_path("$..author").unwrap();
-    let nodes = q.as_node_list().unwrap();
-    assert_eq!(nodes.len(), 4);
-    assert_eq!(nodes[2], "Herman Melville");
+    let nodes = value.json_path("$..author").unwrap().all();
+    assert_eq!(nodes, vec!["Nigel Rees", "Evelyn Waugh", "Herman Melville", "J. R. R. Tolkien"]);
 }
 
 #[test]
 fn spec_example_3() {
     let value = spec_example_json();
-    let q = value.json_path("$.store.*").unwrap();
-    let nodes = q.as_node_list().unwrap();
+    let nodes = value.json_path("$.store.*").unwrap().all();
     assert_eq!(nodes.len(), 2);
     assert!(nodes
         .iter()
@@ -72,15 +67,15 @@ fn spec_example_3() {
 #[test]
 fn spec_example_4() {
     let value = spec_example_json();
-    let q = value.json_path("$.store..price").unwrap();
-    assert_eq!(q.len(), 5);
+    let nodes = value.json_path("$.store..price").unwrap().all();
+    assert_eq!(nodes, vec![399., 8.95, 12.99, 8.99, 22.99]);
 }
 
 #[test]
 fn spec_example_5() {
     let value = spec_example_json();
     let q = value.json_path("$..book[2]").unwrap();
-    let node = q.as_node().unwrap();
+    let node = q.one().unwrap();
     assert_eq!(node, value.pointer("/store/book/2").unwrap());
 }
 
@@ -88,7 +83,7 @@ fn spec_example_5() {
 fn spec_example_6() {
     let value = spec_example_json();
     let q = value.json_path("$..book[-1]").unwrap();
-    let node = q.as_node().unwrap();
+    let node = q.one().unwrap();
     assert_eq!(node, value.pointer("/store/book/3").unwrap());
 }
 

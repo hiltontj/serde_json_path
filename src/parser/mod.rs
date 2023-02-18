@@ -15,8 +15,9 @@ pub trait QueryValue {
     fn query_value<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value>;
 }
 
+/// Represents a JSONPath expression
 #[derive(Debug, PartialEq)]
-pub struct Path {
+pub struct Query {
     kind: PathKind,
     pub segments: Vec<PathSegment>,
 }
@@ -27,7 +28,7 @@ pub enum PathKind {
     Current,
 }
 
-impl QueryValue for Path {
+impl QueryValue for Query {
     fn query_value<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
         let mut query = match self.kind {
             PathKind::Root => vec![root],
@@ -48,13 +49,13 @@ fn parse_path_segments(input: &str) -> PResult<Vec<PathSegment>> {
     many0(parse_segment)(input)
 }
 
-pub fn parse_path(input: &str) -> PResult<Path> {
+pub fn parse_path(input: &str) -> PResult<Query> {
     alt((
-        map(preceded(char('$'), parse_path_segments), |segments| Path {
+        map(preceded(char('$'), parse_path_segments), |segments| Query {
             kind: PathKind::Root,
             segments,
         }),
-        map(preceded(char('@'), parse_path_segments), |segments| Path {
+        map(preceded(char('@'), parse_path_segments), |segments| Query {
             kind: PathKind::Current,
             segments,
         }),

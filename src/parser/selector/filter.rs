@@ -9,7 +9,7 @@ use crate::parser::primitive::number::parse_number;
 use crate::parser::primitive::string::parse_string_literal;
 use crate::parser::primitive::{parse_bool, parse_null};
 use crate::parser::segment::parse_dot_member_name;
-use crate::parser::{parse_path, PResult, Path, QueryValue};
+use crate::parser::{parse_path, PResult, Query, QueryValue};
 
 use super::{parse_index, parse_name, Index, Name};
 
@@ -116,7 +116,7 @@ impl TestFilter for BasicExpr {
 ///
 /// This does not support the function expression notation outlined in the JSONPath spec.
 #[derive(Debug, PartialEq)]
-struct ExistExpr(Path);
+struct ExistExpr(Query);
 
 impl TestFilter for ExistExpr {
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
