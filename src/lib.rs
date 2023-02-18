@@ -117,14 +117,14 @@ mod parser;
 /// A list of nodes resulting from a JSONPath query
 ///
 /// Each node within the list is a borrowed reference to the node in the original
-/// [serde_json::Value] that was queried.
+/// [`serde_json::Value`] that was queried.
 #[derive(Debug, Default, Eq, PartialEq, Serialize)]
 pub struct NodeList<'a> {
     pub(crate) nodes: Vec<&'a Value>,
 }
 
 impl<'a> NodeList<'a> {
-    /// Extract exactly one node from a [NodeList]
+    /// Extract exactly one node from a [`NodeList`]
     ///
     /// This is intended for queries that are expected to yield a single node.
     ///
@@ -170,7 +170,7 @@ impl<'a> NodeList<'a> {
         self.nodes
     }
 
-    /// Get the length of a [NodeList]
+    /// Get the length of a [`NodeList`]
     pub fn len(&self) -> usize {
         self.nodes.len()
     }
@@ -180,9 +180,9 @@ impl<'a> NodeList<'a> {
         self.nodes.is_empty()
     }
 
-    /// Get an iterator over a [NodeList]
+    /// Get an iterator over a [`NodeList`]
     ///
-    /// Note that [NodeList] also implements [IntoIterator].
+    /// Note that [`NodeList`] also implements [`IntoIterator`].
     pub fn iter(&self) -> Iter<'_, &Value> {
         self.nodes.iter()
     }
@@ -216,7 +216,7 @@ where
     }
 }
 
-/// Extension trait that allows for JSONPath queries directly on [serde_json::Value]
+/// Extension trait that allows for JSONPath queries directly on [`serde_json::Value`]
 ///
 /// ## Usage
 /// ```rust
@@ -231,7 +231,7 @@ where
 /// # }
 /// ```
 pub trait JsonPathExt {
-    /// Query a [serde_json::Value] with a JSONPath query string
+    /// Query a [`serde_json::Value`] with a JSONPath query string
     fn json_path(&self, path_str: &str) -> Result<NodeList, Error>;
 }
 
