@@ -146,11 +146,9 @@ impl<'a> NodeList<'a> {
     /// # use serde_json::json;
     /// # use serde_json_path::JsonPathExt;
     /// # fn main() -> Result<(), serde_json_path::Error> {
-    ///
     /// let value = json!({"foo": ["bar", "baz"]});
     /// let query = value.json_path("$.foo[0]")?;
     /// assert_eq!(query.one(), Some(&json!("bar")));
-    ///
     /// # Ok(())
     /// # }
     /// ```
@@ -171,11 +169,9 @@ impl<'a> NodeList<'a> {
     /// # use serde_json::json;
     /// # use serde_json_path::JsonPathExt;
     /// # fn main() -> Result<(), serde_json_path::Error> {
-    ///
     /// let value = json!({"foo": ["bar", "baz"]});
     /// let nodes = value.json_path("$.foo.*")?.all();
     /// assert_eq!(nodes, vec!["bar", "baz"]);
-    ///
     /// # Ok(())
     /// # }
     /// ```
