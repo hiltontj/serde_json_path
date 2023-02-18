@@ -44,14 +44,30 @@ fn spec_example_json() -> Value {
 fn spec_example_1() {
     let value = spec_example_json();
     let nodes = value.json_path("$.store.book[*].author").unwrap().all();
-    assert_eq!(nodes, vec!["Nigel Rees", "Evelyn Waugh", "Herman Melville", "J. R. R. Tolkien"]);
+    assert_eq!(
+        nodes,
+        vec![
+            "Nigel Rees",
+            "Evelyn Waugh",
+            "Herman Melville",
+            "J. R. R. Tolkien"
+        ]
+    );
 }
 
 #[test]
 fn spec_example_2() {
     let value = spec_example_json();
     let nodes = value.json_path("$..author").unwrap().all();
-    assert_eq!(nodes, vec!["Nigel Rees", "Evelyn Waugh", "Herman Melville", "J. R. R. Tolkien"]);
+    assert_eq!(
+        nodes,
+        vec![
+            "Nigel Rees",
+            "Evelyn Waugh",
+            "Herman Melville",
+            "J. R. R. Tolkien"
+        ]
+    );
 }
 
 #[test]
