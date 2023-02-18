@@ -12,7 +12,7 @@
 //! * The [`NodeList`] struct, which represents the result of a JSONPath query performed on a
 //!   [`serde_json::Value`].
 //! * The [`JsonPathExt`] trait, which provides an extension to the [`serde_json::Value`] type so that
-//!   queries can be performed a more ergonomic API.
+//!   queries can be performed using an ergonomic API.
 //!
 //! # Examples
 //!
