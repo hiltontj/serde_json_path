@@ -21,8 +21,8 @@
 //! ```rust
 //! use serde_json::json;
 //! use serde_json_path::JsonPathExt;
-//! # fn main() -> Result<(), serde_json_path::Error> {
 //!
+//! # fn main() -> Result<(), serde_json_path::Error> {
 //! let value = json!({ "foo": { "bar": ["baz", 42] } });
 //! let node = value.json_path("$.foo.bar[0]")?.one();
 //! assert_eq!(node, Some(&json!("baz")));
@@ -33,10 +33,9 @@
 //! Use wildcards (`*`):
 //!
 //! ```rust
-//! use serde_json::json;
-//! use serde_json_path::JsonPathExt;
+//! # use serde_json::json;
+//! # use serde_json_path::JsonPathExt;
 //! # fn main() -> Result<(), serde_json_path::Error> {
-//!
 //! let value = json!({ "foo": { "bar": ["baz", "bop"] } });
 //! let nodes = value.json_path("$.foo.bar[*]")?.all();
 //! assert_eq!(nodes, vec!["baz", "bop"]);
@@ -47,10 +46,9 @@
 //! Use the slice selector (`start:end:step`):
 //!
 //! ```rust
-//! use serde_json::json;
-//! use serde_json_path::JsonPathExt;
+//! # use serde_json::json;
+//! # use serde_json_path::JsonPathExt;
 //! # fn main() -> Result<(), serde_json_path::Error> {
-//!
 //! let value = json!({ "foo": ["bar", "baz", "bop"] });
 //! let nodes = value.json_path("$['foo'][1:]")?.all();
 //! assert_eq!(nodes, vec!["baz", "bop"]);
@@ -61,10 +59,9 @@
 //! Use filter expressions (`?`):
 //!
 //! ```rust
-//! use serde_json::json;
-//! use serde_json_path::JsonPathExt;
+//! # use serde_json::json;
+//! # use serde_json_path::JsonPathExt;
 //! # fn main() -> Result<(), serde_json_path::Error> {
-//!
 //! let value = json!({ "foo": [1, 2, 3, 4, 5] });
 //! let nodes = value.json_path("$.foo[?@ > 2]")?.all();
 //! assert_eq!(nodes, vec![3, 4, 5]);
@@ -75,10 +72,9 @@
 //! Extract deeply nested values:
 //!
 //! ```rust
-//! use serde_json::json;
-//! use serde_json_path::JsonPathExt;
+//! # use serde_json::json;
+//! # use serde_json_path::JsonPathExt;
 //! # fn main() -> Result<(), serde_json_path::Error> {
-//!
 //! let value = json!({
 //!     "foo": [
 //!         { "bar": 1 },
