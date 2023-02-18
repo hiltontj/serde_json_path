@@ -24,8 +24,8 @@
 //!
 //! # fn main() -> Result<(), serde_json_path::Error> {
 //! let value = json!({ "foo": { "bar": ["baz", 42] } });
-//! let node = value.json_path("$.foo.bar[0]")?.one();
-//! assert_eq!(node, Some(&json!("baz")));
+//! let node = value.json_path("$.foo.bar[0]")?.one().unwrap();
+//! assert_eq!(node, "baz");
 //! # Ok(())
 //! # }
 //! ```
@@ -88,7 +88,20 @@
 //! # }
 //! ```
 //!
-//! You can also check out the [integration tests][tests] in the repository for some more examples
+//! Use reverse array indexes:
+//!
+//! ```rust
+//! # use serde_json::json;
+//! # use serde_json_path::JsonPathExt;
+//! # fn main() -> Result<(), serde_json_path::Error> {
+//! let value = json!([1, 2, 3, 4, 5]);
+//! let node = value.json_path("$[-1]")?.one().unwrap();
+//! assert_eq!(node, 5);
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! And much more! Check out the [integration tests][tests] in the repository for more examples
 //! based on those found in the JSONPath specification.
 //!
 //! # Unimplemented Features
