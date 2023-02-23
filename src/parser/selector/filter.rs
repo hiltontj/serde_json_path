@@ -11,14 +11,15 @@ use crate::parser::primitive::{parse_bool, parse_null};
 use crate::parser::segment::parse_dot_member_name;
 use crate::parser::{parse_path, PResult, Query, QueryValue};
 
+use super::function::{FunctionExpr, parse_function_expr};
 use super::{parse_index, parse_name, Index, Name};
 
-trait TestFilter {
+pub trait TestFilter {
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool;
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Filter(BooleanExpr);
+pub struct Filter(LogicalOrExpr);
 
 impl QueryValue for Filter {
     fn query_value<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
@@ -39,18 +40,19 @@ impl QueryValue for Filter {
 
 pub fn parse_filter(input: &str) -> PResult<Filter> {
     map(
-        preceded(pair(char('?'), space0), parse_boolean_expr),
+        preceded(pair(char('?'), space0), parse_logical_or_expr),
         Filter,
     )(input)
 }
 
-/// A Boolean Expression
-///
-/// In the JSONPath spec, this is the same as a logical or expression.
+/// The top level boolean expression type
+/// 
+/// This is also `boolean-expression` in the JSONPath specification, but the naming
+/// was chosen to make it more clear that it represents the logical OR.
 #[derive(Debug, PartialEq)]
-struct BooleanExpr(Vec<LogicalAndExpr>);
+struct LogicalOrExpr(Vec<LogicalAndExpr>);
 
-impl TestFilter for BooleanExpr {
+impl TestFilter for LogicalOrExpr {
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
         self.0.iter().any(|expr| expr.test_filter(current, root))
     }
@@ -72,20 +74,22 @@ fn parse_logical_and(input: &str) -> PResult<LogicalAndExpr> {
     )(input)
 }
 
-fn parse_boolean_expr(input: &str) -> PResult<BooleanExpr> {
+fn parse_logical_or_expr(input: &str) -> PResult<LogicalOrExpr> {
     map(
         separated_list1(tuple((space0, tag("||"), space0)), parse_logical_and),
-        BooleanExpr,
+        LogicalOrExpr,
     )(input)
 }
 
 #[derive(Debug, PartialEq)]
 enum BasicExpr {
-    Paren(BooleanExpr),
-    NotParen(BooleanExpr),
+    Paren(LogicalOrExpr),
+    NotParen(LogicalOrExpr),
     Relation(ComparisonExpr),
     Exist(ExistExpr),
     NotExist(ExistExpr),
+    FuncExpr(FunctionExpr),
+    NotFuncExpr(FunctionExpr),
 }
 
 #[cfg(test)]
@@ -106,6 +110,8 @@ impl TestFilter for BasicExpr {
             BasicExpr::Relation(expr) => expr.test_filter(current, root),
             BasicExpr::Exist(expr) => expr.test_filter(current, root),
             BasicExpr::NotExist(expr) => expr.test_filter(current, root),
+            BasicExpr::FuncExpr(expr) => expr.test_filter(current, root),
+            BasicExpr::NotFuncExpr(expr) => !expr.test_filter(current, root),
         }
     }
 }
@@ -139,10 +145,21 @@ fn parse_not_exist_expr(input: &str) -> PResult<BasicExpr> {
     )(input)
 }
 
-fn parse_paren_expr_inner(input: &str) -> PResult<BooleanExpr> {
+fn parse_func_expr(input: &str) -> PResult<BasicExpr> {
+    map(parse_function_expr, BasicExpr::FuncExpr)(input)
+}
+
+fn parse_not_func_expr(input: &str) -> PResult<BasicExpr> {
+    map(
+        preceded(pair(char('!'), space0), parse_function_expr),
+        BasicExpr::NotFuncExpr,
+    )(input)
+}
+
+fn parse_paren_expr_inner(input: &str) -> PResult<LogicalOrExpr> {
     delimited(
         pair(char('('), space0),
-        parse_boolean_expr,
+        parse_logical_or_expr,
         pair(space0, char(')')),
     )(input)
 }
@@ -165,6 +182,8 @@ fn parse_basic_expr(input: &str) -> PResult<BasicExpr> {
         map(parse_comp_expr, BasicExpr::Relation),
         parse_not_exist_expr,
         parse_exist_expr,
+        parse_func_expr,
+        parse_not_func_expr,
     ))(input)
 }
 
@@ -257,7 +276,7 @@ fn parse_comparison_operator(input: &str) -> PResult<ComparisonOperator> {
 }
 
 #[derive(Debug, PartialEq)]
-enum Comparable {
+pub enum Comparable {
     Primitive {
         kind: ComparablePrimitiveKind,
         value: Value,
@@ -267,7 +286,7 @@ enum Comparable {
 }
 
 #[derive(Debug, PartialEq)]
-enum ComparablePrimitiveKind {
+pub enum ComparablePrimitiveKind {
     Number,
     String,
     Bool,
@@ -367,7 +386,7 @@ fn parse_string_comparable(input: &str) -> PResult<Comparable> {
 }
 
 #[derive(Debug, PartialEq)]
-enum SingularPathSegment {
+pub enum SingularPathSegment {
     Name(Name),
     Index(Index),
 }
@@ -397,7 +416,7 @@ fn parse_singular_path_segments(input: &str) -> PResult<Vec<SingularPathSegment>
 }
 
 #[derive(Debug, PartialEq)]
-struct SingularPath {
+pub struct SingularPath {
     kind: SingularPathKind,
     pub segments: Vec<SingularPathSegment>,
 }
@@ -463,7 +482,7 @@ fn parse_singular_path_comparable(input: &str) -> PResult<Comparable> {
     map(parse_singular_path, Comparable::SingularPath)(input)
 }
 
-fn parse_comparable(input: &str) -> PResult<Comparable> {
+pub fn parse_comparable(input: &str) -> PResult<Comparable> {
     alt((
         parse_null_comparable,
         parse_bool_comparable,

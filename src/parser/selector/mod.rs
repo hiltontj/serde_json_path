@@ -14,6 +14,7 @@ use super::{PResult, QueryValue};
 
 pub mod filter;
 pub mod slice;
+pub mod function;
 
 #[derive(Debug, PartialEq)]
 pub enum Selector {
