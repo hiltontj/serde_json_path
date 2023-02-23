@@ -5,7 +5,7 @@
 //!
 //! Please note that the specification has not yet been published as an RFC; therefore, this crate
 //! may evolve as JSONPath becomes standardized. See [Unimplemented Features](#unimplemented-features)
-//! for more details on which parts of the specification are not implemented.
+//! for more details on which parts of the specification are not implemented by this crate.
 //!
 //! This crate provides two key abstractions:
 //!
@@ -16,7 +16,7 @@
 //!
 //! # Examples
 //!
-//! Query single nodes:
+//! ## Query for single nodes
 //!
 //! ```rust
 //! use serde_json::json;
@@ -29,8 +29,14 @@
 //! # Ok(())
 //! # }
 //! ```
+//! In this scenario, the only additional functionality that JSONPath provides over JSON Pointer,
+//! and thereby the [`serde_json::Value::pointer`] method, is that you can use reverse array indexes.
 //!
-//! Use wildcards (`*`):
+//! ## Query for multiple nodes
+//!
+//! With JSONPath you can form queries to extract multiple nodes from with a JSON value.
+//!
+//! #### Use wildcards (`*`)
 //!
 //! ```rust
 //! # use serde_json::json;
@@ -43,7 +49,7 @@
 //! # }
 //! ```
 //!
-//! Use the slice selector (`start:end:step`):
+//! #### Use the slice selector (`start:end:step`)
 //!
 //! ```rust
 //! # use serde_json::json;
@@ -56,7 +62,7 @@
 //! # }
 //! ```
 //!
-//! Use filter expressions (`?`):
+//! #### Use filter expressions (`?`)
 //!
 //! ```rust
 //! # use serde_json::json;
@@ -69,7 +75,7 @@
 //! # }
 //! ```
 //!
-//! Extract deeply nested values:
+//! #### Extract deeply nested values
 //!
 //! ```rust
 //! # use serde_json::json;
@@ -88,7 +94,7 @@
 //! # }
 //! ```
 //!
-//! Use reverse array indexes:
+//! #### Use reverse array indexes
 //!
 //! ```rust
 //! # use serde_json::json;
@@ -119,7 +125,7 @@
 use std::{ops::Deref, slice::Iter};
 
 use nom::error::{convert_error, VerboseError};
-use parser::parse_path;
+use parser::parse_path_main;
 use serde::Serialize;
 use serde_json::Value;
 
@@ -246,7 +252,7 @@ pub trait JsonPathExt {
 
 impl JsonPathExt for Value {
     fn json_path(&self, path_str: &str) -> Result<NodeList, Error> {
-        let (_, path) = parse_path(path_str).map_err(|err| match err {
+        let (_, path) = parse_path_main(path_str).map_err(|err| match err {
             nom::Err::Error(e) | nom::Err::Failure(e) => (path_str, e),
             nom::Err::Incomplete(_) => unreachable!("we do not use streaming parsers"),
         })?;
