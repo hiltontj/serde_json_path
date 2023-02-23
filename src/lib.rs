@@ -11,12 +11,14 @@
 //!
 //! * The [`NodeList`] struct, which represents the result of a JSONPath query performed on a
 //!   [`serde_json::Value`].
-//! * The [`JsonPathExt`] trait, which provides an extension to the [`serde_json::Value`] type so that
-//!   queries can be performed using an ergonomic API.
+//! * The [`JsonPathExt`] trait, which extends the [`serde_json::Value`] type with the
+//!   [`json_path`][JsonPathExt::json_path] method for performing JSONPath queries.
 //!
-//! # Examples
+//! # Usage
 //!
 //! ## Query for single nodes
+//!
+//! For queries that are expected to return a single node, use the [`one`][NodeList::one] method:
 //!
 //! ```rust
 //! use serde_json::json;
@@ -29,14 +31,29 @@
 //! # Ok(())
 //! # }
 //! ```
-//! In this scenario, the only additional functionality that JSONPath provides over JSON Pointer,
-//! and thereby the [`serde_json::Value::pointer`] method, is that you can use reverse array indexes.
+//! In this regard, the only additional functionality that JSONPath provides over JSON Pointer,
+//! and thereby the [`serde_json::Value::pointer`] method, is that you can use reverse array indices:
+//!
+//! ```rust
+//! # use serde_json::json;
+//! # use serde_json_path::JsonPathExt;
+//! # fn main() -> Result<(), serde_json_path::Error> {
+//! let value = json!([1, 2, 3, 4, 5]);
+//! let node = value.json_path("$[-1]")?.one().unwrap();
+//! assert_eq!(node, 5);
+//! # Ok(())
+//! # }
+//! ```
 //!
 //! ## Query for multiple nodes
 //!
-//! With JSONPath you can form queries to extract multiple nodes from with a JSON value.
+//! For queries that you expect to return zero or many nodes, use the [`all`][NodeList::all]
+//! method. There are several selectors in JSONPath that allow you to do this.
 //!
-//! #### Use wildcards (`*`)
+//! #### Wildcards (`*`)
+//!
+//! Wildcards select everything under a current node. They work on both arrays, by selecting all
+//! array elements, and on objects, by selecting all object key values:
 //!
 //! ```rust
 //! # use serde_json::json;
@@ -49,7 +66,11 @@
 //! # }
 //! ```
 //!
-//! #### Use the slice selector (`start:end:step`)
+//! #### Slice selectors (`start:end:step`)
+//!
+//! Extract slices from JSON arrays using optional `start`, `end`, and `step` values. Reverse
+//! indices can be used for `start` and `end`, and a negative `step` can be used to traverse
+//! the array in reverse order.
 //!
 //! ```rust
 //! # use serde_json::json;
@@ -62,20 +83,63 @@
 //! # }
 //! ```
 //!
-//! #### Use filter expressions (`?`)
+//! #### Filter expressions (`?`)
+//!
+//! Filter selectors allow you to perform comparisons and check for existence of nodes. You can
+//! combine these checks using the boolean `&&` and `||` operators and group using parentheses.
+//! The current node (`@`) operator allows you to apply the filtering logic based on the current
+//! node being filtered:
 //!
 //! ```rust
 //! # use serde_json::json;
 //! # use serde_json_path::JsonPathExt;
 //! # fn main() -> Result<(), serde_json_path::Error> {
 //! let value = json!({ "foo": [1, 2, 3, 4, 5] });
-//! let nodes = value.json_path("$.foo[?@ > 2]")?.all();
-//! assert_eq!(nodes, vec![3, 4, 5]);
+//! let nodes = value.json_path("$.foo[?@ > 2 && @ < 5]")?.all();
+//! assert_eq!(nodes, vec![3, 4]);
 //! # Ok(())
 //! # }
 //! ```
 //!
-//! #### Extract deeply nested values
+//! You can form relative paths on the current node, as well as absolute paths on the root (`$`)
+//! node when writing filters:
+//!
+//! ```rust
+//! # use serde_json::json;
+//! # use serde_json_path::JsonPathExt;
+//! # fn main() -> Result<(), serde_json_path::Error> {
+//! let value = json!([
+//!     { "title": "Great Expectations", "price": 10 },
+//!     { "title": "Tale of Two Cities", "price": 8 },
+//!     { "title": "David Copperfield", "price": 17 }
+//! ]);
+//! let nodes = value.json_path("$[?@.price > $[0].price].title")?.all();
+//! assert_eq!(nodes, vec!["David Copperfield"]);
+//! # Ok(())
+//! # }
+//! ```
+//! #### Recursive descent (`..`)
+//!
+//! ```rust
+//! # use serde_json::json;
+//! # use serde_json_path::JsonPathExt;
+//! # fn main() -> Result<(), serde_json_path::Error> {
+//! let value = json!({
+//!     "foo": {
+//!         "bar": {
+//!             "baz": 1
+//!         },
+//!         "baz": 2
+//!     }
+//! });
+//! let nodes = value.json_path("$.foo..baz")?.all();
+//! assert_eq!(nodes, vec![2, 1]);
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! As seen there, one of the useful features of JSONPath is its ability to extract deeply nested values.
+//! Here is another example:
 //!
 //! ```rust
 //! # use serde_json::json;
@@ -94,21 +158,10 @@
 //! # }
 //! ```
 //!
-//! #### Use reverse array indexes
+//! You can combine the above selectors to form powerful and useful queries with JSONPath.
 //!
-//! ```rust
-//! # use serde_json::json;
-//! # use serde_json_path::JsonPathExt;
-//! # fn main() -> Result<(), serde_json_path::Error> {
-//! let value = json!([1, 2, 3, 4, 5]);
-//! let node = value.json_path("$[-1]")?.one().unwrap();
-//! assert_eq!(node, 5);
-//! # Ok(())
-//! # }
-//! ```
-//!
-//! And much more! Check out the [integration tests][tests] in the repository for more examples
-//! based on those found in the JSONPath specification.
+//! See the [integration tests][tests] in the repository for more examples based on those found in
+//! the JSONPath specification.
 //!
 //! # Unimplemented Features
 //!
