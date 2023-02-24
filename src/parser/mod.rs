@@ -1,4 +1,5 @@
 use nom::character::complete::char;
+use nom::combinator::all_consuming;
 use nom::error::VerboseError;
 use nom::{branch::alt, combinator::map, multi::many0, sequence::preceded, IResult};
 use serde_json::Value;
@@ -62,6 +63,10 @@ pub fn parse_path(input: &str) -> PResult<Query> {
     ))(input)
 }
 
+pub fn parse_path_main(input: &str) -> PResult<Query> {
+    all_consuming(parse_path)(input)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::parser::{
@@ -70,7 +75,7 @@ mod tests {
         PathKind,
     };
 
-    use super::parse_path;
+    use super::{parse_path, parse_path_main};
 
     #[test]
     fn root_path() {
@@ -97,5 +102,10 @@ mod tests {
             let (_, p) = parse_path("@").unwrap();
             assert!(matches!(p.kind, PathKind::Current));
         }
+    }
+
+    #[test]
+    fn no_tail() {
+        assert!(parse_path_main("$.a['b']tail").is_err());
     }
 }
