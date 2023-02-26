@@ -2,7 +2,7 @@
 
 `serde_json_path` allows you to use [JSONPath](jsonpath) to query the [`serde_json::Value`][serde_json_value] type.
 
-[![Crates.io](https://img.shields.io/crates/v/serde_json_path)](https://crates.io/crates/axum)
+[![Crates.io](https://img.shields.io/crates/v/serde_json_path)](https://crates.io/crates/serde_json_path)
 [![Documentation](https://docs.rs/serde_json_path/badge.svg)][docs]
 
 ## Learn More
