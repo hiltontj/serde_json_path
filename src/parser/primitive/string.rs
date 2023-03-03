@@ -1,4 +1,4 @@
-use nom::bytes::complete::tag;
+use nom::bytes::complete::{tag, take_while};
 use nom::character::complete::{anychar, char};
 use nom::character::streaming::one_of;
 use nom::combinator::{cut, map, recognize, verify};
@@ -107,25 +107,28 @@ fn parse_escaped_char(quoted_with: Quotes) -> impl Fn(&str) -> PResult<String> {
     }
 }
 
-fn valid_unescaped_char(chr: &char, quoted_with: Quotes) -> bool {
+fn is_valid_unescaped_char(chr: char, quoted_with: Quotes) -> bool {
     let invalid_quote_char = match quoted_with {
         Quotes::Single => '\'',
         Quotes::Double => '"',
     };
-    if *chr == invalid_quote_char {
+    if chr == invalid_quote_char {
         return false;
     }
     match chr {
-        '\u{20}'..='\u{21}' // Omit control characters
-        | '\u{23}'..='\u{26}' // Omit "
-        | '\u{28}'..='\u{5B}' // Omit '
-        | '\u{5D}'..='\u{10FFFF}' => true,
+        '\u{20}'..='\u{5B}' // Omit control characters
+        | '\u{5D}'..='\u{10FFFF}' => true, // Omit \
         _ => false,
     }
 }
 
-fn parse_unescaped(quoted_with: Quotes) -> impl Fn(&str) -> PResult<char> {
-    move |input: &str| verify(anychar, |c: &char| valid_unescaped_char(c, quoted_with))(input)
+fn parse_unescaped(quoted_with: Quotes) -> impl Fn(&str) -> PResult<&str> {
+    move |input: &str| {
+        verify(
+            take_while(|chr| is_valid_unescaped_char(chr, quoted_with)),
+            |s: &str| !s.is_empty(),
+        )(input)
+    }
 }
 
 fn parse_fragment(quoted_with: Quotes) -> impl Fn(&str) -> PResult<String> {
@@ -184,7 +187,7 @@ mod tests {
             Ok(("", String::from("test")))
         );
         assert_eq!(
-            parse_string_literal("\"test\n\""),
+            parse_string_literal("\"test\\n\""),
             Ok(("", String::from("test\n")))
         );
         assert_eq!(
