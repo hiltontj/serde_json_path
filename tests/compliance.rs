@@ -41,7 +41,7 @@ fn compliace_test_suite() {
         if invalid_selector {
             assert!(
                 query.is_err(),
-                "{name}: parsing {selector} should have failed",
+                "{name}: parsing {selector:?} should have failed",
             );
         } else if let Ok(nodelist) = query {
             let actual = nodelist.all();
