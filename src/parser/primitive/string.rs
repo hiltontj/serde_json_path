@@ -29,7 +29,7 @@ fn is_hex_digit(chr: char) -> bool {
 }
 
 fn parse_digit(input: &str) -> PResult<char> {
-    verify(anychar, |c: &char| is_digit(c))(input)
+    verify(anychar, is_digit)(input)
 }
 
 fn parse_n_hex_digits(n: usize) -> impl Fn(&str) -> PResult<&str> {
