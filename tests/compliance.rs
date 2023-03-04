@@ -51,6 +51,7 @@ fn compliace_test_suite() {
                 "{name}: incorrect result, expected {expected:?}, got {actual:?}"
             );
         } else {
+            println!("query result: {query:?}");
             panic!("{name}: invalid test case")
         }
     }

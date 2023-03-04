@@ -198,15 +198,23 @@ impl TestFilter for ComparisonExpr {
                 LessThanEqualTo => match (l, r) {
                     (Value::Number(n1), Value::Number(n2)) => number_less_than(n1, n2) || n1 == n2,
                     (Value::String(s1), Value::String(s2)) => s1 <= s2,
+                    (Value::Bool(b1), Value::Bool(b2)) => b1 == b2,
+                    (Value::Null, Value::Null) => true,
                     _ => false,
                 },
                 GreaterThanEqualTo => match (l, r) {
                     (Value::Number(n1), Value::Number(n2)) => !number_less_than(n1, n2),
                     (Value::String(s1), Value::String(s2)) => s1 >= s2,
+                    (Value::Bool(b1), Value::Bool(b2)) => b1 == b2,
+                    (Value::Null, Value::Null) => true,
                     _ => false,
                 },
             },
-            _ => false,
+            (None, Some(_)) | (Some(_), None) => match self.op {
+                NotEqualTo => true,
+                _ => false,
+            },
+            
         }
     }
 }
@@ -249,10 +257,10 @@ fn parse_comparison_operator(input: &str) -> PResult<ComparisonOperator> {
     alt((
         value(EqualTo, tag("==")),
         value(NotEqualTo, tag("!=")),
-        value(LessThan, char('<')),
-        value(GreaterThan, char('>')),
         value(LessThanEqualTo, tag("<=")),
         value(GreaterThanEqualTo, tag(">=")),
+        value(LessThan, char('<')),
+        value(GreaterThan, char('>')),
     ))(input)
 }
 
