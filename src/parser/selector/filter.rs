@@ -105,7 +105,7 @@ impl TestFilter for BasicExpr {
             BasicExpr::NotParen(expr) => !expr.test_filter(current, root),
             BasicExpr::Relation(expr) => expr.test_filter(current, root),
             BasicExpr::Exist(expr) => expr.test_filter(current, root),
-            BasicExpr::NotExist(expr) => expr.test_filter(current, root),
+            BasicExpr::NotExist(expr) => !expr.test_filter(current, root),
         }
     }
 }
@@ -210,11 +210,7 @@ impl TestFilter for ComparisonExpr {
                     _ => false,
                 },
             },
-            (None, Some(_)) | (Some(_), None) => match self.op {
-                NotEqualTo => true,
-                _ => false,
-            },
-            
+            (None, Some(_)) | (Some(_), None) => matches!(self.op, NotEqualTo),
         }
     }
 }

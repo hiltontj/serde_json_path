@@ -51,7 +51,11 @@ fn parse_low_surrogate(input: &str) -> PResult<u16> {
     context(
         "low surrogate",
         map_res(
-            recognize(tuple((one_of("Dd"), one_of("CDEFcdef"), parse_n_hex_digits(2)))),
+            recognize(tuple((
+                one_of("Dd"),
+                one_of("CDEFcdef"),
+                parse_n_hex_digits(2),
+            ))),
             |hex| u16::from_str_radix(hex, 16),
         ),
     )(input)
