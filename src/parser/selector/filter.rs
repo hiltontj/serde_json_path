@@ -109,7 +109,7 @@ impl TestFilter for BasicExpr {
             BasicExpr::NotParen(expr) => !expr.test_filter(current, root),
             BasicExpr::Relation(expr) => expr.test_filter(current, root),
             BasicExpr::Exist(expr) => expr.test_filter(current, root),
-            BasicExpr::NotExist(expr) => expr.test_filter(current, root),
+            BasicExpr::NotExist(expr) => !expr.test_filter(current, root),
             BasicExpr::FuncExpr(expr) => expr.test_filter(current, root),
             BasicExpr::NotFuncExpr(expr) => !expr.test_filter(current, root),
         }
@@ -217,15 +217,19 @@ impl TestFilter for ComparisonExpr {
                 LessThanEqualTo => match (l, r) {
                     (Value::Number(n1), Value::Number(n2)) => number_less_than(n1, n2) || n1 == n2,
                     (Value::String(s1), Value::String(s2)) => s1 <= s2,
+                    (Value::Bool(b1), Value::Bool(b2)) => b1 == b2,
+                    (Value::Null, Value::Null) => true,
                     _ => false,
                 },
                 GreaterThanEqualTo => match (l, r) {
                     (Value::Number(n1), Value::Number(n2)) => !number_less_than(n1, n2),
                     (Value::String(s1), Value::String(s2)) => s1 >= s2,
+                    (Value::Bool(b1), Value::Bool(b2)) => b1 == b2,
+                    (Value::Null, Value::Null) => true,
                     _ => false,
                 },
             },
-            _ => false,
+            (None, Some(_)) | (Some(_), None) => matches!(self.op, NotEqualTo),
         }
     }
 }
@@ -268,10 +272,10 @@ fn parse_comparison_operator(input: &str) -> PResult<ComparisonOperator> {
     alt((
         value(EqualTo, tag("==")),
         value(NotEqualTo, tag("!=")),
-        value(LessThan, char('<')),
-        value(GreaterThan, char('>')),
         value(LessThanEqualTo, tag("<=")),
         value(GreaterThanEqualTo, tag(">=")),
+        value(LessThan, char('<')),
+        value(GreaterThan, char('>')),
     ))(input)
 }
 
@@ -510,11 +514,11 @@ mod tests {
         }
         {
             let (_, cmp) = parse_comparable("true").unwrap();
-            assert_eq!(cmp.as_bool().unwrap(), true);
+            assert!(cmp.as_bool().unwrap());
         }
         {
             let (_, cmp) = parse_comparable("false").unwrap();
-            assert_eq!(cmp.as_bool().unwrap(), false);
+            assert!(!cmp.as_bool().unwrap());
         }
         {
             let (_, cmp) = parse_comparable("\"test\"").unwrap();
@@ -534,17 +538,17 @@ mod tests {
     fn comp_expr() {
         // TODO - test more
         let (_, cxp) = parse_comp_expr("true != false").unwrap();
-        assert_eq!(cxp.left.as_bool().unwrap(), true);
+        assert!(cxp.left.as_bool().unwrap());
         assert!(matches!(cxp.op, ComparisonOperator::NotEqualTo));
-        assert_eq!(cxp.right.as_bool().unwrap(), false);
+        assert!(!cxp.right.as_bool().unwrap());
     }
 
     #[test]
     fn basic_expr() {
         let (_, bxp) = parse_basic_expr("true == true").unwrap();
         let cx = bxp.as_relation().unwrap();
-        assert_eq!(cx.left.as_bool().unwrap(), true);
-        assert_eq!(cx.right.as_bool().unwrap(), true);
+        assert!(cx.left.as_bool().unwrap());
+        assert!(cx.right.as_bool().unwrap());
         assert!(matches!(cx.op, ComparisonOperator::EqualTo));
     }
 
