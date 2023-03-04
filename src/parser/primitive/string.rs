@@ -25,7 +25,7 @@ fn is_digit(chr: &char) -> bool {
 }
 
 fn is_hex_digit(chr: char) -> bool {
-    is_digit(&chr) || ('A'..='F').contains(&chr) || ('a'..='f').contains(&chr)
+    is_digit(&chr) || ('A'..='F').contains(&chr)
 }
 
 fn parse_digit(input: &str) -> PResult<char> {
@@ -37,10 +37,10 @@ fn parse_n_hex_digits(n: usize) -> impl Fn(&str) -> PResult<&str> {
 }
 
 fn parse_non_surrogate(input: &str) -> PResult<char> {
-    let non_d_base = alt((parse_digit, one_of("ABCEFabcef")));
+    let non_d_base = alt((parse_digit, one_of("ABCEF")));
     let non_d_based = pair(non_d_base, parse_n_hex_digits(3));
     let zero_to_7 = verify(anychar, |c: &char| ('0'..='7').contains(c));
-    let d_based = tuple((one_of("Dd"), zero_to_7, parse_n_hex_digits(2)));
+    let d_based = tuple((char('D'), zero_to_7, parse_n_hex_digits(2)));
     let parse_u32 = map_res(alt((recognize(non_d_based), recognize(d_based))), |hex| {
         u32::from_str_radix(hex, 16)
     });
@@ -51,11 +51,7 @@ fn parse_low_surrogate(input: &str) -> PResult<u16> {
     context(
         "low surrogate",
         map_res(
-            recognize(tuple((
-                one_of("Dd"),
-                one_of("CDEFcdef"),
-                parse_n_hex_digits(2),
-            ))),
+            recognize(tuple((char('D'), one_of("CDEF"), parse_n_hex_digits(2)))),
             |hex| u16::from_str_radix(hex, 16),
         ),
     )(input)
@@ -65,11 +61,7 @@ fn parse_high_surrogate(input: &str) -> PResult<u16> {
     context(
         "high surrogate",
         map_res(
-            recognize(tuple((
-                one_of("Dd"),
-                one_of("89ABab"),
-                parse_n_hex_digits(2),
-            ))),
+            recognize(tuple((char('D'), one_of("89AB"), parse_n_hex_digits(2)))),
             |hex| u16::from_str_radix(hex, 16),
         ),
     )(input)
