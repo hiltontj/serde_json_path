@@ -491,11 +491,11 @@ mod tests {
         }
         {
             let (_, cmp) = parse_comparable("true").unwrap();
-            assert_eq!(cmp.as_bool().unwrap(), true);
+            assert!(cmp.as_bool().unwrap());
         }
         {
             let (_, cmp) = parse_comparable("false").unwrap();
-            assert_eq!(cmp.as_bool().unwrap(), false);
+            assert!(!cmp.as_bool().unwrap());
         }
         {
             let (_, cmp) = parse_comparable("\"test\"").unwrap();
@@ -515,17 +515,17 @@ mod tests {
     fn comp_expr() {
         // TODO - test more
         let (_, cxp) = parse_comp_expr("true != false").unwrap();
-        assert_eq!(cxp.left.as_bool().unwrap(), true);
+        assert!(cxp.left.as_bool().unwrap());
         assert!(matches!(cxp.op, ComparisonOperator::NotEqualTo));
-        assert_eq!(cxp.right.as_bool().unwrap(), false);
+        assert!(!cxp.right.as_bool().unwrap());
     }
 
     #[test]
     fn basic_expr() {
         let (_, bxp) = parse_basic_expr("true == true").unwrap();
         let cx = bxp.as_relation().unwrap();
-        assert_eq!(cx.left.as_bool().unwrap(), true);
-        assert_eq!(cx.right.as_bool().unwrap(), true);
+        assert!(cx.left.as_bool().unwrap());
+        assert!(cx.right.as_bool().unwrap());
         assert!(matches!(cx.op, ComparisonOperator::EqualTo));
     }
 
