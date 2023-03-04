@@ -105,7 +105,7 @@ impl TestFilter for BasicExpr {
             BasicExpr::NotParen(expr) => !expr.test_filter(current, root),
             BasicExpr::Relation(expr) => expr.test_filter(current, root),
             BasicExpr::Exist(expr) => expr.test_filter(current, root),
-            BasicExpr::NotExist(expr) => expr.test_filter(current, root),
+            BasicExpr::NotExist(expr) => !expr.test_filter(current, root),
         }
     }
 }
@@ -198,15 +198,19 @@ impl TestFilter for ComparisonExpr {
                 LessThanEqualTo => match (l, r) {
                     (Value::Number(n1), Value::Number(n2)) => number_less_than(n1, n2) || n1 == n2,
                     (Value::String(s1), Value::String(s2)) => s1 <= s2,
+                    (Value::Bool(b1), Value::Bool(b2)) => b1 == b2,
+                    (Value::Null, Value::Null) => true,
                     _ => false,
                 },
                 GreaterThanEqualTo => match (l, r) {
                     (Value::Number(n1), Value::Number(n2)) => !number_less_than(n1, n2),
                     (Value::String(s1), Value::String(s2)) => s1 >= s2,
+                    (Value::Bool(b1), Value::Bool(b2)) => b1 == b2,
+                    (Value::Null, Value::Null) => true,
                     _ => false,
                 },
             },
-            _ => false,
+            (None, Some(_)) | (Some(_), None) => matches!(self.op, NotEqualTo),
         }
     }
 }
@@ -249,10 +253,10 @@ fn parse_comparison_operator(input: &str) -> PResult<ComparisonOperator> {
     alt((
         value(EqualTo, tag("==")),
         value(NotEqualTo, tag("!=")),
-        value(LessThan, char('<')),
-        value(GreaterThan, char('>')),
         value(LessThanEqualTo, tag("<=")),
         value(GreaterThanEqualTo, tag(">=")),
+        value(LessThan, char('<')),
+        value(GreaterThan, char('>')),
     ))(input)
 }
 
