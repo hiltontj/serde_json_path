@@ -6,7 +6,7 @@ use nom::{
 };
 use serde_json::Value;
 
-use crate::parser::{primitive::int::parse_int, PResult, QueryValue};
+use crate::parser::{primitive::int::parse_int, PResult, Queryable};
 
 #[derive(Debug, PartialEq, Default)]
 pub struct Slice {
@@ -37,8 +37,8 @@ impl Slice {
     }
 }
 
-impl QueryValue for Slice {
-    fn query_value<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {
+impl Queryable for Slice {
+    fn query<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {
         if let Some(list) = current.as_array() {
             let mut query = Vec::new();
             let step = self.step.unwrap_or(1);

@@ -10,7 +10,7 @@ use self::slice::Slice;
 
 use super::primitive::int::parse_int;
 use super::primitive::string::parse_string_literal;
-use super::{PResult, QueryValue};
+use super::{PResult, Queryable};
 
 pub mod filter;
 pub mod slice;
@@ -25,11 +25,11 @@ pub enum Selector {
     Filter(Filter),
 }
 
-impl QueryValue for Selector {
-    fn query_value<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
+impl Queryable for Selector {
+    fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
         let mut query = Vec::new();
         match self {
-            Selector::Name(name) => query.append(&mut name.query_value(current, root)),
+            Selector::Name(name) => query.append(&mut name.query(current, root)),
             Selector::Wildcard => {
                 if let Some(list) = current.as_array() {
                     for v in list {
@@ -41,9 +41,9 @@ impl QueryValue for Selector {
                     }
                 }
             }
-            Selector::Index(index) => query.append(&mut index.query_value(current, root)),
-            Selector::ArraySlice(slice) => query.append(&mut slice.query_value(current, root)),
-            Selector::Filter(filter) => query.append(&mut filter.query_value(current, root)),
+            Selector::Index(index) => query.append(&mut index.query(current, root)),
+            Selector::ArraySlice(slice) => query.append(&mut slice.query(current, root)),
+            Selector::Filter(filter) => query.append(&mut filter.query(current, root)),
         }
         query
     }
@@ -62,8 +62,8 @@ impl Name {
     }
 }
 
-impl QueryValue for Name {
-    fn query_value<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {
+impl Queryable for Name {
+    fn query<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {
         if let Some(obj) = current.as_object() {
             obj.get(&self.0).into_iter().collect()
         } else {
@@ -89,8 +89,8 @@ fn parse_name_selector(input: &str) -> PResult<Selector> {
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Index(pub isize);
 
-impl QueryValue for Index {
-    fn query_value<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {
+impl Queryable for Index {
+    fn query<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {
         if let Some(list) = current.as_array() {
             if self.0 < 0 {
                 self.0

@@ -123,7 +123,7 @@ use parser::parse_path;
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::parser::QueryValue;
+use crate::parser::Queryable;
 
 mod parser;
 
@@ -250,7 +250,7 @@ impl JsonPathExt for Value {
             nom::Err::Error(e) | nom::Err::Failure(e) => (path_str, e),
             nom::Err::Incomplete(_) => unreachable!("we do not use streaming parsers"),
         })?;
-        let nodes = path.query_value(self, self);
+        let nodes = path.query(self, self);
         Ok(NodeList { nodes })
     }
 }

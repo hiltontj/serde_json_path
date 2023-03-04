@@ -14,7 +14,7 @@ use nom::{
 use serde_json::Value;
 
 use super::selector::{parse_selector, parse_wildcard_selector, Selector};
-use super::{PResult, QueryValue};
+use super::{PResult, Queryable};
 
 #[derive(Debug, PartialEq)]
 pub struct PathSegment {
@@ -28,9 +28,9 @@ pub enum PathSegmentKind {
     Descendant,
 }
 
-impl QueryValue for PathSegment {
-    fn query_value<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
-        let mut query = self.segment.query_value(current, root);
+impl Queryable for PathSegment {
+    fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
+        let mut query = self.segment.query(current, root);
         if matches!(self.kind, PathSegmentKind::Descendant) {
             query.append(&mut descend(self, current, root));
         }
@@ -42,11 +42,11 @@ fn descend<'b>(segment: &PathSegment, current: &'b Value, root: &'b Value) -> Ve
     let mut query = Vec::new();
     if let Some(list) = current.as_array() {
         for v in list {
-            query.append(&mut segment.query_value(v, root));
+            query.append(&mut segment.query(v, root));
         }
     } else if let Some(obj) = current.as_object() {
         for (_, v) in obj {
-            query.append(&mut segment.query_value(v, root));
+            query.append(&mut segment.query(v, root));
         }
     }
     query
@@ -77,13 +77,13 @@ impl Segment {
     }
 }
 
-impl QueryValue for Segment {
-    fn query_value<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
+impl Queryable for Segment {
+    fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
         let mut query = Vec::new();
         match self {
             Segment::LongHand(selectors) => {
                 for selector in selectors {
-                    query.append(&mut selector.query_value(current, root));
+                    query.append(&mut selector.query(current, root));
                 }
             }
             Segment::DotName(key) => {

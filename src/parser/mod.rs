@@ -11,8 +11,8 @@ pub mod selector;
 
 type PResult<'a, O> = IResult<&'a str, O, VerboseError<&'a str>>;
 
-pub trait QueryValue {
-    fn query_value<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value>;
+pub trait Queryable {
+    fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value>;
 }
 
 /// Represents a JSONPath expression
@@ -28,8 +28,8 @@ pub enum PathKind {
     Current,
 }
 
-impl QueryValue for Query {
-    fn query_value<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
+impl Queryable for Query {
+    fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
         let mut query = match self.kind {
             PathKind::Root => vec![root],
             PathKind::Current => vec![current],
@@ -37,7 +37,7 @@ impl QueryValue for Query {
         for segment in &self.segments {
             let mut new_query = Vec::new();
             for q in &query {
-                new_query.append(&mut segment.query_value(q, root));
+                new_query.append(&mut segment.query(q, root));
             }
             query = new_query;
         }

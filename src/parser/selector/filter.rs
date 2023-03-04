@@ -9,7 +9,7 @@ use crate::parser::primitive::number::parse_number;
 use crate::parser::primitive::string::parse_string_literal;
 use crate::parser::primitive::{parse_bool, parse_null};
 use crate::parser::segment::parse_dot_member_name;
-use crate::parser::{parse_path, PResult, Query, QueryValue};
+use crate::parser::{parse_path, PResult, Query, Queryable};
 
 use super::function::{FunctionExpr, parse_function_expr};
 use super::{parse_index, parse_name, Index, Name};
@@ -21,8 +21,8 @@ pub trait TestFilter {
 #[derive(Debug, PartialEq)]
 pub struct Filter(LogicalOrExpr);
 
-impl QueryValue for Filter {
-    fn query_value<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
+impl Queryable for Filter {
+    fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
         if let Some(list) = current.as_array() {
             list.iter()
                 .filter(|v| self.0.test_filter(v, root))
@@ -126,7 +126,7 @@ struct ExistExpr(Query);
 
 impl TestFilter for ExistExpr {
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
-        !self.0.query_value(current, root).is_empty()
+        !self.0.query(current, root).is_empty()
     }
 }
 
