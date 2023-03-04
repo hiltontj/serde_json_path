@@ -25,7 +25,7 @@ fn is_digit(chr: &char) -> bool {
 }
 
 fn is_hex_digit(chr: char) -> bool {
-    is_digit(&chr) || ('A'..='F').contains(&chr)
+    is_digit(&chr) || ('A'..='F').contains(&chr) || ('a'..='f').contains(&chr)
 }
 
 fn parse_digit(input: &str) -> PResult<char> {
@@ -37,34 +37,51 @@ fn parse_n_hex_digits(n: usize) -> impl Fn(&str) -> PResult<&str> {
 }
 
 fn parse_non_surrogate(input: &str) -> PResult<char> {
-    let non_d_base = alt((parse_digit, one_of("ABCEF")));
+    let non_d_base = alt((parse_digit, one_of("ABCEFabcef")));
     let non_d_based = pair(non_d_base, parse_n_hex_digits(3));
     let zero_to_7 = verify(anychar, |c: &char| ('0'..='7').contains(c));
-    let d_based = tuple((char('D'), zero_to_7, parse_n_hex_digits(2)));
+    let d_based = tuple((one_of("Dd"), zero_to_7, parse_n_hex_digits(2)));
     let parse_u32 = map_res(alt((recognize(non_d_based), recognize(d_based))), |hex| {
         u32::from_str_radix(hex, 16)
     });
-    map_opt(parse_u32, char::from_u32)(input)
+    context("non surrogate", map_opt(parse_u32, char::from_u32))(input)
 }
 
 fn parse_low_surrogate(input: &str) -> PResult<u16> {
-    map_res(
-        recognize(tuple((char('D'), one_of("CDEF"), parse_n_hex_digits(2)))),
-        |hex| u16::from_str_radix(hex, 16),
+    context(
+        "low surrogate",
+        map_res(
+            recognize(tuple((
+                one_of("Dd"),
+                one_of("CDEFcdef"),
+                parse_n_hex_digits(2),
+            ))),
+            |hex| u16::from_str_radix(hex, 16),
+        ),
     )(input)
 }
 
 fn parse_high_surrogate(input: &str) -> PResult<u16> {
-    map_res(
-        recognize(tuple((char('D'), one_of("89AB"), parse_n_hex_digits(2)))),
-        |hex| u16::from_str_radix(hex, 16),
+    context(
+        "high surrogate",
+        map_res(
+            recognize(tuple((
+                one_of("Dd"),
+                one_of("89ABab"),
+                parse_n_hex_digits(2),
+            ))),
+            |hex| u16::from_str_radix(hex, 16),
+        ),
     )(input)
 }
 
 fn parse_surrogate(input: &str) -> PResult<String> {
-    map_res(
-        separated_pair(parse_high_surrogate, tag("\\u"), parse_low_surrogate),
-        |(h, l)| String::from_utf16(&[h, l]),
+    context(
+        "surrogate pair",
+        map_res(
+            separated_pair(parse_high_surrogate, tag("\\u"), parse_low_surrogate),
+            |(h, l)| String::from_utf16(&[h, l]),
+        ),
     )(input)
 }
 
@@ -85,24 +102,27 @@ fn parse_escaped_quote(quoted_with: Quotes) -> impl Fn(&str) -> PResult<char> {
 
 fn parse_escaped_char(quoted_with: Quotes) -> impl Fn(&str) -> PResult<String> {
     move |input: &str| {
-        preceded(
-            char('\\'),
-            alt((
-                map(
-                    alt((
-                        value('\u{0008}', char('b')),
-                        value('\u{0009}', char('t')),
-                        value('\u{000A}', char('n')),
-                        value('\u{000C}', char('f')),
-                        value('\u{000D}', char('r')),
-                        value('\u{002F}', char('/')),
-                        value('\u{005C}', char('\\')),
-                        parse_escaped_quote(quoted_with),
-                    )),
-                    String::from,
-                ),
-                parse_unicode_sequence,
-            )),
+        context(
+            "escaped character",
+            preceded(
+                char('\\'),
+                alt((
+                    map(
+                        alt((
+                            value('\u{0008}', char('b')),
+                            value('\u{0009}', char('t')),
+                            value('\u{000A}', char('n')),
+                            value('\u{000C}', char('f')),
+                            value('\u{000D}', char('r')),
+                            value('\u{002F}', char('/')),
+                            value('\u{005C}', char('\\')),
+                            parse_escaped_quote(quoted_with),
+                        )),
+                        String::from,
+                    ),
+                    parse_unicode_sequence,
+                )),
+            ),
         )(input)
     }
 }
@@ -124,9 +144,12 @@ fn is_valid_unescaped_char(chr: char, quoted_with: Quotes) -> bool {
 
 fn parse_unescaped(quoted_with: Quotes) -> impl Fn(&str) -> PResult<&str> {
     move |input: &str| {
-        verify(
-            take_while(|chr| is_valid_unescaped_char(chr, quoted_with)),
-            |s: &str| !s.is_empty(),
+        context(
+            "unescaped character",
+            verify(
+                take_while(|chr| is_valid_unescaped_char(chr, quoted_with)),
+                |s: &str| !s.is_empty(),
+            ),
         )(input)
     }
 }
