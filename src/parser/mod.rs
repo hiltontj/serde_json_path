@@ -30,7 +30,7 @@ pub enum PathKind {
 }
 
 impl Queryable for Query {
-    #[tracing::instrument(name = "Main Query", level = "trace", parent = None, ret)]
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Main Query", level = "trace", parent = None, ret))]
     fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
         let mut query = match self.kind {
             PathKind::Root => vec![root],
@@ -47,12 +47,12 @@ impl Queryable for Query {
     }
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_path_segments(input: &str) -> PResult<Vec<PathSegment>> {
     many0(parse_segment)(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_path(input: &str) -> PResult<Query> {
     println!("parse_path: {input}");
     alt((
@@ -67,7 +67,7 @@ pub fn parse_path(input: &str) -> PResult<Query> {
     ))(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_path_main(input: &str) -> PResult<Query> {
     all_consuming(parse_path)(input)
 }

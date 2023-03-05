@@ -13,17 +13,17 @@ use crate::parser::PResult;
 
 use super::int::parse_int_string;
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_fractional(input: &str) -> PResult<&str> {
     preceded(char('.'), digit1)(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_exponent(input: &str) -> PResult<&str> {
     recognize(tuple((one_of("eE"), opt(one_of("-+")), digit0)))(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_number_string(input: &str) -> PResult<&str> {
     recognize(tuple((
         alt((parse_int_string, tag("-0"))),
@@ -32,7 +32,7 @@ fn parse_number_string(input: &str) -> PResult<&str> {
     )))(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_number(input: &str) -> PResult<Number> {
     map_res(parse_number_string, Number::from_str)(input)
 }

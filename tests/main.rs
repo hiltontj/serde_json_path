@@ -1,5 +1,6 @@
 use serde_json::{json, Value};
 use serde_json_path::JsonPathExt;
+#[cfg(feature = "trace")]
 use test_log::test;
 
 fn spec_example_json() -> Value {
@@ -149,7 +150,6 @@ fn test_length() {
 
 #[test]
 fn test_count() {
-    tracing::info!("counting!");
     let value = json!([
         {"foo": [1]},
         {"foo": [1, 2]},

@@ -22,7 +22,7 @@ pub trait TestFilter {
 pub struct Filter(LogicalOrExpr);
 
 impl Queryable for Filter {
-    #[tracing::instrument(name = "Query Filter", level = "trace", parent = None, ret)]
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Query Filter", level = "trace", parent = None, ret))]
     fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
         if let Some(list) = current.as_array() {
             list.iter()
@@ -39,7 +39,7 @@ impl Queryable for Filter {
     }
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_filter(input: &str) -> PResult<Filter> {
     map(
         preceded(pair(char('?'), space0), parse_logical_or_expr),
@@ -55,7 +55,7 @@ pub fn parse_filter(input: &str) -> PResult<Filter> {
 struct LogicalOrExpr(Vec<LogicalAndExpr>);
 
 impl TestFilter for LogicalOrExpr {
-    #[tracing::instrument(name = "Test Logical Or Expr", level = "trace", parent = None, ret)]
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Test Logical Or Expr", level = "trace", parent = None, ret))]
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
         self.0.iter().any(|expr| expr.test_filter(current, root))
     }
@@ -65,13 +65,13 @@ impl TestFilter for LogicalOrExpr {
 struct LogicalAndExpr(Vec<BasicExpr>);
 
 impl TestFilter for LogicalAndExpr {
-    #[tracing::instrument(name = "Test Logical And Expr", level = "trace", parent = None, ret)]
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Test Logical And Expr", level = "trace", parent = None, ret))]
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
         self.0.iter().all(|expr| expr.test_filter(current, root))
     }
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_logical_and(input: &str) -> PResult<LogicalAndExpr> {
     map(
         separated_list1(tuple((space0, tag("&&"), space0)), parse_basic_expr),
@@ -79,7 +79,7 @@ fn parse_logical_and(input: &str) -> PResult<LogicalAndExpr> {
     )(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_logical_or_expr(input: &str) -> PResult<LogicalOrExpr> {
     map(
         separated_list1(tuple((space0, tag("||"), space0)), parse_logical_and),
@@ -109,7 +109,7 @@ impl BasicExpr {
 }
 
 impl TestFilter for BasicExpr {
-    #[tracing::instrument(name = "Test Basic Expr", level = "trace", parent = None, ret)]
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Test Basic Expr", level = "trace", parent = None, ret))]
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
         println!("test basic expr: {self:?}");
         match self {
@@ -133,23 +133,23 @@ impl TestFilter for BasicExpr {
 struct ExistExpr(Query);
 
 impl TestFilter for ExistExpr {
-    #[tracing::instrument(name = "Test Exists Expr", level = "trace", parent = None, ret)]
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Test Exists Expr", level = "trace", parent = None, ret))]
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
         !self.0.query(current, root).is_empty()
     }
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_exist_expr_inner(input: &str) -> PResult<ExistExpr> {
     map(parse_path, ExistExpr)(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_exist_expr(input: &str) -> PResult<BasicExpr> {
     map(parse_exist_expr_inner, BasicExpr::Exist)(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_not_exist_expr(input: &str) -> PResult<BasicExpr> {
     map(
         preceded(pair(char('!'), space0), parse_exist_expr_inner),
@@ -157,12 +157,12 @@ fn parse_not_exist_expr(input: &str) -> PResult<BasicExpr> {
     )(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_func_expr(input: &str) -> PResult<BasicExpr> {
     map(parse_function_expr, BasicExpr::FuncExpr)(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_not_func_expr(input: &str) -> PResult<BasicExpr> {
     map(
         preceded(pair(char('!'), space0), parse_function_expr),
@@ -170,7 +170,7 @@ fn parse_not_func_expr(input: &str) -> PResult<BasicExpr> {
     )(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_paren_expr_inner(input: &str) -> PResult<LogicalOrExpr> {
     delimited(
         pair(char('('), space0),
@@ -179,12 +179,12 @@ fn parse_paren_expr_inner(input: &str) -> PResult<LogicalOrExpr> {
     )(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_paren_expr(input: &str) -> PResult<BasicExpr> {
     map(parse_paren_expr_inner, BasicExpr::Paren)(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_not_parent_expr(input: &str) -> PResult<BasicExpr> {
     map(
         preceded(pair(char('!'), space0), parse_paren_expr_inner),
@@ -192,7 +192,7 @@ fn parse_not_parent_expr(input: &str) -> PResult<BasicExpr> {
     )(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_basic_expr(input: &str) -> PResult<BasicExpr> {
     alt((
         parse_not_parent_expr,
@@ -280,7 +280,7 @@ fn func_type_same_type(left: &FuncType, right: &FuncType) -> bool {
 }
 
 impl TestFilter for ComparisonExpr {
-    #[tracing::instrument(name = "Test Comparison Expr", level = "trace", parent = None, ret)]
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Test Comparison Expr", level = "trace", parent = None, ret))]
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
         use ComparisonOperator::*;
         let left = self.left.as_value(current, root);
@@ -317,7 +317,7 @@ fn number_less_than(n1: &Number, n2: &Number) -> bool {
     }
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_comp_expr(input: &str) -> PResult<ComparisonExpr> {
     map(
         separated_pair(
@@ -339,7 +339,7 @@ enum ComparisonOperator {
     GreaterThanEqualTo,
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_comparison_operator(input: &str) -> PResult<ComparisonOperator> {
     use ComparisonOperator::*;
     alt((
@@ -435,7 +435,7 @@ impl Comparable {
     }
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_null_comparable(input: &str) -> PResult<Comparable> {
     map(parse_null, |_| Comparable::Primitive {
         kind: ComparablePrimitiveKind::Null,
@@ -443,7 +443,7 @@ fn parse_null_comparable(input: &str) -> PResult<Comparable> {
     })(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_bool_comparable(input: &str) -> PResult<Comparable> {
     map(parse_bool, |b| Comparable::Primitive {
         kind: ComparablePrimitiveKind::Bool,
@@ -451,7 +451,7 @@ fn parse_bool_comparable(input: &str) -> PResult<Comparable> {
     })(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_number_comparable(input: &str) -> PResult<Comparable> {
     map(parse_number, |n| Comparable::Primitive {
         kind: ComparablePrimitiveKind::Number,
@@ -459,7 +459,7 @@ fn parse_number_comparable(input: &str) -> PResult<Comparable> {
     })(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_string_comparable(input: &str) -> PResult<Comparable> {
     map(parse_string_literal, |s| Comparable::Primitive {
         kind: ComparablePrimitiveKind::String,
@@ -473,12 +473,12 @@ pub enum SingularPathSegment {
     Index(Index),
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_singular_path_index_segment(input: &str) -> PResult<Index> {
     delimited(char('['), parse_index, char(']'))(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_singular_path_name_segment(input: &str) -> PResult<Name> {
     alt((
         delimited(char('['), parse_name, char(']')),
@@ -486,7 +486,7 @@ fn parse_singular_path_name_segment(input: &str) -> PResult<Name> {
     ))(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_singular_path_segments(input: &str) -> PResult<Vec<SingularPathSegment>> {
     many0(preceded(
         space0,
@@ -544,7 +544,7 @@ enum SingularPathKind {
     Relative,
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_singular_path(input: &str) -> PResult<SingularPath> {
     alt((
         map(
@@ -564,17 +564,17 @@ fn parse_singular_path(input: &str) -> PResult<SingularPath> {
     ))(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_singular_path_comparable(input: &str) -> PResult<Comparable> {
     map(parse_singular_path, Comparable::SingularPath)(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_function_expr_comparable(input: &str) -> PResult<Comparable> {
     map(parse_function_expr, Comparable::FunctionExpr)(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_comparable(input: &str) -> PResult<Comparable> {
     println!("parse_comparable: {input}");
     alt((

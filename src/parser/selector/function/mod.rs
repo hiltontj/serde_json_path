@@ -52,7 +52,7 @@ pub enum FunctionExprArg {
 }
 
 impl FunctionExprArg {
-    #[tracing::instrument(name = "Evaluate Function Arg", level = "trace", parent = None, ret)]
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Evaluate Function Arg", level = "trace", parent = None, ret))]
     fn evaluate<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> FuncType<'a> {
         use FunctionExprArg::*;
         match self {
@@ -63,7 +63,7 @@ impl FunctionExprArg {
 }
 
 impl FunctionExpr {
-    #[tracing::instrument(name = "Evaluate Function Expr", level = "trace", parent = None, ret)]
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Evaluate Function Expr", level = "trace", parent = None, ret))]
     pub fn evaluate<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> FuncType<'_> {
         let args: Vec<FuncType> = self
             .args
@@ -81,7 +81,7 @@ impl FunctionExpr {
 }
 
 impl TestFilter for FunctionExpr {
-    #[tracing::instrument(name = "Test Function Expr", level = "trace", parent = None, ret)]
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Test Function Expr", level = "trace", parent = None, ret))]
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
         match self.evaluate(current, root) {
             FuncType::Nodelist(nl) => !nl.is_empty(),
@@ -103,12 +103,12 @@ impl TestFilter for FunctionExpr {
     }
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_function_name_first(input: &str) -> PResult<char> {
     satisfy(|c| ('a'..='z').contains(&c))(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_function_name_char(input: &str) -> PResult<char> {
     alt((
         parse_function_name_first,
@@ -117,7 +117,7 @@ fn parse_function_name_char(input: &str) -> PResult<char> {
     ))(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_function_name(input: &str) -> PResult<String> {
     println!("parse_function_name: {input}");
     map(
@@ -136,7 +136,7 @@ fn parse_function_name(input: &str) -> PResult<String> {
     )(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_function_argument(input: &str) -> PResult<FunctionExprArg> {
     println!("parse_function_argument: {input}");
     alt((
@@ -145,7 +145,7 @@ fn parse_function_argument(input: &str) -> PResult<FunctionExprArg> {
     ))(input)
 }
 
-#[tracing::instrument(level = "trace", parent = None, ret, err)]
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_function_expr(input: &str) -> PResult<FunctionExpr> {
     map(
         pair(
