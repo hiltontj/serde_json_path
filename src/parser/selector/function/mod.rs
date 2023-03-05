@@ -9,6 +9,7 @@ use nom::{
 use once_cell::sync::Lazy;
 use serde_json::{Number, Value};
 
+#[cfg(feature = "registry")]
 pub mod registry;
 
 use crate::parser::{parse_path, PResult, Query, Queryable};
