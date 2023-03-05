@@ -13,8 +13,8 @@ use super::primitive::string::parse_string_literal;
 use super::{PResult, Queryable};
 
 pub mod filter;
-pub mod slice;
 pub mod function;
+pub mod slice;
 
 #[derive(Debug, PartialEq)]
 pub enum Selector {

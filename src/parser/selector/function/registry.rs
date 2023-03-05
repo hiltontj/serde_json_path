@@ -1,32 +1,41 @@
 use once_cell::sync::Lazy;
+use serde_json::Value;
 
 use crate::parser::selector::function::Function;
 
 use super::{Evaluator, FuncType};
 
-static LENGTH: Evaluator = Lazy::new(|| Box::new(
-    |v| {
+static LENGTH: Evaluator = Lazy::new(|| {
+    Box::new(|v| {
+        println!("length: {v:?}");
         if let Some(arg) = v.first() {
             match arg {
-                FuncType::Nodelist(_) => FuncType::Node(None),
-                FuncType::Node(val) => if let Some(v)  = val{
-                    match v {
-                        serde_json::Value::String(s) => FuncType::Value(s.len().into()),
-                        serde_json::Value::Array(a) => FuncType::Value(a.len().into()),
-                        serde_json::Value::Object(o) => FuncType::Value(o.len().into()),
-                        _ => FuncType::Node(None),
+                FuncType::Nodelist(nl) => FuncType::Value(nl.len().into()),
+                FuncType::Node(val) => {
+                    if let Some(v) = val {
+                        match v {
+                            Value::String(s) => FuncType::Value(s.len().into()),
+                            Value::Array(a) => FuncType::Value(a.len().into()),
+                            Value::Object(o) => FuncType::Value(o.len().into()),
+                            _ => FuncType::Node(None),
+                        }
+                    } else {
+                        FuncType::Nothing
                     }
-                } else {
-                    FuncType::Node(None)
+                }
+                FuncType::Value(val) => match val {
+                    Value::String(s) => FuncType::Value(s.len().into()),
+                    Value::Array(a) => FuncType::Value(a.len().into()),
+                    Value::Object(o) => FuncType::Value(o.len().into()),
+                    _ => FuncType::Nothing,
                 },
-                FuncType::Value(_) => FuncType::Nothing,
                 FuncType::Nothing => FuncType::Nothing,
             }
         } else {
             FuncType::Nothing
         }
-    }
-));
+    })
+});
 
 inventory::submit! {
     Function::new(

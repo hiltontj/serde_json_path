@@ -11,7 +11,7 @@ use crate::parser::primitive::{parse_bool, parse_null};
 use crate::parser::segment::parse_dot_member_name;
 use crate::parser::{parse_path, PResult, Query, Queryable};
 
-use super::function::{FunctionExpr, parse_function_expr};
+use super::function::{parse_function_expr, FunctionExpr};
 use super::{parse_index, parse_name, Index, Name};
 
 pub trait TestFilter {
@@ -46,7 +46,7 @@ pub fn parse_filter(input: &str) -> PResult<Filter> {
 }
 
 /// The top level boolean expression type
-/// 
+///
 /// This is also `boolean-expression` in the JSONPath specification, but the naming
 /// was chosen to make it more clear that it represents the logical OR.
 #[derive(Debug, PartialEq)]

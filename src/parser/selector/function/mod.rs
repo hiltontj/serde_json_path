@@ -1,15 +1,22 @@
-use nom::{branch::alt, combinator::map, sequence::{pair, delimited}, character::complete::{space0, satisfy}, multi::{many0, fold_many1}};
 use nom::character::complete::char;
+use nom::{
+    branch::alt,
+    character::complete::{satisfy, space0},
+    combinator::map,
+    multi::{fold_many1, many0},
+    sequence::{delimited, pair},
+};
 use once_cell::sync::Lazy;
 use serde_json::Value;
 
 pub mod registry;
 
-use crate::parser::{Query, PResult, parse_path, Queryable};
+use crate::parser::{parse_path, PResult, Query, Queryable};
 
-use super::filter::{Comparable, TestFilter, parse_comparable};
+use super::filter::{parse_comparable, Comparable, TestFilter};
 
-pub type Evaluator = Lazy<Box<dyn for<'a> Fn(Vec<FuncType<'a, 'a>>) -> FuncType<'a, 'a> + Sync + Send>>;
+pub type Evaluator =
+    Lazy<Box<dyn for<'a> Fn(Vec<FuncType<'a, 'a>>) -> FuncType<'a, 'a> + Sync + Send>>;
 
 pub struct Function {
     name: &'static str,
@@ -24,6 +31,7 @@ impl Function {
 
 inventory::collect!(Function);
 
+#[derive(Debug)]
 pub enum FuncType<'a, 'b> {
     Nodelist(Vec<&'b Value>),
     Node(Option<&'a Value>),
@@ -55,7 +63,11 @@ impl FunctionExprArg {
 
 impl FunctionExpr {
     fn evaluate<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> FuncType<'_, '_> {
-        let args: Vec<FuncType> = self.args.iter().map(|a| a.evaluate(current, root)).collect();
+        let args: Vec<FuncType> = self
+            .args
+            .iter()
+            .map(|a| a.evaluate(current, root))
+            .collect();
         for f in inventory::iter::<Function> {
             if f.name == self.name {
                 return (f.evaluator)(args);
@@ -125,9 +137,9 @@ pub fn parse_function_expr(input: &str) -> PResult<FunctionExpr> {
                 pair(char('('), space0),
                 many0(parse_function_argument),
                 pair(space0, char(')')),
-            )
+            ),
         ),
-        |(name, args)| FunctionExpr { name, args }
+        |(name, args)| FunctionExpr { name, args },
     )(input)
 }
 
@@ -135,6 +147,6 @@ pub fn parse_function_expr(input: &str) -> PResult<FunctionExpr> {
 // mod tests {
 //     #[test]
 //     fn length_fn() {
-        
+
 //     }
 // }

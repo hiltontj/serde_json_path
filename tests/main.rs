@@ -136,3 +136,10 @@ fn spec_example_10() {
     let q = value.json_path("$..*").unwrap();
     assert_eq!(q.len(), 27);
 }
+
+#[test]
+fn test_length() {
+    let value = spec_example_json();
+    let q = value.json_path("$.store.book[?length(@.title)]");
+    dbg!(q);
+}
