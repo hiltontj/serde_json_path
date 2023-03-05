@@ -14,7 +14,7 @@ use nom::{
 
 use crate::parser::PResult;
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 enum Quotes {
     Single,
     Double,
@@ -28,14 +28,17 @@ fn is_hex_digit(chr: char) -> bool {
     is_digit(&chr) || ('A'..='F').contains(&chr) || ('a'..='f').contains(&chr)
 }
 
+#[tracing::instrument(level = "trace", parent = None, ret, err)]
 fn parse_digit(input: &str) -> PResult<char> {
     verify(anychar, is_digit)(input)
 }
 
+#[tracing::instrument(level = "trace", parent = None)]
 fn parse_n_hex_digits(n: usize) -> impl Fn(&str) -> PResult<&str> {
     move |input: &str| take_while_m_n(n, n, is_hex_digit)(input)
 }
 
+#[tracing::instrument(level = "trace", parent = None, ret, err)]
 fn parse_non_surrogate(input: &str) -> PResult<char> {
     let non_d_base = alt((parse_digit, one_of("ABCEFabcdef")));
     let non_d_based = pair(non_d_base, parse_n_hex_digits(3));
@@ -47,6 +50,7 @@ fn parse_non_surrogate(input: &str) -> PResult<char> {
     context("non surrogate", map_opt(parse_u32, char::from_u32))(input)
 }
 
+#[tracing::instrument(level = "trace", parent = None, ret, err)]
 fn parse_low_surrogate(input: &str) -> PResult<u16> {
     context(
         "low surrogate",
@@ -61,6 +65,7 @@ fn parse_low_surrogate(input: &str) -> PResult<u16> {
     )(input)
 }
 
+#[tracing::instrument(level = "trace", parent = None, ret, err)]
 fn parse_high_surrogate(input: &str) -> PResult<u16> {
     context(
         "high surrogate",
@@ -71,6 +76,7 @@ fn parse_high_surrogate(input: &str) -> PResult<u16> {
     )(input)
 }
 
+#[tracing::instrument(level = "trace", parent = None, ret, err)]
 fn parse_surrogate(input: &str) -> PResult<String> {
     context(
         "surrogate pair",
@@ -81,14 +87,17 @@ fn parse_surrogate(input: &str) -> PResult<String> {
     )(input)
 }
 
+#[tracing::instrument(level = "trace", parent = None, ret, err)]
 fn parse_hex_char(input: &str) -> PResult<String> {
     alt((map(parse_non_surrogate, String::from), parse_surrogate))(input)
 }
 
+#[tracing::instrument(level = "trace", parent = None, ret, err)]
 fn parse_unicode_sequence(input: &str) -> PResult<String> {
     context("unicode sequence", preceded(char('u'), parse_hex_char))(input)
 }
 
+#[tracing::instrument(level = "trace", parent = None)]
 fn parse_escaped_quote(quoted_with: Quotes) -> impl Fn(&str) -> PResult<char> {
     move |input: &str| match quoted_with {
         Quotes::Single => value('\u{0027}', char('\''))(input),
@@ -96,6 +105,7 @@ fn parse_escaped_quote(quoted_with: Quotes) -> impl Fn(&str) -> PResult<char> {
     }
 }
 
+#[tracing::instrument(level = "trace", parent = None)]
 fn parse_escaped_char(quoted_with: Quotes) -> impl Fn(&str) -> PResult<String> {
     move |input: &str| {
         context(
@@ -138,6 +148,7 @@ fn is_valid_unescaped_char(chr: char, quoted_with: Quotes) -> bool {
     }
 }
 
+#[tracing::instrument(level = "trace", parent = None)]
 fn parse_unescaped(quoted_with: Quotes) -> impl Fn(&str) -> PResult<&str> {
     move |input: &str| {
         context(
@@ -150,6 +161,7 @@ fn parse_unescaped(quoted_with: Quotes) -> impl Fn(&str) -> PResult<&str> {
     }
 }
 
+#[tracing::instrument(level = "trace", parent = None)]
 fn parse_fragment(quoted_with: Quotes) -> impl Fn(&str) -> PResult<String> {
     move |input: &str| {
         alt((
@@ -159,6 +171,7 @@ fn parse_fragment(quoted_with: Quotes) -> impl Fn(&str) -> PResult<String> {
     }
 }
 
+#[tracing::instrument(level = "trace", parent = None)]
 fn parse_internal(quoted_with: Quotes) -> impl Fn(&str) -> PResult<String> {
     move |input: &str| {
         fold_many0(
@@ -172,6 +185,7 @@ fn parse_internal(quoted_with: Quotes) -> impl Fn(&str) -> PResult<String> {
     }
 }
 
+#[tracing::instrument(level = "trace", parent = None, ret, err)]
 fn parse_single_quoted(input: &str) -> PResult<String> {
     context(
         "single quoted",
@@ -179,6 +193,7 @@ fn parse_single_quoted(input: &str) -> PResult<String> {
     )(input)
 }
 
+#[tracing::instrument(level = "trace", parent = None, ret, err)]
 fn parse_double_quoted(input: &str) -> PResult<String> {
     context(
         "double quoted",
@@ -186,6 +201,7 @@ fn parse_double_quoted(input: &str) -> PResult<String> {
     )(input)
 }
 
+#[tracing::instrument(level = "trace", parent = None, ret, err)]
 pub fn parse_string_literal(input: &str) -> PResult<String> {
     context(
         "string literal",

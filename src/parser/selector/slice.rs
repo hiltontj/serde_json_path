@@ -38,6 +38,7 @@ impl Slice {
 }
 
 impl Queryable for Slice {
+    #[tracing::instrument(name = "Query Slice", level = "trace", parent = None, ret)]
     fn query<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {
         if let Some(list) = current.as_array() {
             let mut query = Vec::new();
@@ -98,10 +99,12 @@ fn normalize_slice_index(index: isize, len: isize) -> Option<isize> {
     }
 }
 
+#[tracing::instrument(level = "trace", parent = None, ret, err)]
 fn parse_int_space_after(input: &str) -> PResult<isize> {
     terminated(parse_int, multispace0)(input)
 }
 
+#[tracing::instrument(level = "trace", parent = None, ret, err)]
 fn parse_int_space_before(input: &str) -> PResult<isize> {
     preceded(multispace0, parse_int)(input)
 }
@@ -110,6 +113,7 @@ fn parse_int_space_before(input: &str) -> PResult<isize> {
 ///
 /// See [Section 2.5.4](https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-09.html#name-array-slice-selector)
 /// in the JSONPath standard.
+#[tracing::instrument(level = "trace", parent = None, ret, err)]
 pub fn parse_array_slice(input: &str) -> PResult<Slice> {
     map(
         separated_pair(

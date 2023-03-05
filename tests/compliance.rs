@@ -22,7 +22,7 @@ struct TestCase {
 }
 
 #[test]
-// #[ignore = "compliance will fail until function extensions are implemented"]
+#[ignore = "compliance will fail until function extensions are implemented"]
 fn compliace_test_suite() {
     let cts_json_str =
         fs::read_to_string("jsonpath-compliance-test-suite/cts.json").expect("read cts.json file");

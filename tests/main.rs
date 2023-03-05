@@ -1,5 +1,6 @@
 use serde_json::{json, Value};
 use serde_json_path::JsonPathExt;
+use test_log::test;
 
 fn spec_example_json() -> Value {
     json!({
@@ -144,4 +145,15 @@ fn test_length() {
         .json_path("$.store.book[?length(@.title) > 10]")
         .unwrap();
     assert_eq!(3, q.len());
+}
+
+#[test]
+fn test_count() {
+    tracing::info!("counting!");
+    let value = json!([
+        {"foo": [1]},
+        {"foo": [1, 2]},
+    ]);
+    let q = value.json_path("$[?count(@.foo.*) > 1]").unwrap();
+    assert_eq!(1, q.len());
 }

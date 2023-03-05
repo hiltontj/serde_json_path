@@ -26,6 +26,7 @@ pub enum Selector {
 }
 
 impl Queryable for Selector {
+    #[tracing::instrument(name = "Query Selector", level = "trace", parent = None, ret)]
     fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
         let mut query = Vec::new();
         match self {
@@ -49,6 +50,7 @@ impl Queryable for Selector {
     }
 }
 
+#[tracing::instrument(level = "trace", parent = None, ret, err)]
 pub fn parse_wildcard_selector(input: &str) -> PResult<Selector> {
     map(char('*'), |_| Selector::Wildcard)(input)
 }
@@ -63,6 +65,7 @@ impl Name {
 }
 
 impl Queryable for Name {
+    #[tracing::instrument(name = "Query Name", level = "trace", parent = None, ret)]
     fn query<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {
         if let Some(obj) = current.as_object() {
             obj.get(&self.0).into_iter().collect()
@@ -78,10 +81,12 @@ impl From<&str> for Name {
     }
 }
 
+#[tracing::instrument(level = "trace", parent = None, ret, err)]
 pub fn parse_name(input: &str) -> PResult<Name> {
     map(parse_string_literal, Name)(input)
 }
 
+#[tracing::instrument(level = "trace", parent = None, ret, err)]
 fn parse_name_selector(input: &str) -> PResult<Selector> {
     map(parse_name, Selector::Name)(input)
 }
@@ -90,6 +95,7 @@ fn parse_name_selector(input: &str) -> PResult<Selector> {
 pub struct Index(pub isize);
 
 impl Queryable for Index {
+    #[tracing::instrument(name = "Query Index", level = "trace", parent = None, ret)]
     fn query<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {
         if let Some(list) = current.as_array() {
             if self.0 < 0 {
@@ -119,22 +125,27 @@ impl From<isize> for Index {
     }
 }
 
+#[tracing::instrument(level = "trace", parent = None, ret, err)]
 fn parse_index(input: &str) -> PResult<Index> {
     map(parse_int, Index)(input)
 }
 
+#[tracing::instrument(level = "trace", parent = None, ret, err)]
 fn parse_index_selector(input: &str) -> PResult<Selector> {
     map(parse_index, Selector::Index)(input)
 }
 
+#[tracing::instrument(level = "trace", parent = None, ret, err)]
 fn parse_array_slice_selector(input: &str) -> PResult<Selector> {
     map(parse_array_slice, Selector::ArraySlice)(input)
 }
 
+#[tracing::instrument(level = "trace", parent = None, ret, err)]
 fn parse_filter_selector(input: &str) -> PResult<Selector> {
     map(parse_filter, Selector::Filter)(input)
 }
 
+#[tracing::instrument(level = "trace", parent = None, ret, err)]
 pub fn parse_selector(input: &str) -> PResult<Selector> {
     context(
         "selector",

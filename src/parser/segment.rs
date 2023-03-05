@@ -29,6 +29,7 @@ pub enum PathSegmentKind {
 }
 
 impl Queryable for PathSegment {
+    #[tracing::instrument(name = "Query Path Segment", level = "trace", parent = None, ret)]
     fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
         let mut query = self.segment.query(current, root);
         if matches!(self.kind, PathSegmentKind::Descendant) {
@@ -78,6 +79,7 @@ impl Segment {
 }
 
 impl Queryable for Segment {
+    #[tracing::instrument(name = "Query Segment", level = "trace", parent = None, ret)]
     fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
         let mut query = Vec::new();
         match self {
