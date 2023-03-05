@@ -11,7 +11,7 @@ use crate::parser::primitive::{parse_bool, parse_null};
 use crate::parser::segment::parse_dot_member_name;
 use crate::parser::{parse_path, PResult, Query, Queryable};
 
-use super::function::{parse_function_expr, FunctionExpr};
+use super::function::{parse_function_expr, FuncType, FunctionExpr};
 use super::{parse_index, parse_name, Index, Name};
 
 pub trait TestFilter {
@@ -194,42 +194,94 @@ struct ComparisonExpr {
     pub right: Comparable,
 }
 
+fn func_type_equal_to(left: &FuncType, right: &FuncType) -> bool {
+    match (left, right) {
+        (FuncType::Node(n1), FuncType::Node(n2)) => match (n1, n2) {
+            (None, None) => true,
+            (Some(v1), Some(v2)) => v1 == v2,
+            _ => false,
+        },
+        (FuncType::Value(v1), FuncType::Node(Some(v2))) => &v1 == v2,
+        (FuncType::Value(v1), FuncType::Value(v2)) => v1 == v2,
+        (FuncType::Value(v1), FuncType::ValueRef(v2)) => &v1 == v2,
+        (FuncType::ValueRef(v1), FuncType::Node(Some(v2))) => v1 == v2,
+        (FuncType::ValueRef(v1), FuncType::Value(v2)) => v1 == &v2,
+        (FuncType::ValueRef(v1), FuncType::ValueRef(v2)) => v1 == v2,
+        (FuncType::Node(Some(v1)), FuncType::ValueRef(v2)) => v1 == v2,
+        (FuncType::Node(Some(v1)), FuncType::Value(v2)) => v1 == &v2,
+        (FuncType::Nothing, FuncType::Nothing) => true,
+        _ => false,
+    }
+}
+
+fn value_less_than(left: &Value, right: &Value) -> bool {
+    match (left, right) {
+        (Value::Number(n1), Value::Number(n2)) => number_less_than(n1, n2),
+        (Value::String(s1), Value::String(s2)) => s1 < s2,
+        _ => false,
+    }
+}
+
+fn func_type_less_than(left: &FuncType, right: &FuncType) -> bool {
+    match (left, right) {
+        (FuncType::Node(Some(v1)), FuncType::Node(Some(v2)))
+        | (FuncType::Node(Some(v1)), FuncType::ValueRef(v2))
+        | (FuncType::ValueRef(v1), FuncType::Node(Some(v2)))
+        | (FuncType::ValueRef(v1), FuncType::ValueRef(v2)) => value_less_than(v1, v2),
+        (FuncType::Value(ref v1), FuncType::ValueRef(v2))
+        | (FuncType::Value(ref v1), FuncType::Node(Some(v2))) => value_less_than(v1, v2),
+        (FuncType::ValueRef(v1), FuncType::Value(ref v2))
+        | (FuncType::Node(Some(v1)), FuncType::Value(ref v2)) => value_less_than(v1, v2),
+        (FuncType::Value(ref v1), FuncType::Value(ref v2)) => value_less_than(v1, v2),
+        _ => false,
+    }
+}
+
+fn value_same_type(left: &Value, right: &Value) -> bool {
+    matches!((left, right), (Value::Null, Value::Null))
+        | matches!((left, right), (Value::Bool(_), Value::Bool(_)))
+        | matches!((left, right), (Value::Number(_), Value::Number(_)))
+        | matches!((left, right), (Value::String(_), Value::String(_)))
+        | matches!((left, right), (Value::Array(_), Value::Array(_)))
+        | matches!((left, right), (Value::Object(_), Value::Object(_)))
+}
+
+fn func_type_same_type(left: &FuncType, right: &FuncType) -> bool {
+    match (left, right) {
+        (FuncType::Node(Some(v1)), FuncType::Node(Some(v2))) => value_same_type(v1, v2),
+        (FuncType::Node(Some(v1)), FuncType::Value(v2)) => value_same_type(v1, v2),
+        (FuncType::Node(Some(v1)), FuncType::ValueRef(v2)) => value_same_type(v1, v2),
+        (FuncType::Value(v1), FuncType::Node(Some(v2))) => value_same_type(v1, v2),
+        (FuncType::Value(v1), FuncType::Value(v2)) => value_same_type(v1, v2),
+        (FuncType::Value(v1), FuncType::ValueRef(v2)) => value_same_type(v1, v2),
+        (FuncType::ValueRef(v1), FuncType::Node(Some(v2))) => value_same_type(v1, v2),
+        (FuncType::ValueRef(v1), FuncType::Value(v2)) => value_same_type(v1, v2),
+        (FuncType::ValueRef(v1), FuncType::ValueRef(v2)) => value_same_type(v1, v2),
+        _ => false,
+    }
+}
+
 impl TestFilter for ComparisonExpr {
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
         use ComparisonOperator::*;
         let left = self.left.as_value(current, root);
         let right = self.right.as_value(current, root);
-        match (left, right) {
-            (None, None) => true,
-            (Some(l), Some(r)) => match self.op {
-                EqualTo => l == r,
-                NotEqualTo => l != r,
-                LessThan => match (l, r) {
-                    (Value::Number(n1), Value::Number(n2)) => number_less_than(n1, n2),
-                    (Value::String(s1), Value::String(s2)) => s1 < s2,
-                    _ => false,
-                },
-                GreaterThan => match (l, r) {
-                    (Value::Number(n1), Value::Number(n2)) => !number_less_than(n1, n2) && n1 != n2,
-                    (Value::String(s1), Value::String(s2)) => s1 > s2,
-                    _ => false,
-                },
-                LessThanEqualTo => match (l, r) {
-                    (Value::Number(n1), Value::Number(n2)) => number_less_than(n1, n2) || n1 == n2,
-                    (Value::String(s1), Value::String(s2)) => s1 <= s2,
-                    (Value::Bool(b1), Value::Bool(b2)) => b1 == b2,
-                    (Value::Null, Value::Null) => true,
-                    _ => false,
-                },
-                GreaterThanEqualTo => match (l, r) {
-                    (Value::Number(n1), Value::Number(n2)) => !number_less_than(n1, n2),
-                    (Value::String(s1), Value::String(s2)) => s1 >= s2,
-                    (Value::Bool(b1), Value::Bool(b2)) => b1 == b2,
-                    (Value::Null, Value::Null) => true,
-                    _ => false,
-                },
-            },
-            (None, Some(_)) | (Some(_), None) => matches!(self.op, NotEqualTo),
+        match self.op {
+            EqualTo => func_type_equal_to(&left, &right),
+            NotEqualTo => !func_type_equal_to(&left, &right),
+            LessThan => func_type_same_type(&left, &right) && func_type_less_than(&left, &right),
+            GreaterThan => {
+                func_type_same_type(&left, &right)
+                    && !func_type_less_than(&left, &right)
+                    && !func_type_equal_to(&left, &right)
+            }
+            LessThanEqualTo => {
+                func_type_same_type(&left, &right)
+                    && (func_type_less_than(&left, &right) || func_type_equal_to(&left, &right))
+            }
+            GreaterThanEqualTo => {
+                func_type_same_type(&left, &right) && !func_type_less_than(&left, &right)
+            }
         }
     }
 }
@@ -286,7 +338,7 @@ pub enum Comparable {
         value: Value,
     },
     SingularPath(SingularPath),
-    // FunctionExpr, // TODO - function expressions are hard
+    FunctionExpr(FunctionExpr),
 }
 
 #[derive(Debug, PartialEq)]
@@ -298,11 +350,12 @@ pub enum ComparablePrimitiveKind {
 }
 
 impl Comparable {
-    pub fn as_value<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> Option<&Value> {
+    pub fn as_value<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> FuncType<'a> {
         use Comparable::*;
         match self {
-            Primitive { kind: _, value } => Some(value),
-            SingularPath(sp) => sp.eval_path(current, root),
+            Primitive { kind: _, value } => FuncType::ValueRef(value),
+            SingularPath(sp) => FuncType::Node(sp.eval_path(current, root)),
+            FunctionExpr(expr) => expr.evaluate(current, root),
         }
     }
 }
@@ -486,6 +539,10 @@ fn parse_singular_path_comparable(input: &str) -> PResult<Comparable> {
     map(parse_singular_path, Comparable::SingularPath)(input)
 }
 
+fn parse_function_expr_comparable(input: &str) -> PResult<Comparable> {
+    map(parse_function_expr, Comparable::FunctionExpr)(input)
+}
+
 pub fn parse_comparable(input: &str) -> PResult<Comparable> {
     alt((
         parse_null_comparable,
@@ -493,6 +550,7 @@ pub fn parse_comparable(input: &str) -> PResult<Comparable> {
         parse_number_comparable,
         parse_string_comparable,
         parse_singular_path_comparable,
+        parse_function_expr_comparable,
     ))(input)
 }
 

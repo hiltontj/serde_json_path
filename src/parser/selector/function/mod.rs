@@ -7,7 +7,7 @@ use nom::{
     sequence::{delimited, pair},
 };
 use once_cell::sync::Lazy;
-use serde_json::Value;
+use serde_json::{Number, Value};
 
 pub mod registry;
 
@@ -15,8 +15,7 @@ use crate::parser::{parse_path, PResult, Query, Queryable};
 
 use super::filter::{parse_comparable, Comparable, TestFilter};
 
-pub type Evaluator =
-    Lazy<Box<dyn for<'a> Fn(Vec<FuncType<'a, 'a>>) -> FuncType<'a, 'a> + Sync + Send>>;
+pub type Evaluator = Lazy<Box<dyn for<'a> Fn(Vec<FuncType<'a>>) -> FuncType<'a> + Sync + Send>>;
 
 pub struct Function {
     name: &'static str,
@@ -32,10 +31,11 @@ impl Function {
 inventory::collect!(Function);
 
 #[derive(Debug)]
-pub enum FuncType<'a, 'b> {
-    Nodelist(Vec<&'b Value>),
+pub enum FuncType<'a> {
+    Nodelist(Vec<&'a Value>),
     Node(Option<&'a Value>),
     Value(Value),
+    ValueRef(&'a Value),
     Nothing,
 }
 
@@ -52,28 +52,29 @@ pub enum FunctionExprArg {
 }
 
 impl FunctionExprArg {
-    fn evaluate<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> FuncType<'a, 'b> {
+    fn evaluate<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> FuncType<'a> {
         use FunctionExprArg::*;
         match self {
             FilterPath(q) => FuncType::Nodelist(q.query(current, root)),
-            Comparable(c) => FuncType::Node(c.as_value(current, root)),
+            Comparable(c) => c.as_value(current, root),
         }
     }
 }
 
 impl FunctionExpr {
-    fn evaluate<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> FuncType<'_, '_> {
+    pub fn evaluate<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> FuncType<'_> {
         let args: Vec<FuncType> = self
             .args
             .iter()
             .map(|a| a.evaluate(current, root))
             .collect();
+        println!("args: {args:?}");
         for f in inventory::iter::<Function> {
             if f.name == self.name {
                 return (f.evaluator)(args);
             }
         }
-        return FuncType::Nothing;
+        FuncType::Nothing
     }
 }
 
@@ -85,10 +86,16 @@ impl TestFilter for FunctionExpr {
             FuncType::Value(v) => match v {
                 Value::Null => false,
                 Value::Bool(b) => b,
-                // TODO - probably wrong:
+                Value::Number(n) => n != Number::from(0),
                 _ => true,
             },
             FuncType::Nothing => false,
+            FuncType::ValueRef(v) => match v {
+                Value::Null => false,
+                Value::Bool(b) => *b,
+                Value::Number(n) => n != &Number::from(0),
+                _ => true,
+            },
         }
     }
 }
@@ -142,11 +149,3 @@ pub fn parse_function_expr(input: &str) -> PResult<FunctionExpr> {
         |(name, args)| FunctionExpr { name, args },
     )(input)
 }
-
-// #[test]
-// mod tests {
-//     #[test]
-//     fn length_fn() {
-
-//     }
-// }

@@ -29,6 +29,12 @@ static LENGTH: Evaluator = Lazy::new(|| {
                     Value::Object(o) => FuncType::Value(o.len().into()),
                     _ => FuncType::Nothing,
                 },
+                FuncType::ValueRef(val) => match val {
+                    Value::String(s) => FuncType::Value(s.len().into()),
+                    Value::Array(a) => FuncType::Value(a.len().into()),
+                    Value::Object(o) => FuncType::Value(o.len().into()),
+                    _ => FuncType::Nothing,
+                },
                 FuncType::Nothing => FuncType::Nothing,
             }
         } else {

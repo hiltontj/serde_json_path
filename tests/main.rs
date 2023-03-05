@@ -140,6 +140,8 @@ fn spec_example_10() {
 #[test]
 fn test_length() {
     let value = spec_example_json();
-    let q = value.json_path("$.store.book[?length(@.title)]");
-    dbg!(q);
+    let q = value
+        .json_path("$.store.book[?length(@.title) > 10]")
+        .unwrap();
+    assert_eq!(3, q.len());
 }
