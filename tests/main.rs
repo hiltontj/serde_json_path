@@ -175,3 +175,20 @@ fn test_search() {
         .unwrap();
     assert_eq!(2, q.len());
 }
+
+#[test]
+fn test_match_2() {
+    let value = json!([
+        { "name": "Homer Simpson" },
+        { "name": "Marge Simpson" },
+        { "name": "Bart Simpson" },
+        { "name": "Lisa Simpson" },
+        { "name": "Maggie Simpson" },
+        { "name": "Ned Flanders" },
+    ]);
+    let q = value
+        .json_path("$[? match(@.name, 'M[A-Za-z ]*Simpson')].name")
+        .unwrap();
+    assert_eq!(2, q.len());
+    assert_eq!("Marge Simpson", q.all().first().unwrap().as_str().unwrap(),);
+}
