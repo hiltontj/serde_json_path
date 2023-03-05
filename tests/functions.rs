@@ -51,10 +51,10 @@ fn first_function() {
         .json_path("$[?first(@.books.*.author) == 'Alexandre Dumas']")
         .unwrap();
     assert_eq!(
-        "The Three Musketeers",
+        "The Rise and Fall of the Third Reich",
         q.one()
             .unwrap()
-            .pointer("/books/0/title")
+            .pointer("/books/1/title")
             .unwrap()
             .as_str()
             .unwrap(),
