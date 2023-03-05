@@ -31,12 +31,13 @@ impl Function {
 
 inventory::collect!(Function);
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub enum FuncType<'a> {
     Nodelist(Vec<&'a Value>),
     Node(Option<&'a Value>),
     Value(Value),
     ValueRef(&'a Value),
+    #[default]
     Nothing,
 }
 
