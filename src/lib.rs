@@ -186,6 +186,8 @@ use crate::parser::Queryable;
 
 mod parser;
 
+pub use parser::selector::function::{Evaluator, FuncType, Function};
+
 /// A list of nodes resulting from a JSONPath query
 ///
 /// Each node within the list is a borrowed reference to the node in the original
