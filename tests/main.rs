@@ -157,3 +157,21 @@ fn test_count() {
     let q = value.json_path("$[?count(@.foo.*) > 1]").unwrap();
     assert_eq!(1, q.len());
 }
+
+#[test]
+fn test_match() {
+    let value = spec_example_json();
+    let q = value
+        .json_path("$.store.book[?match(@.category, 'fiction')]")
+        .unwrap();
+    assert_eq!(3, q.len());
+}
+
+#[test]
+fn test_search() {
+    let value = spec_example_json();
+    let q = value
+        .json_path("$.store.book[?search(@.title, 'the')]")
+        .unwrap();
+    assert_eq!(2, q.len());
+}

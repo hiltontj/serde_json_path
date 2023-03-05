@@ -1,4 +1,5 @@
 use once_cell::sync::Lazy;
+use regex::Regex;
 use serde_json::Value;
 
 use crate::parser::selector::function::Function;
@@ -60,5 +61,57 @@ inventory::submit! {
     Function::new(
         "count",
         &COUNT,
+    )
+}
+
+static MATCH: Evaluator = Lazy::new(|| {
+    Box::new(|v| {
+        if let (Some(FuncType::Nodelist(nl)), Some(FuncType::ValueRef(Value::String(rgx_str)))) =
+            (v.get(0), v.get(1))
+        {
+            if let Some(Value::String(test_str)) = nl.first() {
+                Regex::new(format!("^{rgx_str}$").as_str())
+                    .map(|rgx| rgx.is_match(test_str))
+                    .map(|b| FuncType::Value(b.into()))
+                    .unwrap_or_default()
+            } else {
+                FuncType::Nothing
+            }
+        } else {
+            FuncType::Nothing
+        }
+    })
+});
+
+inventory::submit! {
+    Function::new(
+        "match",
+        &MATCH,
+    )
+}
+
+static SEARCH: Evaluator = Lazy::new(|| {
+    Box::new(|v| {
+        if let (Some(FuncType::Nodelist(nl)), Some(FuncType::ValueRef(Value::String(rgx_str)))) =
+            (v.get(0), v.get(1))
+        {
+            if let Some(Value::String(test_str)) = nl.first() {
+                Regex::new(rgx_str)
+                    .map(|rgx| rgx.is_match(test_str))
+                    .map(|b| FuncType::Value(b.into()))
+                    .unwrap_or_default()
+            } else {
+                FuncType::Nothing
+            }
+        } else {
+            FuncType::Nothing
+        }
+    })
+});
+
+inventory::submit! {
+    Function::new(
+        "search",
+        &SEARCH,
     )
 }

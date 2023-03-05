@@ -1,9 +1,11 @@
 use nom::character::complete::char;
+use nom::multi::separated_list0;
+use nom::sequence::tuple;
 use nom::{
     branch::alt,
     character::complete::{satisfy, space0},
     combinator::map,
-    multi::{fold_many1, many0},
+    multi::fold_many1,
     sequence::{delimited, pair},
 };
 use once_cell::sync::Lazy;
@@ -151,7 +153,7 @@ pub fn parse_function_expr(input: &str) -> PResult<FunctionExpr> {
             parse_function_name,
             delimited(
                 pair(char('('), space0),
-                many0(parse_function_argument),
+                separated_list0(tuple((space0, char(','), space0)), parse_function_argument),
                 pair(space0, char(')')),
             ),
         ),
