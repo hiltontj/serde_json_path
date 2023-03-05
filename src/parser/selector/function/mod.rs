@@ -71,7 +71,6 @@ impl FunctionExpr {
             .map(|a| a.evaluate(current, root))
             .collect();
         for f in inventory::iter::<Function> {
-            println!("registered: {name}", name = f.name);
             if f.name == self.name {
                 return (f.evaluator)(args);
             }
@@ -119,7 +118,6 @@ fn parse_function_name_char(input: &str) -> PResult<char> {
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_function_name(input: &str) -> PResult<String> {
-    println!("parse_function_name: {input}");
     map(
         pair(
             parse_function_name_first,
@@ -138,7 +136,6 @@ fn parse_function_name(input: &str) -> PResult<String> {
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_function_argument(input: &str) -> PResult<FunctionExprArg> {
-    println!("parse_function_argument: {input}");
     alt((
         map(parse_path, FunctionExprArg::FilterPath),
         map(parse_comparable, FunctionExprArg::Comparable),

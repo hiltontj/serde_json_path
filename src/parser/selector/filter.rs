@@ -111,7 +111,6 @@ impl BasicExpr {
 impl TestFilter for BasicExpr {
     #[cfg_attr(feature = "trace", tracing::instrument(name = "Test Basic Expr", level = "trace", parent = None, ret))]
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
-        println!("test basic expr: {self:?}");
         match self {
             BasicExpr::Paren(expr) => expr.test_filter(current, root),
             BasicExpr::NotParen(expr) => !expr.test_filter(current, root),
@@ -576,7 +575,6 @@ fn parse_function_expr_comparable(input: &str) -> PResult<Comparable> {
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_comparable(input: &str) -> PResult<Comparable> {
-    println!("parse_comparable: {input}");
     alt((
         parse_null_comparable,
         parse_bool_comparable,

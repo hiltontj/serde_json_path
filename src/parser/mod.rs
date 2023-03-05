@@ -54,7 +54,6 @@ fn parse_path_segments(input: &str) -> PResult<Vec<PathSegment>> {
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_path(input: &str) -> PResult<Query> {
-    println!("parse_path: {input}");
     alt((
         map(preceded(char('$'), parse_path_segments), |segments| Query {
             kind: PathKind::Root,

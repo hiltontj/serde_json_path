@@ -7,7 +7,6 @@ use super::{Evaluator, FuncType};
 
 static LENGTH: Evaluator = Lazy::new(|| {
     Box::new(|v| {
-        println!("length: {v:?}");
         if let Some(arg) = v.first() {
             match arg {
                 FuncType::Nodelist(nl) => {
@@ -63,7 +62,6 @@ inventory::submit! {
 
 static COUNT: Evaluator = Lazy::new(|| {
     Box::new(|v| {
-        println!("count: {v:?}");
         if let Some(arg) = v.first() {
             match arg {
                 FuncType::Nodelist(nl) => FuncType::Value(nl.len().into()),
