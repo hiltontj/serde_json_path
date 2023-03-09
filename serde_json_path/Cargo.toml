@@ -9,12 +9,6 @@ repository = "https://github.com/hiltontj/serde_json_path"
 readme = "README.md"
 keywords = ["json", "jsonpath", "json_path", "serde", "serde_json"]
 
-[profile.dev]
-incremental = false
-
-[profile.release]
-codegen-units = 1
-
 [features]
 default = ["registry"]
 trace = ["dep:tracing"]
