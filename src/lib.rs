@@ -7,12 +7,16 @@
 //! may evolve as JSONPath becomes standardized. See [Unimplemented Features](#unimplemented-features)
 //! for more details on which parts of the specification are not implemented by this crate.
 //!
+//! # Features
+//!
 //! This crate provides two key abstractions:
 //!
+//! * The [`JsonPath`] struct, which represents a parsed JSONPath query.
 //! * The [`NodeList`] struct, which represents the result of a JSONPath query performed on a
 //!   [`serde_json::Value`].
-//! * The [`JsonPathExt`] trait, which extends the [`serde_json::Value`] type with the
-//!   [`json_path`][JsonPathExt::json_path] method for performing JSONPath queries.
+//!
+//! In addition, the [`JsonPathExt`] trait is provided, which extends the [`serde_json::Value`]
+//! type with the [`json_path`][JsonPathExt::json_path] method for performing JSONPath queries.
 //!
 //! # Usage
 //!
@@ -183,11 +187,11 @@
 //! [jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-10.html
 //! [func_ext]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-10.html#name-function-extensions-2
 //! [norm_path]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-10.html#name-normalized-paths
-use std::{ops::Deref, slice::Iter, str::FromStr, marker::PhantomData};
+use std::{ops::Deref, slice::Iter, str::FromStr};
 
 use nom::error::{convert_error, VerboseError};
-use parser::{parse_root_path_main, Query};
-use serde::{Serialize, Deserialize, de::Visitor};
+use parser::{parse_path_main, Query};
+use serde::{de::Visitor, Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::parser::QueryValue;
@@ -195,20 +199,19 @@ use crate::parser::QueryValue;
 mod parser;
 
 /// A parsed JSON Path query string
-/// 
-/// This type represents a valid, parsed JSON Path query string. Please refer to the 
+///
+/// This type represents a valid, parsed JSON Path query string. Please refer to the
 /// [IETF JSONPath specification][jp_spec] for the details on what constitutes a valid JSON Path
 /// query.
-/// 
-/// ## Usage
-/// 
+///
+/// # Usage
+///
 /// A `JsonPath` can be parsed directly from an `&str` using the [`parse`][JsonPath::parse] method:
 /// ```rust
 /// # use serde_json_path::JsonPath;
 /// # fn main() {
 /// let path = JsonPath::parse("$.foo.*").expect("valid JSON Path");
 /// # }
-/// 
 /// ```
 /// It can then be used to query [`serde_json::Value`]'s with the [`query`][JsonPath::query] method:
 /// ```rust
@@ -218,17 +221,17 @@ mod parser;
 /// # let path = JsonPath::parse("$.foo.*").expect("valid JSON Path");
 /// let value = json!({"foo": [1, 2, 3, 4]});
 /// let nodes = path.query(&value);
-/// # assert_eq!(nodes.all(), vec![1, 2, 3, 4]);
+/// assert_eq!(nodes.all(), vec![1, 2, 3, 4]);
 /// # }
 /// ```
-/// 
+///
 /// [jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-10.html
 pub struct JsonPath(Query);
 
 impl JsonPath {
     /// Create a [`JsonPath`] by parsing a valid JSON Path query string
-    /// 
-    /// ## Example
+    ///
+    /// # Example
     /// ```rust
     /// # use serde_json_path::JsonPath;
     /// # fn main() {
@@ -236,7 +239,7 @@ impl JsonPath {
     /// # }
     /// ```
     pub fn parse(path_str: &str) -> Result<Self, Error> {
-        let (_, path) = parse_root_path_main(path_str).map_err(|err| match err {
+        let (_, path) = parse_path_main(path_str).map_err(|err| match err {
             nom::Err::Error(e) | nom::Err::Failure(e) => (path_str, e),
             nom::Err::Incomplete(_) => unreachable!("we do not use streaming parsers"),
         })?;
@@ -244,16 +247,17 @@ impl JsonPath {
     }
 
     /// Query a [`serde_json::Value`] using this [`JsonPath`]
-    /// 
-    /// ## Example
+    ///
+    /// # Example
     /// ```rust
     /// # use serde_json::json;
     /// # use serde_json_path::JsonPath;
-    /// # fn main() {
-    /// let path = JsonPath::parse("$.foo[::2]").expect("valid JSON Path");
+    /// # fn main() -> Result<(), serde_json_path::Error> {
+    /// let path = JsonPath::parse("$.foo[::2]")?;
     /// let value = json!({"foo": [1, 2, 3, 4]});
     /// let nodes = path.query(&value);
-    /// # assert_eq!(nodes.all(), vec![1, 3]);
+    /// assert_eq!(nodes.all(), vec![1, 3]);
+    /// # Ok(())
     /// # }
     /// ```
     pub fn query<'b>(&self, value: &'b Value) -> NodeList<'b> {
@@ -272,15 +276,15 @@ impl FromStr for JsonPath {
 impl<'de> Deserialize<'de> for JsonPath {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        D: serde::Deserializer<'de>
+        D: serde::Deserializer<'de>,
     {
-        struct JsonPathVisitor(PhantomData<JsonPath>);
+        struct JsonPathVisitor;
 
         impl<'de> Visitor<'de> for JsonPathVisitor {
             type Value = JsonPath;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                write!(formatter, "a string")
+                write!(formatter, "a string representing a JSON Path query")
             }
 
             fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
@@ -289,31 +293,9 @@ impl<'de> Deserialize<'de> for JsonPath {
             {
                 JsonPath::parse(v).map_err(serde::de::Error::custom)
             }
-
-            fn visit_borrowed_str<E>(self, v: &'de str) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                JsonPath::parse(v).map_err(serde::de::Error::custom)
-            }
-
-            fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                let s = std::str::from_utf8(v).map_err(serde::de::Error::custom)?;
-                JsonPath::parse(s).map_err(serde::de::Error::custom)
-            }
-
-            fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                JsonPath::parse(v.as_str()).map_err(serde::de::Error::custom)
-            }
         }
 
-        deserializer.deserialize_str(JsonPathVisitor(PhantomData))
+        deserializer.deserialize_str(JsonPathVisitor)
     }
 }
 
@@ -452,6 +434,6 @@ pub trait JsonPathExt {
 
 impl JsonPathExt for Value {
     fn json_path(&self, path: &JsonPath) -> NodeList {
-        path.query(&self)
+        path.query(self)
     }
 }

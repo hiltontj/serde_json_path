@@ -57,10 +57,6 @@ fn parse_root_path(input: &str) -> PResult<Query> {
     })(input)
 }
 
-pub fn parse_root_path_main(input: &str) -> PResult<Query> {
-    all_consuming(parse_root_path)(input)
-}
-
 fn parse_current_path(input: &str) -> PResult<Query> {
     map(preceded(char('@'), parse_path_segments), |segments| Query {
         kind: PathKind::Current,
@@ -68,12 +64,12 @@ fn parse_current_path(input: &str) -> PResult<Query> {
     })(input)
 }
 
-pub fn parse_path(input: &str) -> PResult<Query> {
+pub(self) fn parse_path(input: &str) -> PResult<Query> {
     alt((parse_root_path, parse_current_path))(input)
 }
 
 pub fn parse_path_main(input: &str) -> PResult<Query> {
-    all_consuming(parse_path)(input)
+    all_consuming(parse_root_path)(input)
 }
 
 #[cfg(test)]
