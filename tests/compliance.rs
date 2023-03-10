@@ -2,7 +2,7 @@ use std::fs;
 
 use serde::Deserialize;
 use serde_json::Value;
-use serde_json_path::JsonPathExt;
+use serde_json_path::JsonPath;
 
 #[derive(Deserialize)]
 struct TestSuite {
@@ -38,22 +38,19 @@ fn compliace_test_suite() {
         result,
     } in test_cases.tests
     {
-        let query = document.json_path(selector.as_str());
+        let path = JsonPath::parse(&selector);
         if invalid_selector {
             assert!(
-                query.is_err(),
+                path.is_err(),
                 "{name}: parsing {selector:?} should have failed",
             );
-        } else if let Ok(nodelist) = query {
-            let actual = nodelist.all();
+        } else {
+            let actual = path.expect("valid JSON Path string").query(&document).all();
             let expected = result.iter().collect::<Vec<&Value>>();
             assert_eq!(
-                actual, expected,
+                expected, actual,
                 "{name}: incorrect result, expected {expected:?}, got {actual:?}"
             );
-        } else {
-            println!("query result: {query:?}");
-            panic!("{name}: invalid test case")
         }
     }
 }
