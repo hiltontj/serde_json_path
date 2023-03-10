@@ -22,11 +22,12 @@
 //!
 //! ```rust
 //! use serde_json::json;
-//! use serde_json_path::JsonPathExt;
+//! use serde_json_path::JsonPath;
 //!
 //! # fn main() -> Result<(), serde_json_path::Error> {
 //! let value = json!({ "foo": { "bar": ["baz", 42] } });
-//! let node = value.json_path("$.foo.bar[0]")?.one().unwrap();
+//! let path = JsonPath::parse("$.foo.bar[0]")?;
+//! let node = path.query(&value).one().unwrap();
 //! assert_eq!(node, "baz");
 //! # Ok(())
 //! # }
@@ -36,10 +37,11 @@
 //!
 //! ```rust
 //! # use serde_json::json;
-//! # use serde_json_path::JsonPathExt;
+//! # use serde_json_path::JsonPath;
 //! # fn main() -> Result<(), serde_json_path::Error> {
 //! let value = json!([1, 2, 3, 4, 5]);
-//! let node = value.json_path("$[-1]")?.one().unwrap();
+//! let path = JsonPath::parse("$[-1]")?;
+//! let node = path.query(&value).one().unwrap();
 //! assert_eq!(node, 5);
 //! # Ok(())
 //! # }
@@ -57,10 +59,11 @@
 //!
 //! ```rust
 //! # use serde_json::json;
-//! # use serde_json_path::JsonPathExt;
+//! # use serde_json_path::JsonPath;
 //! # fn main() -> Result<(), serde_json_path::Error> {
 //! let value = json!({ "foo": { "bar": ["baz", "bop"] } });
-//! let nodes = value.json_path("$.foo.bar[*]")?.all();
+//! let path = JsonPath::parse("$.foo.bar[*]")?;
+//! let nodes = path.query(&value).all();
 //! assert_eq!(nodes, vec!["baz", "bop"]);
 //! # Ok(())
 //! # }
@@ -74,10 +77,11 @@
 //!
 //! ```rust
 //! # use serde_json::json;
-//! # use serde_json_path::JsonPathExt;
+//! # use serde_json_path::JsonPath;
 //! # fn main() -> Result<(), serde_json_path::Error> {
 //! let value = json!({ "foo": ["bar", "baz", "bop"] });
-//! let nodes = value.json_path("$['foo'][1:]")?.all();
+//! let path = JsonPath::parse("$['foo'][1:]")?;
+//! let nodes = path.query(&value).all();
 //! assert_eq!(nodes, vec!["baz", "bop"]);
 //! # Ok(())
 //! # }
@@ -92,10 +96,11 @@
 //!
 //! ```rust
 //! # use serde_json::json;
-//! # use serde_json_path::JsonPathExt;
+//! # use serde_json_path::JsonPath;
 //! # fn main() -> Result<(), serde_json_path::Error> {
 //! let value = json!({ "foo": [1, 2, 3, 4, 5] });
-//! let nodes = value.json_path("$.foo[?@ > 2 && @ < 5]")?.all();
+//! let path = JsonPath::parse("$.foo[?@ > 2 && @ < 5]")?;
+//! let nodes = path.query(&value).all();
 //! assert_eq!(nodes, vec![3, 4]);
 //! # Ok(())
 //! # }
@@ -106,14 +111,15 @@
 //!
 //! ```rust
 //! # use serde_json::json;
-//! # use serde_json_path::JsonPathExt;
+//! # use serde_json_path::JsonPath;
 //! # fn main() -> Result<(), serde_json_path::Error> {
 //! let value = json!([
 //!     { "title": "Great Expectations", "price": 10 },
 //!     { "title": "Tale of Two Cities", "price": 8 },
 //!     { "title": "David Copperfield", "price": 17 }
 //! ]);
-//! let nodes = value.json_path("$[?@.price > $[0].price].title")?.all();
+//! let path = JsonPath::parse("$[?@.price > $[0].price].title")?;
+//! let nodes = path.query(&value).all();
 //! assert_eq!(nodes, vec!["David Copperfield"]);
 //! # Ok(())
 //! # }
@@ -122,7 +128,7 @@
 //!
 //! ```rust
 //! # use serde_json::json;
-//! # use serde_json_path::JsonPathExt;
+//! # use serde_json_path::JsonPath;
 //! # fn main() -> Result<(), serde_json_path::Error> {
 //! let value = json!({
 //!     "foo": {
@@ -132,7 +138,8 @@
 //!         "baz": 2
 //!     }
 //! });
-//! let nodes = value.json_path("$.foo..baz")?.all();
+//! let path = JsonPath::parse("$.foo..baz")?;
+//! let nodes = path.query(&value).all();
 //! assert_eq!(nodes, vec![2, 1]);
 //! # Ok(())
 //! # }
@@ -143,7 +150,7 @@
 //!
 //! ```rust
 //! # use serde_json::json;
-//! # use serde_json_path::JsonPathExt;
+//! # use serde_json_path::JsonPath;
 //! # fn main() -> Result<(), serde_json_path::Error> {
 //! let value = json!({
 //!     "foo": [
@@ -152,7 +159,8 @@
 //!         { "bar": 3 }
 //!     ]
 //! });
-//! let nodes = value.json_path("$.foo.*.bar")?.all();
+//! let path = JsonPath::parse("$.foo.*.bar")?;
+//! let nodes = path.query(&value).all();
 //! assert_eq!(nodes, vec![1, 2, 3]);
 //! # Ok(())
 //! # }
@@ -175,16 +183,139 @@
 //! [jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-10.html
 //! [func_ext]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-10.html#name-function-extensions-2
 //! [norm_path]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-10.html#name-normalized-paths
-use std::{ops::Deref, slice::Iter};
+use std::{ops::Deref, slice::Iter, str::FromStr, marker::PhantomData};
 
 use nom::error::{convert_error, VerboseError};
-use parser::parse_path_main;
-use serde::Serialize;
+use parser::{parse_root_path_main, Query};
+use serde::{Serialize, Deserialize, de::Visitor};
 use serde_json::Value;
 
 use crate::parser::QueryValue;
 
 mod parser;
+
+/// A parsed JSON Path query string
+/// 
+/// This type represents a valid, parsed JSON Path query string. Please refer to the 
+/// [IETF JSONPath specification][jp_spec] for the details on what constitutes a valid JSON Path
+/// query.
+/// 
+/// ## Usage
+/// 
+/// A `JsonPath` can be parsed directly from an `&str` using the [`parse`][JsonPath::parse] method:
+/// ```rust
+/// # use serde_json_path::JsonPath;
+/// # fn main() {
+/// let path = JsonPath::parse("$.foo.*").expect("valid JSON Path");
+/// # }
+/// 
+/// ```
+/// It can then be used to query [`serde_json::Value`]'s with the [`query`][JsonPath::query] method:
+/// ```rust
+/// # use serde_json::json;
+/// # use serde_json_path::JsonPath;
+/// # fn main() {
+/// # let path = JsonPath::parse("$.foo.*").expect("valid JSON Path");
+/// let value = json!({"foo": [1, 2, 3, 4]});
+/// let nodes = path.query(&value);
+/// # assert_eq!(nodes.all(), vec![1, 2, 3, 4]);
+/// # }
+/// ```
+/// 
+/// [jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-10.html
+pub struct JsonPath(Query);
+
+impl JsonPath {
+    /// Create a [`JsonPath`] by parsing a valid JSON Path query string
+    /// 
+    /// ## Example
+    /// ```rust
+    /// # use serde_json_path::JsonPath;
+    /// # fn main() {
+    /// let path = JsonPath::parse("$.foo[1:10:2].baz").expect("valid JSON Path");
+    /// # }
+    /// ```
+    pub fn parse(path_str: &str) -> Result<Self, Error> {
+        let (_, path) = parse_root_path_main(path_str).map_err(|err| match err {
+            nom::Err::Error(e) | nom::Err::Failure(e) => (path_str, e),
+            nom::Err::Incomplete(_) => unreachable!("we do not use streaming parsers"),
+        })?;
+        Ok(Self(path))
+    }
+
+    /// Query a [`serde_json::Value`] using this [`JsonPath`]
+    /// 
+    /// ## Example
+    /// ```rust
+    /// # use serde_json::json;
+    /// # use serde_json_path::JsonPath;
+    /// # fn main() {
+    /// let path = JsonPath::parse("$.foo[::2]").expect("valid JSON Path");
+    /// let value = json!({"foo": [1, 2, 3, 4]});
+    /// let nodes = path.query(&value);
+    /// # assert_eq!(nodes.all(), vec![1, 3]);
+    /// # }
+    /// ```
+    pub fn query<'b>(&self, value: &'b Value) -> NodeList<'b> {
+        self.0.query_value(value, value).into()
+    }
+}
+
+impl FromStr for JsonPath {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        JsonPath::parse(s)
+    }
+}
+
+impl<'de> Deserialize<'de> for JsonPath {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>
+    {
+        struct JsonPathVisitor(PhantomData<JsonPath>);
+
+        impl<'de> Visitor<'de> for JsonPathVisitor {
+            type Value = JsonPath;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                write!(formatter, "a string")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                JsonPath::parse(v).map_err(serde::de::Error::custom)
+            }
+
+            fn visit_borrowed_str<E>(self, v: &'de str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                JsonPath::parse(v).map_err(serde::de::Error::custom)
+            }
+
+            fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                let s = std::str::from_utf8(v).map_err(serde::de::Error::custom)?;
+                JsonPath::parse(s).map_err(serde::de::Error::custom)
+            }
+
+            fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                JsonPath::parse(v.as_str()).map_err(serde::de::Error::custom)
+            }
+        }
+
+        deserializer.deserialize_str(JsonPathVisitor(PhantomData))
+    }
+}
 
 /// A list of nodes resulting from a JSONPath query
 ///
@@ -203,11 +334,19 @@ impl<'a> NodeList<'a> {
     /// # Usage
     /// ```rust
     /// # use serde_json::json;
-    /// # use serde_json_path::JsonPathExt;
+    /// # use serde_json_path::JsonPath;
     /// # fn main() -> Result<(), serde_json_path::Error> {
     /// let value = json!({"foo": ["bar", "baz"]});
-    /// let query = value.json_path("$.foo[0]")?;
-    /// assert_eq!(query.one(), Some(&json!("bar")));
+    /// # {
+    /// let path = JsonPath::parse("$.foo[0]")?;
+    /// let node = path.query(&value).one();
+    /// assert_eq!(node, Some(&json!("bar")));
+    /// # }
+    /// # {
+    /// let path = JsonPath::parse("$.foo.*")?;
+    /// let node = path.query(&value).one();
+    /// assert!(node.is_none());
+    /// # }
     /// # Ok(())
     /// # }
     /// ```
@@ -226,10 +365,11 @@ impl<'a> NodeList<'a> {
     /// # Usage
     /// ```rust
     /// # use serde_json::json;
-    /// # use serde_json_path::JsonPathExt;
+    /// # use serde_json_path::JsonPath;
     /// # fn main() -> Result<(), serde_json_path::Error> {
     /// let value = json!({"foo": ["bar", "baz"]});
-    /// let nodes = value.json_path("$.foo.*")?.all();
+    /// let path = JsonPath::parse("$.foo.*")?;
+    /// let nodes = path.query(&value).all();
     /// assert_eq!(nodes, vec!["bar", "baz"]);
     /// # Ok(())
     /// # }
@@ -253,6 +393,12 @@ impl<'a> NodeList<'a> {
     /// Note that [`NodeList`] also implements [`IntoIterator`].
     pub fn iter(&self) -> Iter<'_, &Value> {
         self.nodes.iter()
+    }
+}
+
+impl<'a> From<Vec<&'a Value>> for NodeList<'a> {
+    fn from(nodes: Vec<&'a Value>) -> Self {
+        Self { nodes }
     }
 }
 
@@ -289,27 +435,23 @@ where
 /// ## Usage
 /// ```rust
 /// use serde_json::json;
-/// use serde_json_path::JsonPathExt;
+/// use serde_json_path::{JsonPath, JsonPathExt};
 ///
 /// # fn main() -> Result<(), serde_json_path::Error> {
 /// let value = json!({"foo": ["bar", "baz"]});
-/// let nodes = value.json_path("$.foo[*]")?.all();
+/// let path = JsonPath::parse("$.foo[*]")?;
+/// let nodes = path.query(&value).all();
 /// assert_eq!(nodes, vec!["bar", "baz"]);
 /// # Ok(())
 /// # }
 /// ```
 pub trait JsonPathExt {
     /// Query a [`serde_json::Value`] with a JSONPath query string
-    fn json_path(&self, path_str: &str) -> Result<NodeList, Error>;
+    fn json_path(&self, path: &JsonPath) -> NodeList;
 }
 
 impl JsonPathExt for Value {
-    fn json_path(&self, path_str: &str) -> Result<NodeList, Error> {
-        let (_, path) = parse_path_main(path_str).map_err(|err| match err {
-            nom::Err::Error(e) | nom::Err::Failure(e) => (path_str, e),
-            nom::Err::Incomplete(_) => unreachable!("we do not use streaming parsers"),
-        })?;
-        let nodes = path.query_value(self, self);
-        Ok(NodeList { nodes })
+    fn json_path(&self, path: &JsonPath) -> NodeList {
+        path.query(&self)
     }
 }

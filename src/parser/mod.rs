@@ -50,17 +50,26 @@ fn parse_path_segments(input: &str) -> PResult<Vec<PathSegment>> {
     many0(parse_segment)(input)
 }
 
+fn parse_root_path(input: &str) -> PResult<Query> {
+    map(preceded(char('$'), parse_path_segments), |segments| Query {
+        kind: PathKind::Root,
+        segments,
+    })(input)
+}
+
+pub fn parse_root_path_main(input: &str) -> PResult<Query> {
+    all_consuming(parse_root_path)(input)
+}
+
+fn parse_current_path(input: &str) -> PResult<Query> {
+    map(preceded(char('@'), parse_path_segments), |segments| Query {
+        kind: PathKind::Current,
+        segments,
+    })(input)
+}
+
 pub fn parse_path(input: &str) -> PResult<Query> {
-    alt((
-        map(preceded(char('$'), parse_path_segments), |segments| Query {
-            kind: PathKind::Root,
-            segments,
-        }),
-        map(preceded(char('@'), parse_path_segments), |segments| Query {
-            kind: PathKind::Current,
-            segments,
-        }),
-    ))(input)
+    alt((parse_root_path, parse_current_path))(input)
 }
 
 pub fn parse_path_main(input: &str) -> PResult<Query> {
