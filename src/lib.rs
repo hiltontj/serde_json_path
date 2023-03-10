@@ -31,7 +31,7 @@
 //! # fn main() -> Result<(), serde_json_path::Error> {
 //! let value = json!({ "foo": { "bar": ["baz", 42] } });
 //! let path = JsonPath::parse("$.foo.bar[0]")?;
-//! let node = path.query(&value).one().unwrap();
+//! let node = path.query(&value).at_most_one().unwrap();
 //! assert_eq!(node, "baz");
 //! # Ok(())
 //! # }
@@ -45,7 +45,7 @@
 //! # fn main() -> Result<(), serde_json_path::Error> {
 //! let value = json!([1, 2, 3, 4, 5]);
 //! let path = JsonPath::parse("$[-1]")?;
-//! let node = path.query(&value).one().unwrap();
+//! let node = path.query(&value).at_most_one().unwrap();
 //! assert_eq!(node, 5);
 //! # Ok(())
 //! # }
@@ -310,9 +310,9 @@ pub struct NodeList<'a> {
 }
 
 impl<'a> NodeList<'a> {
-    /// Extract exactly one node from a [`NodeList`]
+    /// Extract _at most_ one node from a [`NodeList`]
     ///
-    /// This is intended for queries that are expected to yield a single node.
+    /// This is intended for queries that are expected to optionally yield a single node.
     ///
     /// # Usage
     /// ```rust
@@ -322,22 +322,56 @@ impl<'a> NodeList<'a> {
     /// let value = json!({"foo": ["bar", "baz"]});
     /// # {
     /// let path = JsonPath::parse("$.foo[0]")?;
-    /// let node = path.query(&value).one();
+    /// let node = path.query(&value).at_most_one();
     /// assert_eq!(node, Some(&json!("bar")));
     /// # }
     /// # {
     /// let path = JsonPath::parse("$.foo.*")?;
-    /// let node = path.query(&value).one();
+    /// let node = path.query(&value).at_most_one();
     /// assert!(node.is_none());
     /// # }
     /// # Ok(())
     /// # }
     /// ```
-    pub fn one(self) -> Option<&'a Value> {
+    pub fn at_most_one(self) -> Option<&'a Value> {
         if self.nodes.is_empty() || self.nodes.len() > 1 {
             None
         } else {
             self.nodes.get(0).copied()
+        }
+    }
+
+    /// Extract _exactly_ one node from a [`NodeList`]
+    ///
+    /// This is intended for queries that are expected to yield exactly one node.
+    ///
+    /// # Usage
+    /// ```rust
+    /// # use serde_json::json;
+    /// # use serde_json_path::JsonPath;
+    /// # use serde_json_path::ExactlyOneError;
+    /// # fn main() -> Result<(), serde_json_path::Error> {
+    /// let value = json!({"foo": ["bar", "baz"]});
+    /// # {
+    /// let path = JsonPath::parse("$.foo[0]")?;
+    /// let node = path.query(&value).exactly_one().unwrap();
+    /// assert_eq!(node, "bar");
+    /// # }
+    /// # {
+    /// let path = JsonPath::parse("$.foo.*")?;
+    /// let error = path.query(&value).exactly_one().unwrap_err();
+    /// assert!(matches!(error, ExactlyOneError::MoreThanOne(2)));
+    /// # }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn exactly_one(self) -> Result<&'a Value, ExactlyOneError> {
+        if self.nodes.is_empty() {
+            Err(ExactlyOneError::Empty)
+        } else if self.nodes.len() > 1 {
+            Err(ExactlyOneError::MoreThanOne(self.nodes.len()))
+        } else {
+            Ok(self.nodes.get(0).unwrap())
         }
     }
 
@@ -377,6 +411,46 @@ impl<'a> NodeList<'a> {
     pub fn iter(&self) -> Iter<'_, &Value> {
         self.nodes.iter()
     }
+
+    /// Extract _at most_ one node from a [`NodeList`]
+    ///
+    /// This is intended for queries that are expected to optionally yield a single node.
+    ///
+    /// # Usage
+    /// ```rust
+    /// # use serde_json::json;
+    /// # use serde_json_path::JsonPath;
+    /// # fn main() -> Result<(), serde_json_path::Error> {
+    /// let value = json!({"foo": ["bar", "baz"]});
+    /// # {
+    /// let path = JsonPath::parse("$.foo[0]")?;
+    /// let node = path.query(&value).one();
+    /// assert_eq!(node, Some(&json!("bar")));
+    /// # }
+    /// # {
+    /// let path = JsonPath::parse("$.foo.*")?;
+    /// let node = path.query(&value).one();
+    /// assert!(node.is_none());
+    /// # }
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[deprecated(since = "0.5.1", note = "please use `at_most_one` instead")]
+    pub fn one(self) -> Option<&'a Value> {
+        if self.nodes.is_empty() || self.nodes.len() > 1 {
+            None
+        } else {
+            self.nodes.get(0).copied()
+        }
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ExactlyOneError {
+    #[error("nodelist expected to contain one entry, but is empty")]
+    Empty,
+    #[error("nodelist expected to contain one entry, but instead contains {0} entries")]
+    MoreThanOne(usize),
 }
 
 impl<'a> From<Vec<&'a Value>> for NodeList<'a> {
