@@ -1,6 +1,6 @@
 [package]
 name = "serde_json_path"
-version = "0.4.2"
+version = "0.5.0"
 edition = "2021"
 license = "MIT"
 description = "Parse serde_json Values using JSONPath queries"
@@ -8,9 +8,6 @@ documentation = "https://docs.rs/serde_json_path"
 repository = "https://github.com/hiltontj/serde_json_path"
 readme = "README.md"
 keywords = ["json", "jsonpath", "json_path", "serde", "serde_json"]
-
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 nom = "7.1.3"
