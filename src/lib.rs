@@ -226,7 +226,7 @@ mod parser;
 /// ```
 ///
 /// [jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-10.html
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct JsonPath(Query);
 
 impl JsonPath {
