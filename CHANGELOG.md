@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+- **added:** Derive `PartialEq` on `JsonPath` ([#13])
+- **added:** Add the `NodeList::at_most_one` method ([#13])
+- **added:** Add the `NodeList::exactly_one` method ([#13])
+- **deprecated:** Deprecate the `NodeList::one` method in favor of the new `NodeList::at_most_one` method ([#13])
+
+[#13]: https://github.com/hiltontj/serde_json_path/pull/13
+
 # 0.5.0 (10 March 2023)
 
 ## The `JsonPath` type
@@ -22,9 +29,8 @@ let nodes = path.query(&value).all();
 assert_eq!(nodes, vec![1, 2, 3]);
 ```
 
-`JsonPath` comes with some trait implementations, namely:
+`JsonPath` implements `serde`'s `Deserialize`, which allows it to be used directly in serialized formats
 
-- `serde`'s `Deserialize`, which allows it to be used directly in serialized formats
 ```rust
 #[derive(Deserialize)]
 struct Config {
@@ -36,7 +42,9 @@ let value = json!({"foo": [1, 2, 3]});
 let nodes = config.path.query(&value).all();
 assert_eq!(nodes, vec![1, 2, 3]);
 ```
-- `FromStr`, for convenience, e.g.,
+
+`JsonPath` also implements `FromStr`, for convenience, e.g.,
+
 ```rust
 let path = "$.foo.*".parse::<JsonPath>()?;
 ```

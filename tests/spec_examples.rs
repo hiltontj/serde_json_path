@@ -95,7 +95,7 @@ fn spec_example_4() {
 fn spec_example_5() {
     let value = spec_example_json();
     let path = JsonPath::parse("$..book[2]").unwrap();
-    let node = path.query(&value).one();
+    let node = path.query(&value).at_most_one().unwrap();
     assert!(node.is_some());
     assert_eq!(node, value.pointer("/store/book/2"));
 }
@@ -104,7 +104,7 @@ fn spec_example_5() {
 fn spec_example_6() {
     let value = spec_example_json();
     let path = JsonPath::parse("$..book[-1]").unwrap();
-    let node = path.query(&value).one();
+    let node = path.query(&value).at_most_one().unwrap();
     assert!(node.is_some());
     assert_eq!(node, value.pointer("/store/book/3"));
 }
