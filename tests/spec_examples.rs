@@ -1,7 +1,7 @@
 use serde_json::{json, Value};
+use serde_json_path::JsonPath;
 #[cfg(feature = "trace")]
 use test_log::test;
-use serde_json_path::JsonPath;
 
 fn spec_example_json() -> Value {
     json!({

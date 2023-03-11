@@ -108,7 +108,7 @@ impl TestFilter for FunctionExpr {
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_function_name_first(input: &str) -> PResult<char> {
-    satisfy(|c| ('a'..='z').contains(&c))(input)
+    satisfy(|c| c.is_ascii_lowercase())(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
@@ -116,7 +116,7 @@ fn parse_function_name_char(input: &str) -> PResult<char> {
     alt((
         parse_function_name_first,
         char('_'),
-        satisfy(|c| ('0'..='9').contains(&c)),
+        satisfy(|c| c.is_ascii_digit()),
     ))(input)
 }
 

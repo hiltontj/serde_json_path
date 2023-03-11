@@ -51,10 +51,6 @@ fn first_function() {
     let node = path.query(&value).exactly_one().unwrap();
     assert_eq!(
         "The Rise and Fall of the Third Reich",
-        node
-            .pointer("/books/1/title")
-            .unwrap()
-            .as_str()
-            .unwrap(),
+        node.pointer("/books/1/title").unwrap().as_str().unwrap(),
     );
 }
