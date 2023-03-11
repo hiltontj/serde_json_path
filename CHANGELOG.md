@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+- **added:** Add `first`, `last`, and `get` methods to `NodeList` type ([#16])
+- **changed:** Make `NodeList::at_most_one` and `NodeList::exactly_one` take `&self` instead of `self` ([#16])
+
+[#16]: https://github.com/hiltontj/serde_json_path/pull/16
+
 # 0.5.1 (11 March 2023)
 
 - **added:** Derive `PartialEq` on `JsonPath` ([#13])
