@@ -1,0 +1,57 @@
+name: Rust CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  fmt:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@v3
+      - name: 🦀 Rust Toolchain & Cache
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: 📝 Check Rust Code Formatting
+        run: cargo fmt --all -- --check
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    setps:
+      - name: 📦 Checkout
+        uses: actions/checkout@v3
+      - name: 🦀 Rust Toolchain & Cache
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: 📎 Check Rust Code with Clippy
+        run: cargo clippy --all-targets -- -D warnings
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@v3
+      - name: 🦀 Rust Toolchain & Cache
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: 📓 Check Docs
+        env:
+          RUSTDOCFLAGS: "-D broken-intra-doc-links"
+        run: cargo doc --no-deps
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@v3
+      - name: 🦀 Rust Toolchain & Cache
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: 🧪 Test
+        run: cargo test
