@@ -37,7 +37,7 @@ impl<'a> NodeList<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn at_most_one(self) -> Result<Option<&'a Value>, AtMostOneError> {
+    pub fn at_most_one(&self) -> Result<Option<&'a Value>, AtMostOneError> {
         if self.nodes.is_empty() {
             Ok(None)
         } else if self.nodes.len() > 1 {
@@ -71,7 +71,7 @@ impl<'a> NodeList<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn exactly_one(self) -> Result<&'a Value, ExactlyOneError> {
+    pub fn exactly_one(&self) -> Result<&'a Value, ExactlyOneError> {
         if self.nodes.is_empty() {
             Err(ExactlyOneError::Empty)
         } else if self.nodes.len() > 1 {
@@ -116,6 +116,22 @@ impl<'a> NodeList<'a> {
     /// Note that [`NodeList`] also implements [`IntoIterator`].
     pub fn iter(&self) -> Iter<'_, &Value> {
         self.nodes.iter()
+    }
+
+    /// Returns the first node in the [`NodeList`], or `None` if it is empty
+    pub fn first(&self) -> Option<&'a Value> {
+        self.nodes.first().copied()
+    }
+
+    /// Returns the last node in the [`NodeList`], or `None` if it is empty
+    pub fn last(&self) -> Option<&'a Value> {
+        self.nodes.last().copied()
+    }
+
+    /// Returns the node at the given index in the [`NodeList`], or `None` if the given index is
+    /// out of bounds.
+    pub fn get(&self, index: usize) -> Option<&'a Value> {
+        self.nodes.get(index).copied()
     }
 
     /// Extract _at most_ one node from a [`NodeList`]
@@ -179,5 +195,21 @@ impl<'a> IntoIterator for NodeList<'a> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.nodes.into_iter()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use crate::JsonPath;
+
+    #[test]
+    fn api_tests() {
+        let v = json!([1, 2, 3, 4, 5]);
+        let q = JsonPath::parse("$.*").expect("valid query").query(&v);
+        assert_eq!(q.first().unwrap(), 1);
+        assert_eq!(q.last().unwrap(), 5);
+        assert_eq!(q.get(1).unwrap(), 2);
     }
 }
