@@ -9,6 +9,7 @@ use nom::{
 
 use crate::parser::PResult;
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_zero(input: &str) -> PResult<&str> {
     tag("0")(input)
 }
@@ -24,14 +25,17 @@ pub fn parse_non_zero_first_digit(input: &str) -> PResult<&str> {
 /// Parse a non-zero integer as `i64`
 ///
 /// This does not allow leading `0`'s, e.g., `0123`
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_non_zero_int(input: &str) -> PResult<&str> {
     recognize(tuple((opt(char('-')), parse_non_zero_first_digit, digit0)))(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_int_string(input: &str) -> PResult<&str> {
     alt((parse_zero, parse_non_zero_int))(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_int(input: &str) -> PResult<isize> {
     map_res(parse_int_string, |i_str| i_str.parse::<isize>())(input)
 }

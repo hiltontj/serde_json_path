@@ -12,8 +12,8 @@ pub mod selector;
 
 type PResult<'a, O> = IResult<&'a str, O, VerboseError<&'a str>>;
 
-pub trait QueryValue {
-    fn query_value<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value>;
+pub trait Queryable {
+    fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value>;
 }
 
 /// Represents a JSONPath expression
@@ -29,8 +29,9 @@ pub enum PathKind {
     Current,
 }
 
-impl QueryValue for Query {
-    fn query_value<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
+impl Queryable for Query {
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Main Query", level = "trace", parent = None, ret))]
+    fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
         let mut query = match self.kind {
             PathKind::Root => vec![root],
             PathKind::Current => vec![current],
@@ -38,7 +39,7 @@ impl QueryValue for Query {
         for segment in &self.segments {
             let mut new_query = Vec::new();
             for q in &query {
-                new_query.append(&mut segment.query_value(q, root));
+                new_query.append(&mut segment.query(q, root));
             }
             query = new_query;
         }
@@ -46,10 +47,12 @@ impl QueryValue for Query {
     }
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_path_segments(input: &str) -> PResult<Vec<PathSegment>> {
     many0(parse_segment)(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_root_path(input: &str) -> PResult<Query> {
     map(preceded(char('$'), parse_path_segments), |segments| Query {
         kind: PathKind::Root,
@@ -57,6 +60,7 @@ fn parse_root_path(input: &str) -> PResult<Query> {
     })(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_current_path(input: &str) -> PResult<Query> {
     map(preceded(char('@'), parse_path_segments), |segments| Query {
         kind: PathKind::Current,
@@ -64,10 +68,12 @@ fn parse_current_path(input: &str) -> PResult<Query> {
     })(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub(self) fn parse_path(input: &str) -> PResult<Query> {
     alt((parse_root_path, parse_current_path))(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_path_main(input: &str) -> PResult<Query> {
     all_consuming(parse_root_path)(input)
 }

@@ -9,19 +9,21 @@ use crate::parser::primitive::number::parse_number;
 use crate::parser::primitive::string::parse_string_literal;
 use crate::parser::primitive::{parse_bool, parse_null};
 use crate::parser::segment::parse_dot_member_name;
-use crate::parser::{parse_path, PResult, Query, QueryValue};
+use crate::parser::{parse_path, PResult, Query, Queryable};
 
+use super::function::{parse_function_expr, FuncType, FunctionExpr};
 use super::{parse_index, parse_name, Index, Name};
 
-trait TestFilter {
+pub trait TestFilter {
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool;
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Filter(BooleanExpr);
+pub struct Filter(LogicalOrExpr);
 
-impl QueryValue for Filter {
-    fn query_value<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
+impl Queryable for Filter {
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Query Filter", level = "trace", parent = None, ret))]
+    fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
         if let Some(list) = current.as_array() {
             list.iter()
                 .filter(|v| self.0.test_filter(v, root))
@@ -37,20 +39,23 @@ impl QueryValue for Filter {
     }
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_filter(input: &str) -> PResult<Filter> {
     map(
-        preceded(pair(char('?'), space0), parse_boolean_expr),
+        preceded(pair(char('?'), space0), parse_logical_or_expr),
         Filter,
     )(input)
 }
 
-/// A Boolean Expression
+/// The top level boolean expression type
 ///
-/// In the JSONPath spec, this is the same as a logical or expression.
+/// This is also `boolean-expression` in the JSONPath specification, but the naming
+/// was chosen to make it more clear that it represents the logical OR.
 #[derive(Debug, PartialEq)]
-struct BooleanExpr(Vec<LogicalAndExpr>);
+struct LogicalOrExpr(Vec<LogicalAndExpr>);
 
-impl TestFilter for BooleanExpr {
+impl TestFilter for LogicalOrExpr {
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Test Logical Or Expr", level = "trace", parent = None, ret))]
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
         self.0.iter().any(|expr| expr.test_filter(current, root))
     }
@@ -60,11 +65,13 @@ impl TestFilter for BooleanExpr {
 struct LogicalAndExpr(Vec<BasicExpr>);
 
 impl TestFilter for LogicalAndExpr {
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Test Logical And Expr", level = "trace", parent = None, ret))]
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
         self.0.iter().all(|expr| expr.test_filter(current, root))
     }
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_logical_and(input: &str) -> PResult<LogicalAndExpr> {
     map(
         separated_list1(tuple((space0, tag("&&"), space0)), parse_basic_expr),
@@ -72,20 +79,23 @@ fn parse_logical_and(input: &str) -> PResult<LogicalAndExpr> {
     )(input)
 }
 
-fn parse_boolean_expr(input: &str) -> PResult<BooleanExpr> {
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
+fn parse_logical_or_expr(input: &str) -> PResult<LogicalOrExpr> {
     map(
         separated_list1(tuple((space0, tag("||"), space0)), parse_logical_and),
-        BooleanExpr,
+        LogicalOrExpr,
     )(input)
 }
 
 #[derive(Debug, PartialEq)]
 enum BasicExpr {
-    Paren(BooleanExpr),
-    NotParen(BooleanExpr),
+    Paren(LogicalOrExpr),
+    NotParen(LogicalOrExpr),
     Relation(ComparisonExpr),
     Exist(ExistExpr),
     NotExist(ExistExpr),
+    FuncExpr(FunctionExpr),
+    NotFuncExpr(FunctionExpr),
 }
 
 #[cfg(test)]
@@ -99,6 +109,7 @@ impl BasicExpr {
 }
 
 impl TestFilter for BasicExpr {
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Test Basic Expr", level = "trace", parent = None, ret))]
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
         match self {
             BasicExpr::Paren(expr) => expr.test_filter(current, root),
@@ -106,6 +117,8 @@ impl TestFilter for BasicExpr {
             BasicExpr::Relation(expr) => expr.test_filter(current, root),
             BasicExpr::Exist(expr) => expr.test_filter(current, root),
             BasicExpr::NotExist(expr) => !expr.test_filter(current, root),
+            BasicExpr::FuncExpr(expr) => expr.test_filter(current, root),
+            BasicExpr::NotFuncExpr(expr) => !expr.test_filter(current, root),
         }
     }
 }
@@ -119,19 +132,23 @@ impl TestFilter for BasicExpr {
 struct ExistExpr(Query);
 
 impl TestFilter for ExistExpr {
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Test Exists Expr", level = "trace", parent = None, ret))]
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
-        !self.0.query_value(current, root).is_empty()
+        !self.0.query(current, root).is_empty()
     }
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_exist_expr_inner(input: &str) -> PResult<ExistExpr> {
     map(parse_path, ExistExpr)(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_exist_expr(input: &str) -> PResult<BasicExpr> {
     map(parse_exist_expr_inner, BasicExpr::Exist)(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_not_exist_expr(input: &str) -> PResult<BasicExpr> {
     map(
         preceded(pair(char('!'), space0), parse_exist_expr_inner),
@@ -139,18 +156,34 @@ fn parse_not_exist_expr(input: &str) -> PResult<BasicExpr> {
     )(input)
 }
 
-fn parse_paren_expr_inner(input: &str) -> PResult<BooleanExpr> {
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
+fn parse_func_expr(input: &str) -> PResult<BasicExpr> {
+    map(parse_function_expr, BasicExpr::FuncExpr)(input)
+}
+
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
+fn parse_not_func_expr(input: &str) -> PResult<BasicExpr> {
+    map(
+        preceded(pair(char('!'), space0), parse_function_expr),
+        BasicExpr::NotFuncExpr,
+    )(input)
+}
+
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
+fn parse_paren_expr_inner(input: &str) -> PResult<LogicalOrExpr> {
     delimited(
         pair(char('('), space0),
-        parse_boolean_expr,
+        parse_logical_or_expr,
         pair(space0, char(')')),
     )(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_paren_expr(input: &str) -> PResult<BasicExpr> {
     map(parse_paren_expr_inner, BasicExpr::Paren)(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_not_parent_expr(input: &str) -> PResult<BasicExpr> {
     map(
         preceded(pair(char('!'), space0), parse_paren_expr_inner),
@@ -158,11 +191,14 @@ fn parse_not_parent_expr(input: &str) -> PResult<BasicExpr> {
     )(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_basic_expr(input: &str) -> PResult<BasicExpr> {
     alt((
         parse_not_parent_expr,
         parse_paren_expr,
         map(parse_comp_expr, BasicExpr::Relation),
+        parse_func_expr,
+        parse_not_func_expr,
         parse_not_exist_expr,
         parse_exist_expr,
     ))(input)
@@ -175,42 +211,95 @@ struct ComparisonExpr {
     pub right: Comparable,
 }
 
+fn func_type_equal_to(left: &FuncType, right: &FuncType) -> bool {
+    match (left, right) {
+        (FuncType::Node(n1), FuncType::Node(n2)) => match (n1, n2) {
+            (None, None) => true,
+            (Some(v1), Some(v2)) => v1 == v2,
+            _ => false,
+        },
+        (FuncType::Value(v1), FuncType::Node(Some(v2))) => &v1 == v2,
+        (FuncType::Value(v1), FuncType::Value(v2)) => v1 == v2,
+        (FuncType::Value(v1), FuncType::ValueRef(v2)) => &v1 == v2,
+        (FuncType::ValueRef(v1), FuncType::Node(Some(v2))) => v1 == v2,
+        (FuncType::ValueRef(v1), FuncType::Value(v2)) => v1 == &v2,
+        (FuncType::ValueRef(v1), FuncType::ValueRef(v2)) => v1 == v2,
+        (FuncType::Node(Some(v1)), FuncType::ValueRef(v2)) => v1 == v2,
+        (FuncType::Node(Some(v1)), FuncType::Value(v2)) => v1 == &v2,
+        (FuncType::Nothing, FuncType::Nothing) => true,
+        _ => false,
+    }
+}
+
+fn value_less_than(left: &Value, right: &Value) -> bool {
+    match (left, right) {
+        (Value::Number(n1), Value::Number(n2)) => number_less_than(n1, n2),
+        (Value::String(s1), Value::String(s2)) => s1 < s2,
+        _ => false,
+    }
+}
+
+fn func_type_less_than(left: &FuncType, right: &FuncType) -> bool {
+    match (left, right) {
+        (FuncType::Node(Some(v1)), FuncType::Node(Some(v2)))
+        | (FuncType::Node(Some(v1)), FuncType::ValueRef(v2))
+        | (FuncType::ValueRef(v1), FuncType::Node(Some(v2)))
+        | (FuncType::ValueRef(v1), FuncType::ValueRef(v2)) => value_less_than(v1, v2),
+        (FuncType::Value(ref v1), FuncType::ValueRef(v2))
+        | (FuncType::Value(ref v1), FuncType::Node(Some(v2))) => value_less_than(v1, v2),
+        (FuncType::ValueRef(v1), FuncType::Value(ref v2))
+        | (FuncType::Node(Some(v1)), FuncType::Value(ref v2)) => value_less_than(v1, v2),
+        (FuncType::Value(ref v1), FuncType::Value(ref v2)) => value_less_than(v1, v2),
+        _ => false,
+    }
+}
+
+fn value_same_type(left: &Value, right: &Value) -> bool {
+    matches!((left, right), (Value::Null, Value::Null))
+        | matches!((left, right), (Value::Bool(_), Value::Bool(_)))
+        | matches!((left, right), (Value::Number(_), Value::Number(_)))
+        | matches!((left, right), (Value::String(_), Value::String(_)))
+        | matches!((left, right), (Value::Array(_), Value::Array(_)))
+        | matches!((left, right), (Value::Object(_), Value::Object(_)))
+}
+
+fn func_type_same_type(left: &FuncType, right: &FuncType) -> bool {
+    match (left, right) {
+        (FuncType::Node(Some(v1)), FuncType::Node(Some(v2))) => value_same_type(v1, v2),
+        (FuncType::Node(Some(v1)), FuncType::Value(v2)) => value_same_type(v1, v2),
+        (FuncType::Node(Some(v1)), FuncType::ValueRef(v2)) => value_same_type(v1, v2),
+        (FuncType::Value(v1), FuncType::Node(Some(v2))) => value_same_type(v1, v2),
+        (FuncType::Value(v1), FuncType::Value(v2)) => value_same_type(v1, v2),
+        (FuncType::Value(v1), FuncType::ValueRef(v2)) => value_same_type(v1, v2),
+        (FuncType::ValueRef(v1), FuncType::Node(Some(v2))) => value_same_type(v1, v2),
+        (FuncType::ValueRef(v1), FuncType::Value(v2)) => value_same_type(v1, v2),
+        (FuncType::ValueRef(v1), FuncType::ValueRef(v2)) => value_same_type(v1, v2),
+        _ => false,
+    }
+}
+
 impl TestFilter for ComparisonExpr {
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Test Comparison Expr", level = "trace", parent = None, ret))]
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
         use ComparisonOperator::*;
         let left = self.left.as_value(current, root);
         let right = self.right.as_value(current, root);
-        match (left, right) {
-            (None, None) => true,
-            (Some(l), Some(r)) => match self.op {
-                EqualTo => l == r,
-                NotEqualTo => l != r,
-                LessThan => match (l, r) {
-                    (Value::Number(n1), Value::Number(n2)) => number_less_than(n1, n2),
-                    (Value::String(s1), Value::String(s2)) => s1 < s2,
-                    _ => false,
-                },
-                GreaterThan => match (l, r) {
-                    (Value::Number(n1), Value::Number(n2)) => !number_less_than(n1, n2) && n1 != n2,
-                    (Value::String(s1), Value::String(s2)) => s1 > s2,
-                    _ => false,
-                },
-                LessThanEqualTo => match (l, r) {
-                    (Value::Number(n1), Value::Number(n2)) => number_less_than(n1, n2) || n1 == n2,
-                    (Value::String(s1), Value::String(s2)) => s1 <= s2,
-                    (Value::Bool(b1), Value::Bool(b2)) => b1 == b2,
-                    (Value::Null, Value::Null) => true,
-                    _ => false,
-                },
-                GreaterThanEqualTo => match (l, r) {
-                    (Value::Number(n1), Value::Number(n2)) => !number_less_than(n1, n2),
-                    (Value::String(s1), Value::String(s2)) => s1 >= s2,
-                    (Value::Bool(b1), Value::Bool(b2)) => b1 == b2,
-                    (Value::Null, Value::Null) => true,
-                    _ => false,
-                },
-            },
-            (None, Some(_)) | (Some(_), None) => matches!(self.op, NotEqualTo),
+        match self.op {
+            EqualTo => func_type_equal_to(&left, &right),
+            NotEqualTo => !func_type_equal_to(&left, &right),
+            LessThan => func_type_same_type(&left, &right) && func_type_less_than(&left, &right),
+            GreaterThan => {
+                func_type_same_type(&left, &right)
+                    && !func_type_less_than(&left, &right)
+                    && !func_type_equal_to(&left, &right)
+            }
+            LessThanEqualTo => {
+                func_type_same_type(&left, &right)
+                    && (func_type_less_than(&left, &right) || func_type_equal_to(&left, &right))
+            }
+            GreaterThanEqualTo => {
+                func_type_same_type(&left, &right) && !func_type_less_than(&left, &right)
+            }
         }
     }
 }
@@ -227,6 +316,7 @@ fn number_less_than(n1: &Number, n2: &Number) -> bool {
     }
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_comp_expr(input: &str) -> PResult<ComparisonExpr> {
     map(
         separated_pair(
@@ -248,6 +338,7 @@ enum ComparisonOperator {
     GreaterThanEqualTo,
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_comparison_operator(input: &str) -> PResult<ComparisonOperator> {
     use ComparisonOperator::*;
     alt((
@@ -261,17 +352,17 @@ fn parse_comparison_operator(input: &str) -> PResult<ComparisonOperator> {
 }
 
 #[derive(Debug, PartialEq)]
-enum Comparable {
+pub enum Comparable {
     Primitive {
         kind: ComparablePrimitiveKind,
         value: Value,
     },
     SingularPath(SingularPath),
-    // FunctionExpr, // TODO - function expressions are hard
+    FunctionExpr(FunctionExpr),
 }
 
 #[derive(Debug, PartialEq)]
-enum ComparablePrimitiveKind {
+pub enum ComparablePrimitiveKind {
     Number,
     String,
     Bool,
@@ -279,11 +370,12 @@ enum ComparablePrimitiveKind {
 }
 
 impl Comparable {
-    pub fn as_value<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> Option<&Value> {
+    pub fn as_value<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> FuncType<'a> {
         use Comparable::*;
         match self {
-            Primitive { kind: _, value } => Some(value),
-            SingularPath(sp) => sp.eval_path(current, root),
+            Primitive { kind: _, value } => FuncType::ValueRef(value),
+            SingularPath(sp) => FuncType::Node(sp.eval_path(current, root)),
+            FunctionExpr(expr) => expr.evaluate(current, root),
         }
     }
 }
@@ -342,6 +434,7 @@ impl Comparable {
     }
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_null_comparable(input: &str) -> PResult<Comparable> {
     map(parse_null, |_| Comparable::Primitive {
         kind: ComparablePrimitiveKind::Null,
@@ -349,6 +442,7 @@ fn parse_null_comparable(input: &str) -> PResult<Comparable> {
     })(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_bool_comparable(input: &str) -> PResult<Comparable> {
     map(parse_bool, |b| Comparable::Primitive {
         kind: ComparablePrimitiveKind::Bool,
@@ -356,6 +450,7 @@ fn parse_bool_comparable(input: &str) -> PResult<Comparable> {
     })(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_number_comparable(input: &str) -> PResult<Comparable> {
     map(parse_number, |n| Comparable::Primitive {
         kind: ComparablePrimitiveKind::Number,
@@ -363,6 +458,7 @@ fn parse_number_comparable(input: &str) -> PResult<Comparable> {
     })(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_string_comparable(input: &str) -> PResult<Comparable> {
     map(parse_string_literal, |s| Comparable::Primitive {
         kind: ComparablePrimitiveKind::String,
@@ -371,15 +467,17 @@ fn parse_string_comparable(input: &str) -> PResult<Comparable> {
 }
 
 #[derive(Debug, PartialEq)]
-enum SingularPathSegment {
+pub enum SingularPathSegment {
     Name(Name),
     Index(Index),
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_singular_path_index_segment(input: &str) -> PResult<Index> {
     delimited(char('['), parse_index, char(']'))(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_singular_path_name_segment(input: &str) -> PResult<Name> {
     alt((
         delimited(char('['), parse_name, char(']')),
@@ -387,6 +485,7 @@ fn parse_singular_path_name_segment(input: &str) -> PResult<Name> {
     ))(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_singular_path_segments(input: &str) -> PResult<Vec<SingularPathSegment>> {
     many0(preceded(
         space0,
@@ -401,7 +500,7 @@ fn parse_singular_path_segments(input: &str) -> PResult<Vec<SingularPathSegment>
 }
 
 #[derive(Debug, PartialEq)]
-struct SingularPath {
+pub struct SingularPath {
     kind: SingularPathKind,
     pub segments: Vec<SingularPathSegment>,
 }
@@ -444,6 +543,7 @@ enum SingularPathKind {
     Relative,
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_singular_path(input: &str) -> PResult<SingularPath> {
     alt((
         map(
@@ -463,17 +563,25 @@ fn parse_singular_path(input: &str) -> PResult<SingularPath> {
     ))(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_singular_path_comparable(input: &str) -> PResult<Comparable> {
     map(parse_singular_path, Comparable::SingularPath)(input)
 }
 
-fn parse_comparable(input: &str) -> PResult<Comparable> {
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
+fn parse_function_expr_comparable(input: &str) -> PResult<Comparable> {
+    map(parse_function_expr, Comparable::FunctionExpr)(input)
+}
+
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
+pub fn parse_comparable(input: &str) -> PResult<Comparable> {
     alt((
         parse_null_comparable,
         parse_bool_comparable,
         parse_number_comparable,
         parse_string_comparable,
         parse_singular_path_comparable,
+        parse_function_expr_comparable,
     ))(input)
 }
 

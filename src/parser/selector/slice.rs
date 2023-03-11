@@ -6,7 +6,7 @@ use nom::{
 };
 use serde_json::Value;
 
-use crate::parser::{primitive::int::parse_int, PResult, QueryValue};
+use crate::parser::{primitive::int::parse_int, PResult, Queryable};
 
 #[derive(Debug, PartialEq, Default)]
 pub struct Slice {
@@ -37,8 +37,9 @@ impl Slice {
     }
 }
 
-impl QueryValue for Slice {
-    fn query_value<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {
+impl Queryable for Slice {
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Query Slice", level = "trace", parent = None, ret))]
+    fn query<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {
         if let Some(list) = current.as_array() {
             let mut query = Vec::new();
             let step = self.step.unwrap_or(1);
@@ -98,10 +99,12 @@ fn normalize_slice_index(index: isize, len: isize) -> Option<isize> {
     }
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_int_space_after(input: &str) -> PResult<isize> {
     terminated(parse_int, multispace0)(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_int_space_before(input: &str) -> PResult<isize> {
     preceded(multispace0, parse_int)(input)
 }
@@ -110,6 +113,7 @@ fn parse_int_space_before(input: &str) -> PResult<isize> {
 ///
 /// See [Section 2.5.4](https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-09.html#name-array-slice-selector)
 /// in the JSONPath standard.
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_array_slice(input: &str) -> PResult<Slice> {
     map(
         separated_pair(

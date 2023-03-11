@@ -10,9 +10,10 @@ use self::slice::Slice;
 
 use super::primitive::int::parse_int;
 use super::primitive::string::parse_string_literal;
-use super::{PResult, QueryValue};
+use super::{PResult, Queryable};
 
 pub mod filter;
+pub mod function;
 pub mod slice;
 
 #[derive(Debug, PartialEq)]
@@ -24,11 +25,12 @@ pub enum Selector {
     Filter(Filter),
 }
 
-impl QueryValue for Selector {
-    fn query_value<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
+impl Queryable for Selector {
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Query Selector", level = "trace", parent = None, ret))]
+    fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
         let mut query = Vec::new();
         match self {
-            Selector::Name(name) => query.append(&mut name.query_value(current, root)),
+            Selector::Name(name) => query.append(&mut name.query(current, root)),
             Selector::Wildcard => {
                 if let Some(list) = current.as_array() {
                     for v in list {
@@ -40,14 +42,15 @@ impl QueryValue for Selector {
                     }
                 }
             }
-            Selector::Index(index) => query.append(&mut index.query_value(current, root)),
-            Selector::ArraySlice(slice) => query.append(&mut slice.query_value(current, root)),
-            Selector::Filter(filter) => query.append(&mut filter.query_value(current, root)),
+            Selector::Index(index) => query.append(&mut index.query(current, root)),
+            Selector::ArraySlice(slice) => query.append(&mut slice.query(current, root)),
+            Selector::Filter(filter) => query.append(&mut filter.query(current, root)),
         }
         query
     }
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_wildcard_selector(input: &str) -> PResult<Selector> {
     map(char('*'), |_| Selector::Wildcard)(input)
 }
@@ -61,8 +64,9 @@ impl Name {
     }
 }
 
-impl QueryValue for Name {
-    fn query_value<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {
+impl Queryable for Name {
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Query Name", level = "trace", parent = None, ret))]
+    fn query<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {
         if let Some(obj) = current.as_object() {
             obj.get(&self.0).into_iter().collect()
         } else {
@@ -77,10 +81,12 @@ impl From<&str> for Name {
     }
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_name(input: &str) -> PResult<Name> {
     map(parse_string_literal, Name)(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_name_selector(input: &str) -> PResult<Selector> {
     map(parse_name, Selector::Name)(input)
 }
@@ -88,8 +94,9 @@ fn parse_name_selector(input: &str) -> PResult<Selector> {
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Index(pub isize);
 
-impl QueryValue for Index {
-    fn query_value<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {
+impl Queryable for Index {
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Query Index", level = "trace", parent = None, ret))]
+    fn query<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {
         if let Some(list) = current.as_array() {
             if self.0 < 0 {
                 self.0
@@ -118,22 +125,27 @@ impl From<isize> for Index {
     }
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_index(input: &str) -> PResult<Index> {
     map(parse_int, Index)(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_index_selector(input: &str) -> PResult<Selector> {
     map(parse_index, Selector::Index)(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_array_slice_selector(input: &str) -> PResult<Selector> {
     map(parse_array_slice, Selector::ArraySlice)(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_filter_selector(input: &str) -> PResult<Selector> {
     map(parse_filter, Selector::Filter)(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_selector(input: &str) -> PResult<Selector> {
     context(
         "selector",

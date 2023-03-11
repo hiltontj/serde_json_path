@@ -6,7 +6,7 @@ use serde_json::Value;
 use crate::{
     error::Error,
     node::NodeList,
-    parser::{parse_path_main, Query, QueryValue},
+    parser::{parse_path_main, Query, Queryable},
 };
 
 /// A parsed JSON Path query string
@@ -73,7 +73,7 @@ impl JsonPath {
     /// # }
     /// ```
     pub fn query<'b>(&self, value: &'b Value) -> NodeList<'b> {
-        self.0.query_value(value, value).into()
+        self.0.query(value, value).into()
     }
 }
 
