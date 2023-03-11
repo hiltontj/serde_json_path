@@ -9,8 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **added:** Add `first`, `last`, and `get` methods to `NodeList` type ([#16])
 - **changed:** Make `NodeList::at_most_one` and `NodeList::exactly_one` take `&self` instead of `self` ([#16])
+- **docs:** Update crate-level docs to better reflect recent changes ([#21])
+- **docs:** Corrected a broken link in crate-level docs ([#21])
 
 [#16]: https://github.com/hiltontj/serde_json_path/pull/16
+[#21]: https://github.com/hiltontj/serde_json_path/pull/21
 
 # 0.5.1 (11 March 2023)
 

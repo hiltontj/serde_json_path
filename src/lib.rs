@@ -20,14 +20,33 @@
 //!
 //! # Usage
 //!
-//! ## Query for single nodes
+//! ## Parsing
+//!
+//! JSONPath query strings can be parsed using the [`JsonPath`] type:
+//!
+//! ```rust
+//! use serde_json_path::JsonPath;
+//!
+//! # fn main() -> Result<(), serde_json_path::Error> {
+//! let path = JsonPath::parse("$.foo.bar")?;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! You can then use the parsed JSONPath to query a [`serde_json::Value`]. Every JSONPath query
+//! produces a [`NodeList`], which provides several accessor methods that you can use depending on
+//! the nature of your query and its expected output.
+//!
+//! ## Querying for single nodes
 //!
 //! For queries that are expected to return a single node, use either the
-//! [`exactly_one`][NodeList::exactly_one] or the [`at_most_one`][NodeList::at_most_one] method:
+//! [`exactly_one`][NodeList::exactly_one] or the [`at_most_one`][NodeList::at_most_one] method.
+//! For more lenient single node access, use the [`first`][NodeList::first],
+//! [`last`][NodeList::last], or [`get`][NodeList::get] methods.
 //!
 //! ```rust
 //! use serde_json::json;
-//! use serde_json_path::JsonPath;
+//! # use serde_json_path::JsonPath;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let value = json!({ "foo": { "bar": ["baz", 42] } });
@@ -37,8 +56,8 @@
 //! # Ok(())
 //! # }
 //! ```
-//! In this regard, the only additional functionality that JSONPath provides over JSON Pointer,
-//! and thereby the [`serde_json::Value::pointer`] method, is that you can use reverse array indices:
+//!
+//! JSONPath allows access via reverse indices:
 //!
 //! ```rust
 //! # use serde_json::json;
@@ -46,16 +65,19 @@
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let value = json!([1, 2, 3, 4, 5]);
 //! let path = JsonPath::parse("$[-1]")?;
-//! let node = path.query(&value).at_most_one().unwrap();
+//! let node = path.query(&value).at_most_one()?;
 //! assert_eq!(node, Some(&json!(5)));
 //! # Ok(())
 //! # }
 //! ```
 //!
-//! ## Query for multiple nodes
+//! Keep in mind, that for simple queries, the [`serde_json::Value::pointer`] method may suffice.
 //!
-//! For queries that you expect to return zero or many nodes, use the [`all`][NodeList::all]
-//! method. There are several selectors in JSONPath that allow you to do this.
+//! ## Querying for multiple nodes
+//!
+//! For queries that are expected to return zero or many nodes, use the [`all`][NodeList::all]
+//! method. There are several [selectors][jp_selectors] in JSONPath whose combination can produce
+//! useful and powerful queries.
 //!
 //! #### Wildcards (`*`)
 //!
@@ -171,8 +193,6 @@
 //! # }
 //! ```
 //!
-//! You can combine the above selectors to form powerful and useful queries with JSONPath.
-//!
 //! See the [integration tests][tests] in the repository for more examples based on those found in
 //! the JSONPath specification.
 //!
@@ -184,8 +204,9 @@
 //!   been implemented.
 //! * [Normalized Paths][norm_path]: this is not a planned feature for the crate.
 //!
-//! [tests]: https://github.com/hiltontj/serde_json_path/blob/main/tests/main.rs
+//! [tests]: https://github.com/hiltontj/serde_json_path/blob/main/tests/spec_examples.rs
 //! [jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-10.html
+//! [jp_selectors]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-10.html#name-selectors-2
 //! [func_ext]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-10.html#name-function-extensions-2
 //! [norm_path]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-10.html#name-normalized-paths
 mod error;
