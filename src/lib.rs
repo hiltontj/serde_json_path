@@ -22,16 +22,17 @@
 //!
 //! ## Query for single nodes
 //!
-//! For queries that are expected to return a single node, use the [`one`][NodeList::one] method:
+//! For queries that are expected to return a single node, use either the
+//! [`exactly_one`][NodeList::exactly_one] or the [`at_most_one`][NodeList::at_most_one] method:
 //!
 //! ```rust
 //! use serde_json::json;
 //! use serde_json_path::JsonPath;
 //!
-//! # fn main() -> Result<(), serde_json_path::Error> {
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let value = json!({ "foo": { "bar": ["baz", 42] } });
 //! let path = JsonPath::parse("$.foo.bar[0]")?;
-//! let node = path.query(&value).at_most_one().unwrap();
+//! let node = path.query(&value).exactly_one()?;
 //! assert_eq!(node, "baz");
 //! # Ok(())
 //! # }
@@ -42,7 +43,7 @@
 //! ```rust
 //! # use serde_json::json;
 //! # use serde_json_path::JsonPath;
-//! # fn main() -> Result<(), serde_json_path::Error> {
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let value = json!([1, 2, 3, 4, 5]);
 //! let path = JsonPath::parse("$[-1]")?;
 //! let node = path.query(&value).at_most_one().unwrap();
