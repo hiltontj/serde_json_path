@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+# 0.5.1 (11 March 2023)
+
 - **added:** Derive `PartialEq` on `JsonPath` ([#13])
 - **added:** Add the `NodeList::at_most_one` method ([#13])
 - **added:** Add the `NodeList::exactly_one` method ([#13])
