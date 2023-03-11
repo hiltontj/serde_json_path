@@ -159,7 +159,7 @@ impl<'a> NodeList<'a> {
     /// ```
     #[deprecated(
         since = "0.5.1",
-        note = "it is recommended to use `at_most_one` instead"
+        note = "it is recommended to use `at_most_one`, `exactly_one`, `first`, `last`, or `get` instead"
     )]
     pub fn one(self) -> Option<&'a Value> {
         if self.nodes.is_empty() || self.nodes.len() > 1 {
