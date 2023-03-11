@@ -1,6 +1,6 @@
 use once_cell::sync::Lazy;
 use serde_json::json;
-use serde_json_path::{Evaluator, FuncType, Function, JsonPathExt};
+use serde_json_path::{Evaluator, FuncType, Function, JsonPath};
 
 static FIRST: Evaluator = Lazy::new(|| {
     Box::new(|v| {
@@ -47,13 +47,11 @@ fn first_function() {
             ]
         }
     ]);
-    let q = value
-        .json_path("$[?first(@.books.*.author) == 'Alexandre Dumas']")
-        .unwrap();
+    let path = JsonPath::parse("$[?first(@.books.*.author) == 'Alexandre Dumas']").unwrap();
+    let node = path.query(&value).exactly_one().unwrap();
     assert_eq!(
         "The Rise and Fall of the Third Reich",
-        q.one()
-            .unwrap()
+        node
             .pointer("/books/1/title")
             .unwrap()
             .as_str()

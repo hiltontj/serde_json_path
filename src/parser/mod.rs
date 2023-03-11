@@ -53,22 +53,29 @@ fn parse_path_segments(input: &str) -> PResult<Vec<PathSegment>> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub fn parse_path(input: &str) -> PResult<Query> {
-    alt((
-        map(preceded(char('$'), parse_path_segments), |segments| Query {
-            kind: PathKind::Root,
-            segments,
-        }),
-        map(preceded(char('@'), parse_path_segments), |segments| Query {
-            kind: PathKind::Current,
-            segments,
-        }),
-    ))(input)
+fn parse_root_path(input: &str) -> PResult<Query> {
+    map(preceded(char('$'), parse_path_segments), |segments| Query {
+        kind: PathKind::Root,
+        segments,
+    })(input)
+}
+
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
+fn parse_current_path(input: &str) -> PResult<Query> {
+    map(preceded(char('@'), parse_path_segments), |segments| Query {
+        kind: PathKind::Current,
+        segments,
+    })(input)
+}
+
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
+pub(self) fn parse_path(input: &str) -> PResult<Query> {
+    alt((parse_root_path, parse_current_path))(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_path_main(input: &str) -> PResult<Query> {
-    all_consuming(parse_path)(input)
+    all_consuming(parse_root_path)(input)
 }
 
 #[cfg(test)]

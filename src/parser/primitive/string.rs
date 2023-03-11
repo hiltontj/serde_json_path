@@ -21,7 +21,7 @@ enum Quotes {
 }
 
 fn is_digit(chr: &char) -> bool {
-    ('0'..='9').contains(chr)
+    chr.is_ascii_digit()
 }
 
 fn is_hex_digit(chr: char) -> bool {

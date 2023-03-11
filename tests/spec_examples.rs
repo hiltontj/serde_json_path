@@ -1,7 +1,7 @@
 use serde_json::{json, Value};
-use serde_json_path::JsonPathExt;
 #[cfg(feature = "trace")]
 use test_log::test;
+use serde_json_path::JsonPath;
 
 fn spec_example_json() -> Value {
     json!({
@@ -45,7 +45,8 @@ fn spec_example_json() -> Value {
 #[test]
 fn spec_example_1() {
     let value = spec_example_json();
-    let nodes = value.json_path("$.store.book[*].author").unwrap().all();
+    let path = JsonPath::parse("$.store.book[*].author").unwrap();
+    let nodes = path.query(&value).all();
     assert_eq!(
         nodes,
         vec![
@@ -60,7 +61,8 @@ fn spec_example_1() {
 #[test]
 fn spec_example_2() {
     let value = spec_example_json();
-    let nodes = value.json_path("$..author").unwrap().all();
+    let path = JsonPath::parse("$..author").unwrap();
+    let nodes = path.query(&value).all();
     assert_eq!(
         nodes,
         vec![
@@ -75,7 +77,8 @@ fn spec_example_2() {
 #[test]
 fn spec_example_3() {
     let value = spec_example_json();
-    let nodes = value.json_path("$.store.*").unwrap().all();
+    let path = JsonPath::parse("$.store.*").unwrap();
+    let nodes = path.query(&value).all();
     assert_eq!(nodes.len(), 2);
     assert!(nodes
         .iter()
@@ -85,66 +88,73 @@ fn spec_example_3() {
 #[test]
 fn spec_example_4() {
     let value = spec_example_json();
-    let nodes = value.json_path("$.store..price").unwrap().all();
+    let path = JsonPath::parse("$.store..price").unwrap();
+    let nodes = path.query(&value).all();
     assert_eq!(nodes, vec![399., 8.95, 12.99, 8.99, 22.99]);
 }
 
 #[test]
 fn spec_example_5() {
     let value = spec_example_json();
-    let q = value.json_path("$..book[2]").unwrap();
-    let node = q.one().unwrap();
-    assert_eq!(node, value.pointer("/store/book/2").unwrap());
+    let path = JsonPath::parse("$..book[2]").unwrap();
+    let node = path.query(&value).at_most_one().unwrap();
+    assert!(node.is_some());
+    assert_eq!(node, value.pointer("/store/book/2"));
 }
 
 #[test]
 fn spec_example_6() {
     let value = spec_example_json();
-    let q = value.json_path("$..book[-1]").unwrap();
-    let node = q.one().unwrap();
-    assert_eq!(node, value.pointer("/store/book/3").unwrap());
+    let path = JsonPath::parse("$..book[-1]").unwrap();
+    let node = path.query(&value).at_most_one().unwrap();
+    assert!(node.is_some());
+    assert_eq!(node, value.pointer("/store/book/3"));
 }
 
 #[test]
 fn spec_example_7() {
     let value = spec_example_json();
     {
-        let q = value.json_path("$..book[0,1]").unwrap();
-        assert_eq!(q.len(), 2);
+        let path = JsonPath::parse("$..book[0,1]").unwrap();
+        let nodes = path.query(&value).all();
+        assert_eq!(nodes.len(), 2);
     }
     {
-        let q = value.json_path("$..book[:2]").unwrap();
-        assert_eq!(q.len(), 2);
+        let path = JsonPath::parse("$..book[:2]").unwrap();
+        let nodes = path.query(&value).all();
+        assert_eq!(nodes.len(), 2);
     }
 }
 
 #[test]
 fn spec_example_8() {
     let value = spec_example_json();
-    let q = value.json_path("$..book[?(@.isbn)]").unwrap();
-    assert_eq!(q.len(), 2);
+    let path = JsonPath::parse("$..book[?(@.isbn)]").unwrap();
+    let nodes = path.query(&value);
+    assert_eq!(nodes.len(), 2);
 }
 
 #[test]
 fn spec_example_9() {
     let value = spec_example_json();
-    let q = value.json_path("$..book[?(@.price<10)]").unwrap();
-    assert_eq!(q.len(), 2);
+    let path = JsonPath::parse("$..book[?(@.price<10)]").unwrap();
+    let nodes = path.query(&value);
+    assert_eq!(nodes.len(), 2);
 }
 
 #[test]
 fn spec_example_10() {
     let value = spec_example_json();
-    let q = value.json_path("$..*").unwrap();
-    assert_eq!(q.len(), 27);
+    let path = JsonPath::parse("$..*").unwrap();
+    let nodes = path.query(&value);
+    assert_eq!(nodes.len(), 27);
 }
 
 #[test]
 fn test_length() {
     let value = spec_example_json();
-    let q = value
-        .json_path("$.store.book[?length(@.title) > 10]")
-        .unwrap();
+    let path = JsonPath::parse("$.store.book[?length(@.title) > 10]").unwrap();
+    let q = path.query(&value);
     assert_eq!(3, q.len());
 }
 
@@ -154,25 +164,24 @@ fn test_count() {
         {"foo": [1]},
         {"foo": [1, 2]},
     ]);
-    let q = value.json_path("$[?count(@.foo.*) > 1]").unwrap();
+    let path = JsonPath::parse("$[?count(@.foo.*) > 1]").unwrap();
+    let q = path.query(&value);
     assert_eq!(1, q.len());
 }
 
 #[test]
 fn test_match() {
     let value = spec_example_json();
-    let q = value
-        .json_path("$.store.book[?match(@.category, 'fiction')]")
-        .unwrap();
+    let path = JsonPath::parse("$.store.book[?match(@.category, 'fiction')]").unwrap();
+    let q = path.query(&value);
     assert_eq!(3, q.len());
 }
 
 #[test]
 fn test_search() {
     let value = spec_example_json();
-    let q = value
-        .json_path("$.store.book[?search(@.title, 'the')]")
-        .unwrap();
+    let path = JsonPath::parse("$.store.book[?search(@.title, 'the')]").unwrap();
+    let q = path.query(&value);
     assert_eq!(2, q.len());
 }
 
@@ -186,9 +195,8 @@ fn test_match_2() {
         { "name": "Maggie Simpson" },
         { "name": "Ned Flanders" },
     ]);
-    let q = value
-        .json_path("$[? match(@.name, 'M[A-Za-z ]*Simpson')].name")
-        .unwrap();
+    let path = JsonPath::parse("$[? match(@.name, 'M[A-Za-z ]*Simpson')].name").unwrap();
+    let q = path.query(&value);
     assert_eq!(2, q.len());
-    assert_eq!("Marge Simpson", q.all().first().unwrap().as_str().unwrap(),);
+    assert_eq!("Marge Simpson", q.first().unwrap().as_str().unwrap(),);
 }
