@@ -110,3 +110,20 @@ impl<'de> Deserialize<'de> for JsonPath {
         deserializer.deserialize_str(JsonPathVisitor)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::JsonPath;
+
+    #[test]
+    fn test_send() {
+        fn assert_send<T: Send>() {}
+        assert_send::<JsonPath>();
+    }
+
+    #[test]
+    fn test_sync() {
+        fn assert_sync<T: Sync>() {}
+        assert_sync::<JsonPath>();
+    }
+}
