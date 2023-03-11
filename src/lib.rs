@@ -47,7 +47,7 @@
 //! let value = json!([1, 2, 3, 4, 5]);
 //! let path = JsonPath::parse("$[-1]")?;
 //! let node = path.query(&value).at_most_one().unwrap();
-//! assert_eq!(node, 5);
+//! assert_eq!(node, Some(&json!(5)));
 //! # Ok(())
 //! # }
 //! ```
@@ -319,26 +319,29 @@ impl<'a> NodeList<'a> {
     /// ```rust
     /// # use serde_json::json;
     /// # use serde_json_path::JsonPath;
+    /// # use serde_json_path::AtMostOneError;
     /// # fn main() -> Result<(), serde_json_path::Error> {
     /// let value = json!({"foo": ["bar", "baz"]});
     /// # {
     /// let path = JsonPath::parse("$.foo[0]")?;
-    /// let node = path.query(&value).at_most_one();
+    /// let node = path.query(&value).at_most_one().unwrap();
     /// assert_eq!(node, Some(&json!("bar")));
     /// # }
     /// # {
     /// let path = JsonPath::parse("$.foo.*")?;
-    /// let node = path.query(&value).at_most_one();
-    /// assert!(node.is_none());
+    /// let error = path.query(&value).at_most_one().unwrap_err();
+    /// assert!(matches!(error, AtMostOneError(2)));
     /// # }
     /// # Ok(())
     /// # }
     /// ```
-    pub fn at_most_one(self) -> Option<&'a Value> {
-        if self.nodes.is_empty() || self.nodes.len() > 1 {
-            None
+    pub fn at_most_one(self) -> Result<Option<&'a Value>, AtMostOneError> {
+        if self.nodes.is_empty() {
+            Ok(None)
+        } else if self.nodes.len() > 1 {
+            Err(AtMostOneError(self.nodes.len()))
         } else {
-            self.nodes.get(0).copied()
+            Ok(self.nodes.get(0).copied())
         }
     }
 
@@ -436,7 +439,10 @@ impl<'a> NodeList<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    #[deprecated(since = "0.5.1", note = "please use `at_most_one` instead")]
+    #[deprecated(
+        since = "0.5.1",
+        note = "it is recommended to use `at_most_one` instead"
+    )]
     pub fn one(self) -> Option<&'a Value> {
         if self.nodes.is_empty() || self.nodes.len() > 1 {
             None
@@ -445,6 +451,10 @@ impl<'a> NodeList<'a> {
         }
     }
 }
+
+#[derive(Debug, thiserror::Error)]
+#[error("nodelist expected to contain at most one entry, but instead contains {0} entries")]
+pub struct AtMostOneError(pub usize);
 
 #[derive(Debug, thiserror::Error)]
 pub enum ExactlyOneError {
