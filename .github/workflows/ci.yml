@@ -25,13 +25,14 @@ jobs:
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
-    setps:
+    steps:
       - name: 📦 Checkout
         uses: actions/checkout@v3
       - name: 🦀 Rust Toolchain & Cache
         uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: 📎 Check Rust Code with Clippy
         run: cargo clippy --all-targets -- -D warnings
+
   docs:
     name: Docs
     runs-on: ubuntu-latest
