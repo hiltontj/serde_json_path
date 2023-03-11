@@ -202,7 +202,7 @@ impl<'a> IntoIterator for NodeList<'a> {
 mod tests {
     use serde_json::json;
 
-    use crate::JsonPath;
+    use crate::{JsonPath, NodeList};
 
     #[test]
     fn api_tests() {
@@ -211,5 +211,17 @@ mod tests {
         assert_eq!(q.first().unwrap(), 1);
         assert_eq!(q.last().unwrap(), 5);
         assert_eq!(q.get(1).unwrap(), 2);
+    }
+
+    #[test]
+    fn test_send() {
+        fn assert_send<T: Send>() {}
+        assert_send::<NodeList>();
+    }
+
+    #[test]
+    fn test_sync() {
+        fn assert_sync<T: Sync>() {}
+        assert_sync::<NodeList>();
     }
 }
