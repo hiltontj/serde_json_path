@@ -315,3 +315,5 @@ impl JsonPathExt for Value {
         Ok(NodeList { nodes })
     }
 }
+
+pub use serde_json_path_macros::json_path;

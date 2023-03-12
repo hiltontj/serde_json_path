@@ -1,22 +1,13 @@
-use once_cell::sync::Lazy;
 use serde_json::json;
-use serde_json_path::{Evaluator, FuncType, Function, JsonPathExt};
+use serde_json_path::{json_path, FuncType, JsonPathExt};
 
-static FIRST: Evaluator = Lazy::new(|| {
-    Box::new(|v| {
-        if let Some(FuncType::Nodelist(ref nl)) = v.first() {
-            FuncType::Node(nl.first().copied())
-        } else {
-            FuncType::Nothing
-        }
-    })
-});
-
-inventory::submit! {
-    Function::new(
-        "first",
-        &FIRST,
-    )
+#[json_path]
+fn first(v: Vec<FuncType>) -> FuncType {
+    if let Some(FuncType::Nodelist(ref nl)) = v.first() {
+        FuncType::Node(nl.first().copied())
+    } else {
+        FuncType::Nothing
+    }
 }
 
 #[test]

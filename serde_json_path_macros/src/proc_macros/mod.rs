@@ -17,10 +17,10 @@ pub fn json_path(_attr: TokenStream, item: TokenStream) -> TokenStream {
         ::serde_json_path_macros::inventory
     };
     let function_struct = quote! {
-        ::serde_json_path_macros::serde_json_path::Function
+        serde_json_path::Function
     };
     let evaluator = quote! {
-        ::serde_json_path_macros::serde_json_path::Evaluator
+        serde_json_path::Evaluator
     };
     let lazy = quote! {
         ::serde_json_path_macros::once_cell::sync::Lazy
