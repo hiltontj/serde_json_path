@@ -2,6 +2,7 @@
 members = [
     "serde_json_path",
     "serde_json_path_macros",
+    "serde_json_path_macros/src/proc_macros",
 ]
 
 [profile.dev]
