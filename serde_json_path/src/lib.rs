@@ -221,3 +221,5 @@ pub use error::Error;
 pub use ext::JsonPathExt;
 pub use node::{AtMostOneError, ExactlyOneError, NodeList};
 pub use path::JsonPath;
+
+pub use serde_json_path_macros::function;
