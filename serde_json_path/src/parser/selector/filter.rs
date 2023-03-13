@@ -9,9 +9,10 @@ use crate::parser::primitive::number::parse_number;
 use crate::parser::primitive::string::parse_string_literal;
 use crate::parser::primitive::{parse_bool, parse_null};
 use crate::parser::segment::parse_dot_member_name;
+use crate::parser::selector::function::ValueType;
 use crate::parser::{parse_path, PResult, Query, Queryable};
 
-use super::function::{parse_function_expr, FuncType, FunctionExpr};
+use super::function::{parse_function_expr, FunctionExpr, JsonPathType};
 use super::{parse_index, parse_name, Index, Name};
 
 pub trait TestFilter {
@@ -211,22 +212,16 @@ struct ComparisonExpr {
     pub right: Comparable,
 }
 
-fn func_type_equal_to(left: &FuncType, right: &FuncType) -> bool {
+fn func_type_equal_to(left: &JsonPathType, right: &JsonPathType) -> bool {
     match (left, right) {
-        (FuncType::Node(n1), FuncType::Node(n2)) => match (n1, n2) {
-            (None, None) => true,
-            (Some(v1), Some(v2)) => v1 == v2,
+        (JsonPathType::Value(l), JsonPathType::Value(r)) => match (l, r) {
+            (ValueType::Value(v1), ValueType::Value(v2)) => v1 == v2,
+            (ValueType::Value(v1), ValueType::ValueRef(v2)) => v1 == *v2,
+            (ValueType::ValueRef(v1), ValueType::Value(v2)) => *v1 == v2,
+            (ValueType::ValueRef(v1), ValueType::ValueRef(v2)) => v1 == v2,
+            (ValueType::Nothing, ValueType::Nothing) => true,
             _ => false,
         },
-        (FuncType::Value(v1), FuncType::Node(Some(v2))) => &v1 == v2,
-        (FuncType::Value(v1), FuncType::Value(v2)) => v1 == v2,
-        (FuncType::Value(v1), FuncType::ValueRef(v2)) => &v1 == v2,
-        (FuncType::ValueRef(v1), FuncType::Node(Some(v2))) => v1 == v2,
-        (FuncType::ValueRef(v1), FuncType::Value(v2)) => v1 == &v2,
-        (FuncType::ValueRef(v1), FuncType::ValueRef(v2)) => v1 == v2,
-        (FuncType::Node(Some(v1)), FuncType::ValueRef(v2)) => v1 == v2,
-        (FuncType::Node(Some(v1)), FuncType::Value(v2)) => v1 == &v2,
-        (FuncType::Nothing, FuncType::Nothing) => true,
         _ => false,
     }
 }
@@ -239,17 +234,15 @@ fn value_less_than(left: &Value, right: &Value) -> bool {
     }
 }
 
-fn func_type_less_than(left: &FuncType, right: &FuncType) -> bool {
+fn func_type_less_than(left: &JsonPathType, right: &JsonPathType) -> bool {
     match (left, right) {
-        (FuncType::Node(Some(v1)), FuncType::Node(Some(v2)))
-        | (FuncType::Node(Some(v1)), FuncType::ValueRef(v2))
-        | (FuncType::ValueRef(v1), FuncType::Node(Some(v2)))
-        | (FuncType::ValueRef(v1), FuncType::ValueRef(v2)) => value_less_than(v1, v2),
-        (FuncType::Value(ref v1), FuncType::ValueRef(v2))
-        | (FuncType::Value(ref v1), FuncType::Node(Some(v2))) => value_less_than(v1, v2),
-        (FuncType::ValueRef(v1), FuncType::Value(ref v2))
-        | (FuncType::Node(Some(v1)), FuncType::Value(ref v2)) => value_less_than(v1, v2),
-        (FuncType::Value(ref v1), FuncType::Value(ref v2)) => value_less_than(v1, v2),
+        (JsonPathType::Value(l), JsonPathType::Value(r)) => match (l, r) {
+            (ValueType::Value(v1), ValueType::Value(v2)) => value_less_than(v1, v2),
+            (ValueType::Value(v1), ValueType::ValueRef(v2)) => value_less_than(v1, v2),
+            (ValueType::ValueRef(v1), ValueType::Value(v2)) => value_less_than(v1, v2),
+            (ValueType::ValueRef(v1), ValueType::ValueRef(v2)) => value_less_than(v1, v2),
+            _ => false,
+        },
         _ => false,
     }
 }
@@ -263,17 +256,15 @@ fn value_same_type(left: &Value, right: &Value) -> bool {
         | matches!((left, right), (Value::Object(_), Value::Object(_)))
 }
 
-fn func_type_same_type(left: &FuncType, right: &FuncType) -> bool {
+fn func_type_same_type(left: &JsonPathType, right: &JsonPathType) -> bool {
     match (left, right) {
-        (FuncType::Node(Some(v1)), FuncType::Node(Some(v2))) => value_same_type(v1, v2),
-        (FuncType::Node(Some(v1)), FuncType::Value(v2)) => value_same_type(v1, v2),
-        (FuncType::Node(Some(v1)), FuncType::ValueRef(v2)) => value_same_type(v1, v2),
-        (FuncType::Value(v1), FuncType::Node(Some(v2))) => value_same_type(v1, v2),
-        (FuncType::Value(v1), FuncType::Value(v2)) => value_same_type(v1, v2),
-        (FuncType::Value(v1), FuncType::ValueRef(v2)) => value_same_type(v1, v2),
-        (FuncType::ValueRef(v1), FuncType::Node(Some(v2))) => value_same_type(v1, v2),
-        (FuncType::ValueRef(v1), FuncType::Value(v2)) => value_same_type(v1, v2),
-        (FuncType::ValueRef(v1), FuncType::ValueRef(v2)) => value_same_type(v1, v2),
+        (JsonPathType::Value(l), JsonPathType::Value(r)) => match (l, r) {
+            (ValueType::Value(v1), ValueType::Value(v2)) => value_same_type(v1, v2),
+            (ValueType::Value(v1), ValueType::ValueRef(v2)) => value_same_type(v1, v2),
+            (ValueType::ValueRef(v1), ValueType::Value(v2)) => value_same_type(v1, v2),
+            (ValueType::ValueRef(v1), ValueType::ValueRef(v2)) => value_same_type(v1, v2),
+            _ => false,
+        },
         _ => false,
     }
 }
@@ -370,11 +361,14 @@ pub enum ComparablePrimitiveKind {
 }
 
 impl Comparable {
-    pub fn as_value<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> FuncType<'a> {
+    pub fn as_value<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> JsonPathType<'a> {
         use Comparable::*;
         match self {
-            Primitive { kind: _, value } => FuncType::ValueRef(value),
-            SingularPath(sp) => FuncType::Node(sp.eval_path(current, root)),
+            Primitive { kind: _, value } => JsonPathType::Value(ValueType::ValueRef(value)),
+            SingularPath(sp) => match sp.eval_path(current, root) {
+                Some(v) => JsonPathType::Value(ValueType::ValueRef(v)),
+                None => JsonPathType::Value(ValueType::Nothing),
+            },
             FunctionExpr(expr) => expr.evaluate(current, root),
         }
     }

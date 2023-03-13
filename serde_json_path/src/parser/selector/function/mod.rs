@@ -18,29 +18,81 @@ use crate::parser::{parse_path, PResult, Query, Queryable};
 
 use super::filter::{parse_comparable, Comparable, TestFilter};
 
-pub type Evaluator = Lazy<Box<dyn for<'a> Fn(Vec<FuncType<'a>>) -> FuncType<'a> + Sync + Send>>;
+pub type Validator =
+    Lazy<Box<dyn Fn(&[FunctionExprArg]) -> Result<(), FunctionValidationError> + Send + Sync>>;
+
+pub type Evaluator =
+    Lazy<Box<dyn for<'a> Fn(Vec<JsonPathType<'a>>) -> JsonPathType<'a> + Sync + Send>>;
 
 pub struct Function {
     name: &'static str,
+    validator: &'static Validator,
     evaluator: &'static Evaluator,
 }
 
 impl Function {
-    pub const fn new(name: &'static str, evaluator: &'static Evaluator) -> Self {
-        Self { name, evaluator }
+    pub const fn new(
+        name: &'static str,
+        evaluator: &'static Evaluator,
+        validator: &'static Validator,
+    ) -> Self {
+        Self {
+            name,
+            evaluator,
+            validator,
+        }
     }
 }
 
 inventory::collect!(Function);
 
-#[derive(Debug, Default)]
-pub enum FuncType<'a> {
-    Nodelist(Vec<&'a Value>),
-    Node(Option<&'a Value>),
+#[derive(Debug)]
+pub struct NodesType<'a>(Vec<&'a Value>);
+
+impl<'a> From<Vec<&'a Value>> for NodesType<'a> {
+    fn from(value: Vec<&'a Value>) -> Self {
+        Self(value)
+    }
+}
+
+#[derive(Debug)]
+pub enum LogicalType {
+    True,
+    False,
+}
+
+impl From<LogicalType> for bool {
+    fn from(value: LogicalType) -> Self {
+        match value {
+            LogicalType::True => true,
+            LogicalType::False => false,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum ValueType<'a> {
     Value(Value),
     ValueRef(&'a Value),
-    #[default]
     Nothing,
+}
+
+impl TestFilter for Value {
+    fn test_filter<'b>(&self, _current: &'b Value, _root: &'b Value) -> bool {
+        match self {
+            Value::Null => false,
+            Value::Bool(b) => *b,
+            Value::Number(n) => n != &Number::from(0),
+            _ => true,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum JsonPathType<'a> {
+    Nodes(NodesType<'a>),
+    Value(ValueType<'a>),
+    Logical(LogicalType),
 }
 
 #[derive(Debug, PartialEq)]
@@ -57,10 +109,10 @@ pub enum FunctionExprArg {
 
 impl FunctionExprArg {
     #[cfg_attr(feature = "trace", tracing::instrument(name = "Evaluate Function Arg", level = "trace", parent = None, ret))]
-    fn evaluate<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> FuncType<'a> {
+    fn evaluate<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> JsonPathType<'a> {
         use FunctionExprArg::*;
         match self {
-            FilterPath(q) => FuncType::Nodelist(q.query(current, root)),
+            FilterPath(q) => JsonPathType::Nodes(q.query(current, root).into()),
             Comparable(c) => c.as_value(current, root),
         }
     }
@@ -68,8 +120,8 @@ impl FunctionExprArg {
 
 impl FunctionExpr {
     #[cfg_attr(feature = "trace", tracing::instrument(name = "Evaluate Function Expr", level = "trace", parent = None, ret))]
-    pub fn evaluate<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> FuncType<'_> {
-        let args: Vec<FuncType> = self
+    pub fn evaluate<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> JsonPathType<'_> {
+        let args: Vec<JsonPathType> = self
             .args
             .iter()
             .map(|a| a.evaluate(current, root))
@@ -79,29 +131,40 @@ impl FunctionExpr {
                 return (f.evaluator)(args);
             }
         }
-        FuncType::Nothing
+        // This is unreachable because if the function is not present, or validly declared, then
+        // the JSON Path would not be parsed.
+        unreachable!()
     }
+
+    pub fn validate(&self) -> Result<(), FunctionValidationError> {
+        for f in inventory::iter::<Function> {
+            if f.name == self.name {
+                return (f.validator)(self.args.as_slice());
+            }
+        }
+        Err(FunctionValidationError::Undefined {
+            name: self.name.to_owned(),
+        })
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum FunctionValidationError {
+    #[error("function name '{name}' is not defined")]
+    Undefined { name: String },
 }
 
 impl TestFilter for FunctionExpr {
     #[cfg_attr(feature = "trace", tracing::instrument(name = "Test Function Expr", level = "trace", parent = None, ret))]
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
         match self.evaluate(current, root) {
-            FuncType::Nodelist(nl) => !nl.is_empty(),
-            FuncType::Node(n) => n.is_some(),
-            FuncType::Value(v) => match v {
-                Value::Null => false,
-                Value::Bool(b) => b,
-                Value::Number(n) => n != Number::from(0),
-                _ => true,
+            JsonPathType::Nodes(nl) => !nl.0.is_empty(),
+            JsonPathType::Value(value) => match value {
+                ValueType::Value(v) => v.test_filter(current, root),
+                ValueType::ValueRef(v) => v.test_filter(current, root),
+                ValueType::Nothing => false,
             },
-            FuncType::Nothing => false,
-            FuncType::ValueRef(v) => match v {
-                Value::Null => false,
-                Value::Bool(b) => *b,
-                Value::Number(n) => n != &Number::from(0),
-                _ => true,
-            },
+            JsonPathType::Logical(l) => l.into(),
         }
     }
 }

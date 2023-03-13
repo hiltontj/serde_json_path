@@ -215,7 +215,7 @@ mod node;
 mod parser;
 mod path;
 
-pub use parser::selector::function::{Evaluator, FuncType, Function};
+pub use parser::selector::function::{Evaluator, Function, JsonPathType};
 
 pub use error::Error;
 pub use ext::JsonPathExt;
