@@ -22,6 +22,15 @@ pub struct PathSegment {
     pub segment: Segment,
 }
 
+impl std::fmt::Display for PathSegment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if matches!(self.kind, PathSegmentKind::Descendant) {
+            write!(f, "..")?;
+        }
+        write!(f, "{segment}", segment = self.segment)
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum PathSegmentKind {
     Child,
@@ -74,6 +83,27 @@ impl Segment {
             Segment::DotName(s) => Some(s.as_str()),
             _ => None,
         }
+    }
+}
+
+impl std::fmt::Display for Segment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Segment::LongHand(selectors) => {
+                write!(f, "[")?;
+                for (i, s) in selectors.iter().enumerate() {
+                    write!(
+                        f,
+                        "{s}{comma}",
+                        comma = if i == selectors.len() - 1 { "" } else { "," }
+                    )?;
+                }
+                write!(f, "]")?;
+            }
+            Segment::DotName(name) => write!(f, ".{name}")?,
+            Segment::Wildcard => write!(f, ".*")?,
+        }
+        Ok(())
     }
 }
 
