@@ -15,7 +15,7 @@ use super::{PResult, QueryValue};
 pub mod filter;
 pub mod slice;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Selector {
     Name(Name),
     Wildcard,
@@ -52,7 +52,7 @@ pub fn parse_wildcard_selector(input: &str) -> PResult<Selector> {
     map(char('*'), |_| Selector::Wildcard)(input)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Name(pub String);
 
 impl Name {

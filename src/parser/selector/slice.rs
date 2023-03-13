@@ -8,7 +8,7 @@ use serde_json::Value;
 
 use crate::parser::{primitive::int::parse_int, PResult, QueryValue};
 
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, PartialEq, Default, Clone, Copy)]
 pub struct Slice {
     start: Option<isize>,
     end: Option<isize>,

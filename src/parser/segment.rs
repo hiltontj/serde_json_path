@@ -16,13 +16,13 @@ use serde_json::Value;
 use super::selector::{parse_selector, parse_wildcard_selector, Selector};
 use super::{PResult, QueryValue};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct PathSegment {
     pub kind: PathSegmentKind,
     pub segment: Segment,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum PathSegmentKind {
     Child,
     Descendant,
@@ -52,7 +52,7 @@ fn descend<'b>(segment: &PathSegment, current: &'b Value, root: &'b Value) -> Ve
     query
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Segment {
     LongHand(Vec<Selector>),
     DotName(String),
