@@ -37,7 +37,7 @@ use crate::{
 /// ```
 ///
 /// [jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-10.html
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub struct JsonPath(Query);
 
 impl JsonPath {

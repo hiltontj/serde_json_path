@@ -17,14 +17,15 @@ pub trait QueryValue {
 }
 
 /// Represents a JSONPath expression
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub struct Query {
     kind: PathKind,
     pub segments: Vec<PathSegment>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub enum PathKind {
+    #[default]
     Root,
     Current,
 }
