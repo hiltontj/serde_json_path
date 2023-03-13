@@ -24,6 +24,18 @@ pub enum Selector {
     Filter(Filter),
 }
 
+impl std::fmt::Display for Selector {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Selector::Name(name) => write!(f, "{name}"),
+            Selector::Wildcard => write!(f, "*"),
+            Selector::Index(index) => write!(f, "{index}"),
+            Selector::ArraySlice(slice) => write!(f, "{slice}"),
+            Selector::Filter(filter) => write!(f, "?{filter}"),
+        }
+    }
+}
+
 impl QueryValue for Selector {
     fn query_value<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
         let mut query = Vec::new();
@@ -61,6 +73,12 @@ impl Name {
     }
 }
 
+impl std::fmt::Display for Name {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "'{name}'", name = self.0)
+    }
+}
+
 impl QueryValue for Name {
     fn query_value<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {
         if let Some(obj) = current.as_object() {
@@ -87,6 +105,12 @@ fn parse_name_selector(input: &str) -> PResult<Selector> {
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Index(pub isize);
+
+impl std::fmt::Display for Index {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{index}", index = self.0)
+    }
+}
 
 impl QueryValue for Index {
     fn query_value<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {

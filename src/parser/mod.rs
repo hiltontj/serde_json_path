@@ -23,6 +23,19 @@ pub struct Query {
     pub segments: Vec<PathSegment>,
 }
 
+impl std::fmt::Display for Query {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.kind {
+            PathKind::Root => write!(f, "$")?,
+            PathKind::Current => write!(f, "@")?,
+        }
+        for s in &self.segments {
+            write!(f, "{s}")?;
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug, PartialEq, Clone, Default)]
 pub enum PathKind {
     #[default]

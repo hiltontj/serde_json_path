@@ -13,11 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **docs:** Corrected a broken link in crate-level docs ([#21])
 - **added:** derive `Clone` for `JsonPath` and its descendants ([#24])
 - **added:** derive `Default` for `JsonPath` ([#25])
+- **added:** implement `Display`  and `Serialize` for `JsonPath` ([#26])
 
 [#16]: https://github.com/hiltontj/serde_json_path/pull/16
 [#21]: https://github.com/hiltontj/serde_json_path/pull/21
 [#24]: https://github.com/hiltontj/serde_json_path/pull/24
 [#25]: https://github.com/hiltontj/serde_json_path/pull/25
+[#26]: https://github.com/hiltontj/serde_json_path/pull/26
 
 # 0.5.1 (11 March 2023)
 

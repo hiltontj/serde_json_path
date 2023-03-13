@@ -20,6 +20,12 @@ trait TestFilter {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Filter(BooleanExpr);
 
+impl std::fmt::Display for Filter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{expr}", expr = self.0)
+    }
+}
+
 impl QueryValue for Filter {
     fn query_value<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
         if let Some(list) = current.as_array() {
@@ -50,6 +56,19 @@ pub fn parse_filter(input: &str) -> PResult<Filter> {
 #[derive(Debug, PartialEq, Clone)]
 struct BooleanExpr(Vec<LogicalAndExpr>);
 
+impl std::fmt::Display for BooleanExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (i, expr) in self.0.iter().enumerate() {
+            write!(
+                f,
+                "{expr}{logic}",
+                logic = if i == self.0.len() - 1 { "" } else { " || " }
+            )?;
+        }
+        Ok(())
+    }
+}
+
 impl TestFilter for BooleanExpr {
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
         self.0.iter().any(|expr| expr.test_filter(current, root))
@@ -58,6 +77,19 @@ impl TestFilter for BooleanExpr {
 
 #[derive(Debug, PartialEq, Clone)]
 struct LogicalAndExpr(Vec<BasicExpr>);
+
+impl std::fmt::Display for LogicalAndExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (i, expr) in self.0.iter().enumerate() {
+            write!(
+                f,
+                "{expr}{logic}",
+                logic = if i == self.0.len() - 1 { "" } else { " && " }
+            )?;
+        }
+        Ok(())
+    }
+}
 
 impl TestFilter for LogicalAndExpr {
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
@@ -86,6 +118,18 @@ enum BasicExpr {
     Relation(ComparisonExpr),
     Exist(ExistExpr),
     NotExist(ExistExpr),
+}
+
+impl std::fmt::Display for BasicExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BasicExpr::Paren(expr) => write!(f, "({expr})"),
+            BasicExpr::NotParen(expr) => write!(f, "!({expr})"),
+            BasicExpr::Relation(rel) => write!(f, "{rel}"),
+            BasicExpr::Exist(exist) => write!(f, "{exist}"),
+            BasicExpr::NotExist(exist) => write!(f, "!{exist}"),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -117,6 +161,12 @@ impl TestFilter for BasicExpr {
 /// This does not support the function expression notation outlined in the JSONPath spec.
 #[derive(Debug, PartialEq, Clone)]
 struct ExistExpr(Query);
+
+impl std::fmt::Display for ExistExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{query}", query = self.0)
+    }
+}
 
 impl TestFilter for ExistExpr {
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
@@ -173,6 +223,18 @@ struct ComparisonExpr {
     pub left: Comparable,
     pub op: ComparisonOperator,
     pub right: Comparable,
+}
+
+impl std::fmt::Display for ComparisonExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{left}{op}{right}",
+            left = self.left,
+            op = self.op,
+            right = self.right
+        )
+    }
 }
 
 impl TestFilter for ComparisonExpr {
@@ -248,6 +310,19 @@ enum ComparisonOperator {
     GreaterThanEqualTo,
 }
 
+impl std::fmt::Display for ComparisonOperator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ComparisonOperator::EqualTo => write!(f, "=="),
+            ComparisonOperator::NotEqualTo => write!(f, "!="),
+            ComparisonOperator::LessThan => write!(f, "<"),
+            ComparisonOperator::GreaterThan => write!(f, ">"),
+            ComparisonOperator::LessThanEqualTo => write!(f, "<="),
+            ComparisonOperator::GreaterThanEqualTo => write!(f, ">="),
+        }
+    }
+}
+
 fn parse_comparison_operator(input: &str) -> PResult<ComparisonOperator> {
     use ComparisonOperator::*;
     alt((
@@ -268,6 +343,15 @@ enum Comparable {
     },
     SingularPath(SingularPath),
     // FunctionExpr, // TODO - function expressions are hard
+}
+
+impl std::fmt::Display for Comparable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Comparable::Primitive { kind: _, value } => write!(f, "{value}"),
+            Comparable::SingularPath(path) => write!(f, "{path}"),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -376,6 +460,15 @@ enum SingularPathSegment {
     Index(Index),
 }
 
+impl std::fmt::Display for SingularPathSegment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SingularPathSegment::Name(name) => write!(f, "{name}"),
+            SingularPathSegment::Index(index) => write!(f, "{index}"),
+        }
+    }
+}
+
 fn parse_singular_path_index_segment(input: &str) -> PResult<Index> {
     delimited(char('['), parse_index, char(']'))(input)
 }
@@ -435,6 +528,19 @@ impl SingularPath {
             }
         }
         Some(target)
+    }
+}
+
+impl std::fmt::Display for SingularPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.kind {
+            SingularPathKind::Absolute => write!(f, "$")?,
+            SingularPathKind::Relative => write!(f, "@")?,
+        }
+        for s in &self.segments {
+            write!(f, "[{s}]")?;
+        }
+        Ok(())
     }
 }
 
