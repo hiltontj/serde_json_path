@@ -17,7 +17,7 @@ trait TestFilter {
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool;
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Filter(BooleanExpr);
 
 impl QueryValue for Filter {
@@ -47,7 +47,7 @@ pub fn parse_filter(input: &str) -> PResult<Filter> {
 /// A Boolean Expression
 ///
 /// In the JSONPath spec, this is the same as a logical or expression.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 struct BooleanExpr(Vec<LogicalAndExpr>);
 
 impl TestFilter for BooleanExpr {
@@ -56,7 +56,7 @@ impl TestFilter for BooleanExpr {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 struct LogicalAndExpr(Vec<BasicExpr>);
 
 impl TestFilter for LogicalAndExpr {
@@ -79,7 +79,7 @@ fn parse_boolean_expr(input: &str) -> PResult<BooleanExpr> {
     )(input)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 enum BasicExpr {
     Paren(BooleanExpr),
     NotParen(BooleanExpr),
@@ -115,7 +115,7 @@ impl TestFilter for BasicExpr {
 /// ### Implementation Note
 ///
 /// This does not support the function expression notation outlined in the JSONPath spec.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 struct ExistExpr(Query);
 
 impl TestFilter for ExistExpr {
@@ -168,7 +168,7 @@ fn parse_basic_expr(input: &str) -> PResult<BasicExpr> {
     ))(input)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 struct ComparisonExpr {
     pub left: Comparable,
     pub op: ComparisonOperator,
@@ -260,7 +260,7 @@ fn parse_comparison_operator(input: &str) -> PResult<ComparisonOperator> {
     ))(input)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 enum Comparable {
     Primitive {
         kind: ComparablePrimitiveKind,
@@ -270,7 +270,7 @@ enum Comparable {
     // FunctionExpr, // TODO - function expressions are hard
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 enum ComparablePrimitiveKind {
     Number,
     String,
@@ -370,7 +370,7 @@ fn parse_string_comparable(input: &str) -> PResult<Comparable> {
     })(input)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 enum SingularPathSegment {
     Name(Name),
     Index(Index),
@@ -400,7 +400,7 @@ fn parse_singular_path_segments(input: &str) -> PResult<Vec<SingularPathSegment>
     ))(input)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 struct SingularPath {
     kind: SingularPathKind,
     pub segments: Vec<SingularPathSegment>,
@@ -438,7 +438,7 @@ impl SingularPath {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 enum SingularPathKind {
     Absolute,
     Relative,
