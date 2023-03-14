@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
-# 0.5.1 (13 March 2023)
+# 0.5.2 (13 March 2023)
 
 - **added:** Add `first`, `last`, and `get` methods to `NodeList` type ([#16])
 - **changed:** Make `NodeList::at_most_one` and `NodeList::exactly_one` take `&self` instead of `self` ([#16])
