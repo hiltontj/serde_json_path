@@ -17,14 +17,28 @@ pub trait Queryable {
 }
 
 /// Represents a JSONPath expression
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub struct Query {
     kind: PathKind,
     pub segments: Vec<PathSegment>,
 }
 
-#[derive(Debug, PartialEq)]
+impl std::fmt::Display for Query {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.kind {
+            PathKind::Root => write!(f, "$")?,
+            PathKind::Current => write!(f, "@")?,
+        }
+        for s in &self.segments {
+            write!(f, "{s}")?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Default)]
 pub enum PathKind {
+    #[default]
     Root,
     Current,
 }

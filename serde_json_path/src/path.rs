@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use serde::{de::Visitor, Deserialize};
+use serde::{de::Visitor, Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
@@ -37,7 +37,7 @@ use crate::{
 /// ```
 ///
 /// [jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-10.html
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub struct JsonPath(Query);
 
 impl JsonPath {
@@ -85,6 +85,21 @@ impl FromStr for JsonPath {
     }
 }
 
+impl std::fmt::Display for JsonPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{path}", path = self.0)
+    }
+}
+
+impl Serialize for JsonPath {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.collect_str(self)
+    }
+}
+
 impl<'de> Deserialize<'de> for JsonPath {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -113,6 +128,8 @@ impl<'de> Deserialize<'de> for JsonPath {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::{from_value, json, to_value};
+
     use crate::JsonPath;
 
     #[test]
@@ -125,5 +142,15 @@ mod tests {
     fn test_sync() {
         fn assert_sync<T: Sync>() {}
         assert_sync::<JsonPath>();
+    }
+
+    #[test]
+    fn serde_round_trip() {
+        let j1 = json!("$.foo['bar'][1:10][?@.baz > 10 && @.foo.bar < 20]");
+        let p1 = from_value::<JsonPath>(j1).expect("deserializes");
+        let p2 = to_value(&p1)
+            .and_then(from_value::<JsonPath>)
+            .expect("round trip");
+        assert_eq!(p1, p2);
     }
 }

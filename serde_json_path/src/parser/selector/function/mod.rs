@@ -95,16 +95,39 @@ pub enum JsonPathType<'a> {
     Logical(LogicalType),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct FunctionExpr {
     name: String,
     args: Vec<FunctionExprArg>,
 }
 
-#[derive(Debug, PartialEq)]
+impl std::fmt::Display for FunctionExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{name}(", name = self.name)?;
+        for (i, arg) in self.args.iter().enumerate() {
+            write!(
+                f,
+                "{arg}{comma}",
+                comma = if i == self.args.len() - 1 { "" } else { "," }
+            )?;
+        }
+        write!(f, ")")
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum FunctionExprArg {
     FilterPath(Query),
     Comparable(Comparable),
+}
+
+impl std::fmt::Display for FunctionExprArg {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FunctionExprArg::FilterPath(query) => write!(f, "{query}"),
+            FunctionExprArg::Comparable(comparable) => write!(f, "{comparable}"),
+        }
+    }
 }
 
 impl FunctionExprArg {

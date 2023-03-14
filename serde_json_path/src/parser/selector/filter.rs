@@ -19,8 +19,14 @@ pub trait TestFilter {
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool;
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Filter(LogicalOrExpr);
+
+impl std::fmt::Display for Filter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{expr}", expr = self.0)
+    }
+}
 
 impl Queryable for Filter {
     #[cfg_attr(feature = "trace", tracing::instrument(name = "Query Filter", level = "trace", parent = None, ret))]
@@ -52,8 +58,21 @@ pub fn parse_filter(input: &str) -> PResult<Filter> {
 ///
 /// This is also `boolean-expression` in the JSONPath specification, but the naming
 /// was chosen to make it more clear that it represents the logical OR.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 struct LogicalOrExpr(Vec<LogicalAndExpr>);
+
+impl std::fmt::Display for LogicalOrExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (i, expr) in self.0.iter().enumerate() {
+            write!(
+                f,
+                "{expr}{logic}",
+                logic = if i == self.0.len() - 1 { "" } else { " || " }
+            )?;
+        }
+        Ok(())
+    }
+}
 
 impl TestFilter for LogicalOrExpr {
     #[cfg_attr(feature = "trace", tracing::instrument(name = "Test Logical Or Expr", level = "trace", parent = None, ret))]
@@ -62,8 +81,21 @@ impl TestFilter for LogicalOrExpr {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 struct LogicalAndExpr(Vec<BasicExpr>);
+
+impl std::fmt::Display for LogicalAndExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (i, expr) in self.0.iter().enumerate() {
+            write!(
+                f,
+                "{expr}{logic}",
+                logic = if i == self.0.len() - 1 { "" } else { " && " }
+            )?;
+        }
+        Ok(())
+    }
+}
 
 impl TestFilter for LogicalAndExpr {
     #[cfg_attr(feature = "trace", tracing::instrument(name = "Test Logical And Expr", level = "trace", parent = None, ret))]
@@ -88,7 +120,7 @@ fn parse_logical_or_expr(input: &str) -> PResult<LogicalOrExpr> {
     )(input)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 enum BasicExpr {
     Paren(LogicalOrExpr),
     NotParen(LogicalOrExpr),
@@ -97,6 +129,20 @@ enum BasicExpr {
     NotExist(ExistExpr),
     FuncExpr(FunctionExpr),
     NotFuncExpr(FunctionExpr),
+}
+
+impl std::fmt::Display for BasicExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BasicExpr::Paren(expr) => write!(f, "({expr})"),
+            BasicExpr::NotParen(expr) => write!(f, "!({expr})"),
+            BasicExpr::Relation(rel) => write!(f, "{rel}"),
+            BasicExpr::Exist(exist) => write!(f, "{exist}"),
+            BasicExpr::NotExist(exist) => write!(f, "!{exist}"),
+            BasicExpr::FuncExpr(expr) => write!(f, "{expr}"),
+            BasicExpr::NotFuncExpr(expr) => write!(f, "{expr}"),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -129,8 +175,14 @@ impl TestFilter for BasicExpr {
 /// ### Implementation Note
 ///
 /// This does not support the function expression notation outlined in the JSONPath spec.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 struct ExistExpr(Query);
+
+impl std::fmt::Display for ExistExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{query}", query = self.0)
+    }
+}
 
 impl TestFilter for ExistExpr {
     #[cfg_attr(feature = "trace", tracing::instrument(name = "Test Exists Expr", level = "trace", parent = None, ret))]
@@ -205,7 +257,7 @@ fn parse_basic_expr(input: &str) -> PResult<BasicExpr> {
     ))(input)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 struct ComparisonExpr {
     pub left: Comparable,
     pub op: ComparisonOperator,
@@ -269,6 +321,18 @@ fn func_type_same_type(left: &JsonPathType, right: &JsonPathType) -> bool {
     }
 }
 
+impl std::fmt::Display for ComparisonExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{left}{op}{right}",
+            left = self.left,
+            op = self.op,
+            right = self.right
+        )
+    }
+}
+
 impl TestFilter for ComparisonExpr {
     #[cfg_attr(feature = "trace", tracing::instrument(name = "Test Comparison Expr", level = "trace", parent = None, ret))]
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
@@ -329,6 +393,19 @@ enum ComparisonOperator {
     GreaterThanEqualTo,
 }
 
+impl std::fmt::Display for ComparisonOperator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ComparisonOperator::EqualTo => write!(f, "=="),
+            ComparisonOperator::NotEqualTo => write!(f, "!="),
+            ComparisonOperator::LessThan => write!(f, "<"),
+            ComparisonOperator::GreaterThan => write!(f, ">"),
+            ComparisonOperator::LessThanEqualTo => write!(f, "<="),
+            ComparisonOperator::GreaterThanEqualTo => write!(f, ">="),
+        }
+    }
+}
+
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_comparison_operator(input: &str) -> PResult<ComparisonOperator> {
     use ComparisonOperator::*;
@@ -342,7 +419,7 @@ fn parse_comparison_operator(input: &str) -> PResult<ComparisonOperator> {
     ))(input)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Comparable {
     Primitive {
         kind: ComparablePrimitiveKind,
@@ -352,7 +429,17 @@ pub enum Comparable {
     FunctionExpr(FunctionExpr),
 }
 
-#[derive(Debug, PartialEq)]
+impl std::fmt::Display for Comparable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Comparable::Primitive { kind: _, value } => write!(f, "{value}"),
+            Comparable::SingularPath(path) => write!(f, "{path}"),
+            Comparable::FunctionExpr(expr) => write!(f, "{expr}"),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ComparablePrimitiveKind {
     Number,
     String,
@@ -460,10 +547,19 @@ fn parse_string_comparable(input: &str) -> PResult<Comparable> {
     })(input)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum SingularPathSegment {
     Name(Name),
     Index(Index),
+}
+
+impl std::fmt::Display for SingularPathSegment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SingularPathSegment::Name(name) => write!(f, "{name}"),
+            SingularPathSegment::Index(index) => write!(f, "{index}"),
+        }
+    }
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
@@ -493,7 +589,7 @@ fn parse_singular_path_segments(input: &str) -> PResult<Vec<SingularPathSegment>
     ))(input)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct SingularPath {
     kind: SingularPathKind,
     pub segments: Vec<SingularPathSegment>,
@@ -531,7 +627,20 @@ impl SingularPath {
     }
 }
 
-#[derive(Debug, PartialEq)]
+impl std::fmt::Display for SingularPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.kind {
+            SingularPathKind::Absolute => write!(f, "$")?,
+            SingularPathKind::Relative => write!(f, "@")?,
+        }
+        for s in &self.segments {
+            write!(f, "[{s}]")?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
 enum SingularPathKind {
     Absolute,
     Relative,

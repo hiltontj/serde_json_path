@@ -8,11 +8,28 @@ use serde_json::Value;
 
 use crate::parser::{primitive::int::parse_int, PResult, Queryable};
 
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, PartialEq, Default, Clone, Copy)]
 pub struct Slice {
     start: Option<isize>,
     end: Option<isize>,
     step: Option<isize>,
+}
+
+impl std::fmt::Display for Slice {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(start) = self.start {
+            write!(f, "{start}")?;
+        }
+        write!(f, ":")?;
+        if let Some(end) = self.end {
+            write!(f, "{end}")?;
+        }
+        write!(f, ":")?;
+        if let Some(step) = self.step {
+            write!(f, "{step}")?;
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]

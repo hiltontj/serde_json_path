@@ -16,13 +16,22 @@ use serde_json::Value;
 use super::selector::{parse_selector, parse_wildcard_selector, Selector};
 use super::{PResult, Queryable};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct PathSegment {
     pub kind: PathSegmentKind,
     pub segment: Segment,
 }
 
-#[derive(Debug, PartialEq)]
+impl std::fmt::Display for PathSegment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if matches!(self.kind, PathSegmentKind::Descendant) {
+            write!(f, "..")?;
+        }
+        write!(f, "{segment}", segment = self.segment)
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum PathSegmentKind {
     Child,
     Descendant,
@@ -53,7 +62,7 @@ fn descend<'b>(segment: &PathSegment, current: &'b Value, root: &'b Value) -> Ve
     query
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Segment {
     LongHand(Vec<Selector>),
     DotName(String),
@@ -75,6 +84,27 @@ impl Segment {
             Segment::DotName(s) => Some(s.as_str()),
             _ => None,
         }
+    }
+}
+
+impl std::fmt::Display for Segment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Segment::LongHand(selectors) => {
+                write!(f, "[")?;
+                for (i, s) in selectors.iter().enumerate() {
+                    write!(
+                        f,
+                        "{s}{comma}",
+                        comma = if i == selectors.len() - 1 { "" } else { "," }
+                    )?;
+                }
+                write!(f, "]")?;
+            }
+            Segment::DotName(name) => write!(f, ".{name}")?,
+            Segment::Wildcard => write!(f, ".*")?,
+        }
+        Ok(())
     }
 }
 

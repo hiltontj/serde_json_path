@@ -16,13 +16,25 @@ pub mod filter;
 pub mod function;
 pub mod slice;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Selector {
     Name(Name),
     Wildcard,
     Index(Index),
     ArraySlice(Slice),
     Filter(Filter),
+}
+
+impl std::fmt::Display for Selector {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Selector::Name(name) => write!(f, "{name}"),
+            Selector::Wildcard => write!(f, "*"),
+            Selector::Index(index) => write!(f, "{index}"),
+            Selector::ArraySlice(slice) => write!(f, "{slice}"),
+            Selector::Filter(filter) => write!(f, "?{filter}"),
+        }
+    }
 }
 
 impl Queryable for Selector {
@@ -55,12 +67,18 @@ pub fn parse_wildcard_selector(input: &str) -> PResult<Selector> {
     map(char('*'), |_| Selector::Wildcard)(input)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Name(pub String);
 
 impl Name {
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+}
+
+impl std::fmt::Display for Name {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "'{name}'", name = self.0)
     }
 }
 
@@ -93,6 +111,12 @@ fn parse_name_selector(input: &str) -> PResult<Selector> {
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Index(pub isize);
+
+impl std::fmt::Display for Index {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{index}", index = self.0)
+    }
+}
 
 impl Queryable for Index {
     #[cfg_attr(feature = "trace", tracing::instrument(name = "Query Index", level = "trace", parent = None, ret))]
