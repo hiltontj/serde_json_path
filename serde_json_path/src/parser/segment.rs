@@ -22,6 +22,16 @@ pub struct PathSegment {
     pub segment: Segment,
 }
 
+impl PathSegment {
+    pub fn is_child(&self) -> bool {
+        matches!(self.kind, PathSegmentKind::Child)
+    }
+
+    pub fn is_descendent(&self) -> bool {
+        !self.is_child()
+    }
+}
+
 impl std::fmt::Display for PathSegment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if matches!(self.kind, PathSegmentKind::Descendant) {
@@ -70,6 +80,26 @@ pub enum Segment {
 }
 
 impl Segment {
+    pub fn is_singular(&self) -> bool {
+        match self {
+            Segment::LongHand(selectors) => {
+                if selectors.len() > 1 {
+                    return false;
+                }
+                if let Some(s) = selectors.first() {
+                    return s.is_singular();
+                } else {
+                    // if the selector list is empty, this shouldn't be a valid
+                    // JSONPath, but at least, it would be selecting nothing, and
+                    // that could be considered singular, i.e., None.
+                    return true;
+                }
+            }
+            Segment::DotName(_) => true,
+            Segment::Wildcard => false,
+        }
+    }
+
     #[cfg(test)]
     pub fn as_long_hand(&self) -> Option<&[Selector]> {
         match self {

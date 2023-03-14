@@ -15,6 +15,7 @@ use serde_json::{Number, Value};
 pub mod registry;
 
 use crate::parser::{parse_path, PResult, Query, Queryable};
+use crate::NodeList;
 
 use super::filter::{parse_comparable, Comparable, TestFilter};
 
@@ -26,6 +27,7 @@ pub type Evaluator =
 
 pub struct Function {
     name: &'static str,
+    result_type: JsonPathTypeKind,
     validator: &'static Validator,
     evaluator: &'static Evaluator,
 }
@@ -33,11 +35,13 @@ pub struct Function {
 impl Function {
     pub const fn new(
         name: &'static str,
+        result_type: JsonPathTypeKind,
         evaluator: &'static Evaluator,
         validator: &'static Validator,
     ) -> Self {
         Self {
             name,
+            result_type,
             evaluator,
             validator,
         }
@@ -47,11 +51,29 @@ impl Function {
 inventory::collect!(Function);
 
 #[derive(Debug)]
-pub struct NodesType<'a>(Vec<&'a Value>);
+pub struct NodesType<'a>(NodeList<'a>);
 
-impl<'a> From<Vec<&'a Value>> for NodesType<'a> {
-    fn from(value: Vec<&'a Value>) -> Self {
+impl<'a> From<NodeList<'a>> for NodesType<'a> {
+    fn from(value: NodeList<'a>) -> Self {
         Self(value)
+    }
+}
+
+impl<'a> TryFrom<JsonPathType<'a>> for NodesType<'a> {
+    type Error = ConversionError;
+
+    fn try_from(value: JsonPathType<'a>) -> Result<Self, Self::Error> {
+        match value {
+            JsonPathType::Nodes(nl) => Ok(nl),
+            JsonPathType::Value(_) => Err(ConversionError::new(
+                JsonPathTypeKind::Value,
+                JsonPathTypeKind::Nodes,
+            )),
+            JsonPathType::Logical(_) => Err(ConversionError::new(
+                JsonPathTypeKind::Logical,
+                JsonPathTypeKind::Nodes,
+            )),
+        }
     }
 }
 
@@ -59,6 +81,24 @@ impl<'a> From<Vec<&'a Value>> for NodesType<'a> {
 pub enum LogicalType {
     True,
     False,
+}
+
+impl<'a> TryFrom<JsonPathType<'a>> for LogicalType {
+    type Error = ConversionError;
+
+    fn try_from(value: JsonPathType<'a>) -> Result<Self, Self::Error> {
+        match value {
+            JsonPathType::Nodes(_) => Err(ConversionError::new(
+                JsonPathTypeKind::Nodes,
+                JsonPathTypeKind::Logical,
+            )),
+            JsonPathType::Value(_) => Err(ConversionError::new(
+                JsonPathTypeKind::Value,
+                JsonPathTypeKind::Logical,
+            )),
+            JsonPathType::Logical(l) => Ok(l),
+        }
+    }
 }
 
 impl From<LogicalType> for bool {
@@ -77,6 +117,24 @@ pub enum ValueType<'a> {
     Nothing,
 }
 
+impl<'a> TryFrom<JsonPathType<'a>> for ValueType<'a> {
+    type Error = ConversionError;
+
+    fn try_from(value: JsonPathType<'a>) -> Result<Self, Self::Error> {
+        match value {
+            JsonPathType::Value(v) => Ok(v),
+            JsonPathType::Nodes(_) => Err(ConversionError::new(
+                JsonPathTypeKind::Nodes,
+                JsonPathTypeKind::Value,
+            )),
+            JsonPathType::Logical(_) => Err(ConversionError::new(
+                JsonPathTypeKind::Nodes,
+                JsonPathTypeKind::Value,
+            )),
+        }
+    }
+}
+
 impl TestFilter for Value {
     fn test_filter<'b>(&self, _current: &'b Value, _root: &'b Value) -> bool {
         match self {
@@ -93,6 +151,46 @@ pub enum JsonPathType<'a> {
     Nodes(NodesType<'a>),
     Value(ValueType<'a>),
     Logical(LogicalType),
+}
+
+impl<'a> JsonPathType<'a> {
+    pub fn as_kind(&self) -> JsonPathTypeKind {
+        match self {
+            JsonPathType::Nodes(_) => JsonPathTypeKind::Nodes,
+            JsonPathType::Value(_) => JsonPathTypeKind::Value,
+            JsonPathType::Logical(_) => JsonPathTypeKind::Logical,
+        }
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("attempted to convert {from} to {to}")]
+pub struct ConversionError {
+    from: JsonPathTypeKind,
+    to: JsonPathTypeKind,
+}
+
+impl ConversionError {
+    fn new(from: JsonPathTypeKind, to: JsonPathTypeKind) -> Self {
+        Self { from, to }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum JsonPathTypeKind {
+    Nodes,
+    Value,
+    Logical,
+}
+
+impl std::fmt::Display for JsonPathTypeKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            JsonPathTypeKind::Nodes => write!(f, "NodesType"),
+            JsonPathTypeKind::Value => write!(f, "ValueType"),
+            JsonPathTypeKind::Logical => write!(f, "LogicalType"),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -135,8 +233,39 @@ impl FunctionExprArg {
     fn evaluate<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> JsonPathType<'a> {
         use FunctionExprArg::*;
         match self {
-            FilterPath(q) => JsonPathType::Nodes(q.query(current, root).into()),
+            FilterPath(q) => JsonPathType::Nodes(NodesType(q.query(current, root).into())),
             Comparable(c) => c.as_value(current, root),
+        }
+    }
+
+    fn as_type_kind(&self) -> Result<JsonPathTypeKind, FunctionValidationError> {
+        use FunctionExprArg::*;
+        match self {
+            FilterPath(query) => {
+                if query.is_singular() {
+                    Ok(JsonPathTypeKind::Value)
+                } else {
+                    Ok(JsonPathTypeKind::Nodes)
+                }
+            }
+            Comparable(comp) => match comp {
+                crate::parser::selector::filter::Comparable::Primitive { kind: _, value: _ } => {
+                    Ok(JsonPathTypeKind::Value)
+                }
+                crate::parser::selector::filter::Comparable::SingularPath(_) => {
+                    Ok(JsonPathTypeKind::Value)
+                }
+                crate::parser::selector::filter::Comparable::FunctionExpr(func) => {
+                    for f in inventory::iter::<Function> {
+                        if f.name == func.name.as_str() {
+                            return Ok(f.result_type);
+                        }
+                    }
+                    Err(FunctionValidationError::Undefined {
+                        name: func.name.to_owned(),
+                    })
+                }
+            },
         }
     }
 }
@@ -227,8 +356,8 @@ fn parse_function_name(input: &str) -> PResult<String> {
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_function_argument(input: &str) -> PResult<FunctionExprArg> {
     alt((
-        map(parse_path, FunctionExprArg::FilterPath),
         map(parse_comparable, FunctionExprArg::Comparable),
+        map(parse_path, FunctionExprArg::FilterPath),
     ))(input)
 }
 

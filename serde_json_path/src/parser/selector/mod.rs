@@ -25,6 +25,15 @@ pub enum Selector {
     Filter(Filter),
 }
 
+impl Selector {
+    pub fn is_singular(&self) -> bool {
+        match self {
+            Selector::Name(_) | Selector::Index(_) => true,
+            _ => false,
+        }
+    }
+}
+
 impl std::fmt::Display for Selector {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

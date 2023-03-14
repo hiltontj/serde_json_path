@@ -23,6 +23,20 @@ pub struct Query {
     pub segments: Vec<PathSegment>,
 }
 
+impl Query {
+    fn is_singular(&self) -> bool {
+        for s in &self.segments {
+            if s.is_descendent() {
+                return false;
+            }
+            if !s.segment.is_singular() {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
 impl std::fmt::Display for Query {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.kind {
