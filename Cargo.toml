@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "serde_json_path",
+    "serde_json_path_core",
     "serde_json_path_macros",
     "serde_json_path_macros/src/internal"
 ]

@@ -211,15 +211,13 @@
 //! [norm_path]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-10.html#name-normalized-paths
 mod error;
 mod ext;
-mod node;
 mod parser;
 mod path;
 
-pub use parser::selector::function::{Evaluator, Function, JsonPathType};
-
 pub use error::Error;
 pub use ext::JsonPathExt;
-pub use node::{AtMostOneError, ExactlyOneError, NodeList};
 pub use path::JsonPath;
+#[doc(inline)]
+pub use serde_json_path_core::node::{AtMostOneError, ExactlyOneError, NodeList};
 
 pub use serde_json_path_macros::function;

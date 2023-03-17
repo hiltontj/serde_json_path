@@ -2,12 +2,12 @@ use std::str::FromStr;
 
 use serde::{de::Visitor, Deserialize, Serialize};
 use serde_json::Value;
-
-use crate::{
-    error::Error,
+use serde_json_path_core::{
     node::NodeList,
-    parser::{parse_path_main, Query, Queryable},
+    spec::query::{Query, Queryable},
 };
+
+use crate::{error::Error, parser::parse_path_main};
 
 /// A parsed JSON Path query string
 ///
