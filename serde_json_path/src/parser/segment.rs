@@ -22,18 +22,22 @@ fn is_non_ascii_unicode(chr: char) -> bool {
     chr >= '\u{0080}'
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_non_ascii_unicode(input: &str) -> PResult<&str> {
     take_while1(is_non_ascii_unicode)(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_name_first(input: &str) -> PResult<&str> {
     alt((alpha1, recognize(char('_')), parse_non_ascii_unicode))(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_name_char(input: &str) -> PResult<&str> {
     alt((digit1, parse_name_first))(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_dot_member_name(input: &str) -> PResult<String> {
     map(
         recognize(pair(
@@ -47,14 +51,17 @@ pub fn parse_dot_member_name(input: &str) -> PResult<String> {
     )(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_dot_member_name_shorthand(input: &str) -> PResult<Segment> {
     map(preceded(char('.'), parse_dot_member_name), Segment::DotName)(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_multi_selector(input: &str) -> PResult<Vec<Selector>> {
     separated_list1(delimited(space0, char(','), space0), parse_selector)(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_child_long_hand(input: &str) -> PResult<Segment> {
     context(
         "child long-hand segment",
@@ -68,12 +75,14 @@ fn parse_child_long_hand(input: &str) -> PResult<Segment> {
     )(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_dot_wildcard_shorthand(input: &str) -> PResult<Segment> {
     map(preceded(char('.'), parse_wildcard_selector), |_| {
         Segment::Wildcard
     })(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_child_segment(input: &str) -> PResult<Segment> {
     alt((
         parse_dot_wildcard_shorthand,
@@ -82,6 +91,7 @@ fn parse_child_segment(input: &str) -> PResult<Segment> {
     ))(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_descendant_segment(input: &str) -> PResult<Segment> {
     preceded(
         tag(".."),
@@ -93,6 +103,7 @@ fn parse_descendant_segment(input: &str) -> PResult<Segment> {
     )(input)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_segment(input: &str) -> PResult<PathSegment> {
     alt((
         map(parse_descendant_segment, |inner| PathSegment {
@@ -108,7 +119,7 @@ pub fn parse_segment(input: &str) -> PResult<PathSegment> {
 
 #[cfg(test)]
 mod tests {
-    use nom::{combinator::all_consuming, error::convert_error};
+    use nom::combinator::all_consuming;
     use serde_json_path_core::spec::selector::{index::Index, name::Name, slice::Slice, Selector};
 
     use super::{
@@ -166,10 +177,9 @@ mod tests {
             assert_eq!(s[1], Selector::Wildcard);
         }
         {
-            let i = "[010]";
             let err = parse_child_long_hand("[010]").unwrap_err();
             match err {
-                nom::Err::Error(e) | nom::Err::Failure(e) => println!("{}", convert_error(i, e)),
+                nom::Err::Error(e) | nom::Err::Failure(e) => println!("{e:#?}"),
                 _ => panic!("wrong error kind: {err:?}"),
             }
         }

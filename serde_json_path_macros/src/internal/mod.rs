@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use syn::{parse_macro_input, ItemFn};
 
 mod define;
-mod validate;
+mod extract;
 
 #[proc_macro_attribute]
 pub fn function(_attr: TokenStream, item: TokenStream) -> TokenStream {

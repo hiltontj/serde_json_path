@@ -1,7 +1,8 @@
 use nom::character::complete::char;
 use nom::combinator::all_consuming;
-use nom::error::VerboseError;
+use nom::error::{ContextError, ErrorKind, FromExternalError, ParseError};
 use nom::{branch::alt, combinator::map, multi::many0, sequence::preceded, IResult};
+use serde_json_path_core::spec::functions::FunctionValidationError;
 use serde_json_path_core::spec::query::{PathKind, Query};
 use serde_json_path_core::spec::segment::PathSegment;
 
@@ -11,7 +12,37 @@ pub mod primitive;
 pub mod segment;
 pub mod selector;
 
-type PResult<'a, O> = IResult<&'a str, O, VerboseError<&'a str>>;
+type PResult<'a, O> = IResult<&'a str, O, ParserError<&'a str>>;
+
+#[derive(Debug, thiserror::Error, PartialEq)]
+pub enum ParserError<I> {
+    #[error(transparent)]
+    FnValidation(FunctionValidationError),
+    #[error("nom error")]
+    Nom(I, ErrorKind),
+}
+
+impl<I> ParseError<I> for ParserError<I> {
+    fn from_error_kind(input: I, kind: ErrorKind) -> Self {
+        Self::Nom(input, kind)
+    }
+
+    fn append(_: I, _: ErrorKind, other: Self) -> Self {
+        other
+    }
+}
+
+impl<I> ContextError<I> for ParserError<I> {
+    fn add_context(_input: I, _ctx: &'static str, other: Self) -> Self {
+        other
+    }
+}
+
+impl<I, E> FromExternalError<I, E> for ParserError<I> {
+    fn from_external_error(input: I, kind: ErrorKind, _: E) -> Self {
+        Self::Nom(input, kind)
+    }
+}
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_path_segments(input: &str) -> PResult<Vec<PathSegment>> {

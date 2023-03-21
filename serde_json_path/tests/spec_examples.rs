@@ -155,6 +155,7 @@ fn test_length() {
     let value = spec_example_json();
     let path = JsonPath::parse("$.store.book[?length(@.title) > 10]").unwrap();
     let q = path.query(&value);
+    dbg!(&q);
     assert_eq!(3, q.len());
 }
 

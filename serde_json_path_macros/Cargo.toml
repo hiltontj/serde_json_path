@@ -6,7 +6,8 @@ edition = "2021"
 [lib]
 
 [dependencies]
-serde_json_path_macros_internal = { path = "src/internal", version = "0.1.0"}
+serde_json_path_macros_internal = { path = "src/internal", version = "0.1.0" }
+serde_json_path_core = { path = "../serde_json_path_core", version = "0.1.0" }
 inventory = "0.3"
 once_cell = "1"
 

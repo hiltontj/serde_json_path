@@ -1,7 +1,7 @@
 use serde_json::{Number, Value};
 
 use crate::spec::{
-    functions::{FunctionExpr, JsonPathType, ValueType},
+    functions::{FunctionExpr, JsonPathType},
     query::{Query, Queryable},
 };
 
@@ -176,16 +176,18 @@ pub struct ComparisonExpr {
     pub right: Comparable,
 }
 
-fn func_type_equal_to(left: &JsonPathType, right: &JsonPathType) -> bool {
+fn check_equal_to(left: &JsonPathType, right: &JsonPathType) -> bool {
     match (left, right) {
-        (JsonPathType::Value(l), JsonPathType::Value(r)) => match (l, r) {
-            (ValueType::Value(v1), ValueType::Value(v2)) => v1 == v2,
-            (ValueType::Value(v1), ValueType::ValueRef(v2)) => v1 == *v2,
-            (ValueType::ValueRef(v1), ValueType::Value(v2)) => *v1 == v2,
-            (ValueType::ValueRef(v1), ValueType::ValueRef(v2)) => v1 == v2,
-            (ValueType::Nothing, ValueType::Nothing) => true,
-            _ => false,
-        },
+        (JsonPathType::Node(v1), JsonPathType::Node(v2)) => v1 == v2,
+        (JsonPathType::Node(v1), JsonPathType::Value(v2)) => *v1 == v2,
+        (JsonPathType::Node(v1), JsonPathType::ValueRef(v2)) => v1 == v2,
+        (JsonPathType::Value(v1), JsonPathType::Node(v2)) => v1 == *v2,
+        (JsonPathType::Value(v1), JsonPathType::Value(v2)) => v1 == v2,
+        (JsonPathType::Value(v1), JsonPathType::ValueRef(v2)) => v1 == *v2,
+        (JsonPathType::ValueRef(v1), JsonPathType::Node(v2)) => v1 == v2,
+        (JsonPathType::ValueRef(v1), JsonPathType::Value(v2)) => *v1 == v2,
+        (JsonPathType::ValueRef(v1), JsonPathType::ValueRef(v2)) => v1 == v2,
+        (JsonPathType::Nothing, JsonPathType::Nothing) => true,
         _ => false,
     }
 }
@@ -198,15 +200,17 @@ fn value_less_than(left: &Value, right: &Value) -> bool {
     }
 }
 
-fn func_type_less_than(left: &JsonPathType, right: &JsonPathType) -> bool {
+fn check_less_than(left: &JsonPathType, right: &JsonPathType) -> bool {
     match (left, right) {
-        (JsonPathType::Value(l), JsonPathType::Value(r)) => match (l, r) {
-            (ValueType::Value(v1), ValueType::Value(v2)) => value_less_than(v1, v2),
-            (ValueType::Value(v1), ValueType::ValueRef(v2)) => value_less_than(v1, v2),
-            (ValueType::ValueRef(v1), ValueType::Value(v2)) => value_less_than(v1, v2),
-            (ValueType::ValueRef(v1), ValueType::ValueRef(v2)) => value_less_than(v1, v2),
-            _ => false,
-        },
+        (JsonPathType::Node(v1), JsonPathType::Node(v2)) => value_less_than(v1, v2),
+        (JsonPathType::Node(v1), JsonPathType::Value(v2)) => value_less_than(v1, v2),
+        (JsonPathType::Node(v1), JsonPathType::ValueRef(v2)) => value_less_than(v1, v2),
+        (JsonPathType::Value(v1), JsonPathType::Node(v2)) => value_less_than(v1, v2),
+        (JsonPathType::Value(v1), JsonPathType::Value(v2)) => value_less_than(v1, v2),
+        (JsonPathType::Value(v1), JsonPathType::ValueRef(v2)) => value_less_than(v1, v2),
+        (JsonPathType::ValueRef(v1), JsonPathType::Node(v2)) => value_less_than(v1, v2),
+        (JsonPathType::ValueRef(v1), JsonPathType::Value(v2)) => value_less_than(v1, v2),
+        (JsonPathType::ValueRef(v1), JsonPathType::ValueRef(v2)) => value_less_than(v1, v2),
         _ => false,
     }
 }
@@ -220,15 +224,17 @@ fn value_same_type(left: &Value, right: &Value) -> bool {
         | matches!((left, right), (Value::Object(_), Value::Object(_)))
 }
 
-fn func_type_same_type(left: &JsonPathType, right: &JsonPathType) -> bool {
+fn check_same_type(left: &JsonPathType, right: &JsonPathType) -> bool {
     match (left, right) {
-        (JsonPathType::Value(l), JsonPathType::Value(r)) => match (l, r) {
-            (ValueType::Value(v1), ValueType::Value(v2)) => value_same_type(v1, v2),
-            (ValueType::Value(v1), ValueType::ValueRef(v2)) => value_same_type(v1, v2),
-            (ValueType::ValueRef(v1), ValueType::Value(v2)) => value_same_type(v1, v2),
-            (ValueType::ValueRef(v1), ValueType::ValueRef(v2)) => value_same_type(v1, v2),
-            _ => false,
-        },
+        (JsonPathType::Node(v1), JsonPathType::Node(v2)) => value_same_type(v1, v2),
+        (JsonPathType::Node(v1), JsonPathType::Value(v2)) => value_same_type(v1, v2),
+        (JsonPathType::Node(v1), JsonPathType::ValueRef(v2)) => value_same_type(v1, v2),
+        (JsonPathType::Value(v1), JsonPathType::Node(v2)) => value_same_type(v1, v2),
+        (JsonPathType::Value(v1), JsonPathType::Value(v2)) => value_same_type(v1, v2),
+        (JsonPathType::Value(v1), JsonPathType::ValueRef(v2)) => value_same_type(v1, v2),
+        (JsonPathType::ValueRef(v1), JsonPathType::Node(v2)) => value_same_type(v1, v2),
+        (JsonPathType::ValueRef(v1), JsonPathType::Value(v2)) => value_same_type(v1, v2),
+        (JsonPathType::ValueRef(v1), JsonPathType::ValueRef(v2)) => value_same_type(v1, v2),
         _ => false,
     }
 }
@@ -252,21 +258,19 @@ impl TestFilter for ComparisonExpr {
         let left = self.left.as_value(current, root);
         let right = self.right.as_value(current, root);
         match self.op {
-            EqualTo => func_type_equal_to(&left, &right),
-            NotEqualTo => !func_type_equal_to(&left, &right),
-            LessThan => func_type_same_type(&left, &right) && func_type_less_than(&left, &right),
+            EqualTo => check_equal_to(&left, &right),
+            NotEqualTo => !check_equal_to(&left, &right),
+            LessThan => check_same_type(&left, &right) && check_less_than(&left, &right),
             GreaterThan => {
-                func_type_same_type(&left, &right)
-                    && !func_type_less_than(&left, &right)
-                    && !func_type_equal_to(&left, &right)
+                check_same_type(&left, &right)
+                    && !check_less_than(&left, &right)
+                    && !check_equal_to(&left, &right)
             }
             LessThanEqualTo => {
-                func_type_same_type(&left, &right)
-                    && (func_type_less_than(&left, &right) || func_type_equal_to(&left, &right))
+                check_same_type(&left, &right)
+                    && (check_less_than(&left, &right) || check_equal_to(&left, &right))
             }
-            GreaterThanEqualTo => {
-                func_type_same_type(&left, &right) && !func_type_less_than(&left, &right)
-            }
+            GreaterThanEqualTo => check_same_type(&left, &right) && !check_less_than(&left, &right),
         }
     }
 }
@@ -338,10 +342,10 @@ impl Comparable {
     pub fn as_value<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> JsonPathType<'a> {
         use Comparable::*;
         match self {
-            Primitive { kind: _, value } => JsonPathType::Value(ValueType::ValueRef(value)),
+            Primitive { kind: _, value } => JsonPathType::ValueRef(value),
             SingularPath(sp) => match sp.eval_path(current, root) {
-                Some(v) => JsonPathType::Value(ValueType::ValueRef(v)),
-                None => JsonPathType::Value(ValueType::Nothing),
+                Some(v) => JsonPathType::Node(v),
+                None => JsonPathType::Nothing,
             },
             FunctionExpr(expr) => expr.evaluate(current, root),
         }

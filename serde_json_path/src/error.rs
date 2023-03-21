@@ -2,6 +2,8 @@ use std::ops::Deref;
 
 use nom::error::{convert_error, VerboseError};
 
+use crate::parser::ParserError;
+
 /// A JSONPath error
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -16,6 +18,17 @@ where
     fn from((i, e): (T, VerboseError<T>)) -> Self {
         Self::InvalidJsonPathString {
             message: convert_error(i, e),
+        }
+    }
+}
+
+impl<I> From<(I, ParserError<I>)> for Error
+where
+    I: Deref<Target = str>,
+{
+    fn from((_, e): (I, ParserError<I>)) -> Self {
+        Self::InvalidJsonPathString {
+            message: e.to_string(),
         }
     }
 }

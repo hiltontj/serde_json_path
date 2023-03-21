@@ -1,4 +1,5 @@
 use nom::character::complete::char;
+use nom::combinator::map_res;
 use nom::multi::separated_list0;
 use nom::sequence::tuple;
 use nom::{
@@ -52,14 +53,14 @@ fn parse_function_name(input: &str) -> PResult<String> {
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_function_argument(input: &str) -> PResult<FunctionExprArg> {
     alt((
-        map(parse_comparable, FunctionExprArg::Comparable),
         map(parse_path, FunctionExprArg::FilterPath),
+        map(parse_comparable, FunctionExprArg::Comparable),
     ))(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_function_expr(input: &str) -> PResult<FunctionExpr> {
-    map(
+    map_res(
         pair(
             parse_function_name,
             delimited(
@@ -68,6 +69,10 @@ pub fn parse_function_expr(input: &str) -> PResult<FunctionExpr> {
                 pair(space0, char(')')),
             ),
         ),
-        |(name, args)| FunctionExpr { name, args },
+        |(name, args)| {
+            let fn_expr = FunctionExpr { name, args };
+            println!("validating!");
+            fn_expr.validate()
+        },
     )(input)
 }
