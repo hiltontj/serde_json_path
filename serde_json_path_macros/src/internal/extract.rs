@@ -99,19 +99,17 @@ pub fn extract_components(input: Signature) -> Result<Components> {
     let args: Result<VecDeque<FnArgument>> = inputs
         .iter()
         .map(|i| match i {
-            FnArg::Receiver(_) => {
-                return Err(Error::new(
-                    inputs.span(),
-                    "receiver arguments like self, &self, or &mut self are not supported",
-                ))
-            }
+            FnArg::Receiver(_) => Err(Error::new(
+                inputs.span(),
+                "receiver arguments like self, &self, or &mut self are not supported",
+            )),
             FnArg::Typed(PatType {
                 attrs: _,
                 pat,
                 colon_token: _,
                 ty,
             }) => {
-                let ident = if let Some(id) = extract_pat_ident(&pat) {
+                let ident = if let Some(id) = extract_pat_ident(pat) {
                     id
                 } else {
                     return Err(Error::new(
@@ -119,7 +117,7 @@ pub fn extract_components(input: Signature) -> Result<Components> {
                         "expected identifier in function argument",
                     ));
                 };
-                let ty = if let Some(path) = extract_type_path(&ty) {
+                let ty = if let Some(path) = extract_type_path(ty) {
                     extract_json_path_type(path)?
                 } else {
                     return Err(Error::new(

@@ -23,7 +23,7 @@ impl Query {
                 return false;
             }
         }
-        return true;
+        true
     }
 }
 

@@ -11,6 +11,6 @@ mod extract;
 pub fn function(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr as FunctionMacroArgs);
     let func = parse_macro_input!(item as ItemFn);
-    let expanded = define::expand(args, func);
-    TokenStream::from(expanded)
+
+    define::expand(args, func)
 }

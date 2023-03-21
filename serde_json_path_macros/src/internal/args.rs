@@ -1,4 +1,7 @@
-use syn::{LitStr, parse::{Parse, ParseStream}, Token};
+use syn::{
+    parse::{Parse, ParseStream},
+    LitStr, Token,
+};
 
 #[derive(Debug, Default)]
 pub(crate) struct FunctionMacroArgs {
@@ -17,7 +20,7 @@ impl Parse for FunctionMacroArgs {
                 let name = input.parse::<StrArg<kw::name>>()?.value;
                 args.name = Some(name);
             } else {
-                // TODO - may want to warn here when found a invalid arg - see how 
+                // TODO - may want to warn here when found a invalid arg - see how
                 // tracing::instrument stores warnings and emits them later when generating the
                 // expanded token stream.
                 let _ = input.parse::<proc_macro2::TokenTree>();
@@ -26,7 +29,6 @@ impl Parse for FunctionMacroArgs {
         Ok(args)
     }
 }
-
 
 struct StrArg<T> {
     value: LitStr,

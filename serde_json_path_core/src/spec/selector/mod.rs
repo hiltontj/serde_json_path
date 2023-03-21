@@ -20,10 +20,7 @@ pub enum Selector {
 
 impl Selector {
     pub fn is_singular(&self) -> bool {
-        match self {
-            Selector::Name(_) | Selector::Index(_) => true,
-            _ => false,
-        }
+        matches!(self, Selector::Name(_) | Selector::Index(_))
     }
 }
 

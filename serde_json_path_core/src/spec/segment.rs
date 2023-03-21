@@ -73,12 +73,12 @@ impl Segment {
                     return false;
                 }
                 if let Some(s) = selectors.first() {
-                    return s.is_singular();
+                    s.is_singular()
                 } else {
                     // if the selector list is empty, this shouldn't be a valid
                     // JSONPath, but at least, it would be selecting nothing, and
                     // that could be considered singular, i.e., None.
-                    return true;
+                    true
                 }
             }
             Segment::DotName(_) => true,

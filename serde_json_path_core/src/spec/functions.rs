@@ -163,7 +163,7 @@ impl<'a> ValueType<'a> {
 
     pub fn as_value(&self) -> Option<&Value> {
         match self {
-            ValueType::Value(v) => Some(&v),
+            ValueType::Value(v) => Some(v),
             ValueType::ValueRef(v) => Some(v),
             ValueType::Node(v) => Some(v),
             ValueType::Nothing => None,
@@ -290,16 +290,16 @@ pub enum JsonPathTypeKind {
 
 impl JsonPathTypeKind {
     pub fn converts_to(&self, other: Self) -> bool {
-        match (self, other) {
+        matches!(
+            (self, other),
             (JsonPathTypeKind::Nodelist, JsonPathTypeKind::Nodelist)
-            | (JsonPathTypeKind::Nodelist, JsonPathTypeKind::Logical)
-            | (JsonPathTypeKind::Node, JsonPathTypeKind::Nodelist)
-            | (JsonPathTypeKind::Node, JsonPathTypeKind::Node)
-            | (JsonPathTypeKind::Node, JsonPathTypeKind::Value)
-            | (JsonPathTypeKind::Value, JsonPathTypeKind::Value)
-            | (JsonPathTypeKind::Logical, JsonPathTypeKind::Logical) => true,
-            _ => false,
-        }
+                | (JsonPathTypeKind::Nodelist, JsonPathTypeKind::Logical)
+                | (JsonPathTypeKind::Node, JsonPathTypeKind::Nodelist)
+                | (JsonPathTypeKind::Node, JsonPathTypeKind::Node)
+                | (JsonPathTypeKind::Node, JsonPathTypeKind::Value)
+                | (JsonPathTypeKind::Value, JsonPathTypeKind::Value)
+                | (JsonPathTypeKind::Logical, JsonPathTypeKind::Logical)
+        )
     }
 }
 
@@ -363,7 +363,7 @@ impl FunctionExprArg {
             FilterPath(q) => {
                 if q.is_singular() {
                     match q.query(current, root).first() {
-                        Some(n) => JsonPathType::Node(*n),
+                        Some(n) => JsonPathType::Node(n),
                         None => JsonPathType::Nothing,
                     }
                 } else {
@@ -435,9 +435,7 @@ impl FunctionExpr {
                 }
             }
         }
-        Err(FunctionValidationError::Undefined {
-            name: self.name.to_owned(),
-        })
+        Err(FunctionValidationError::Undefined { name: self.name })
     }
 }
 

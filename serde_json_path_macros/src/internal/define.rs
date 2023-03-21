@@ -2,7 +2,10 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{ItemFn, LitStr};
 
-use crate::{extract::{extract_components, Components, FnArgument}, args::FunctionMacroArgs};
+use crate::{
+    args::FunctionMacroArgs,
+    extract::{extract_components, Components, FnArgument},
+};
 
 pub(crate) fn expand(attrs: FunctionMacroArgs, input: ItemFn) -> TokenStream {
     let ItemFn {
@@ -94,7 +97,9 @@ pub(crate) fn expand(attrs: FunctionMacroArgs, input: ItemFn) -> TokenStream {
 
     // TODO - may just put the str in the components directly, if the ident is not used for anything
     //            else
-    let name_str = attrs.name.unwrap_or_else(||LitStr::new(name.to_string().as_str(), name.span()));
+    let name_str = attrs
+        .name
+        .unwrap_or_else(|| LitStr::new(name.to_string().as_str(), name.span()));
 
     TokenStream::from(quote! {
         #validator
