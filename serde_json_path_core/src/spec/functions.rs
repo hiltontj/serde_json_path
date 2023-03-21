@@ -380,7 +380,6 @@ impl FunctionExprArg {
         match self {
             FilterPath(query) => {
                 if query.is_singular() {
-                    println!("its singular!");
                     Ok(JsonPathTypeKind::Node)
                 } else {
                     Ok(JsonPathTypeKind::Nodelist)

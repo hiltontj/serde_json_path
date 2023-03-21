@@ -2,9 +2,9 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{ItemFn, LitStr};
 
-use crate::extract::{extract_components, Components, FnArgument};
+use crate::{extract::{extract_components, Components, FnArgument}, args::FunctionMacroArgs};
 
-pub fn expand(input: ItemFn) -> TokenStream {
+pub(crate) fn expand(attrs: FunctionMacroArgs, input: ItemFn) -> TokenStream {
     let ItemFn {
         attrs: _,
         vis: _,
@@ -58,7 +58,6 @@ pub fn expand(input: ItemFn) -> TokenStream {
     let validator = quote! {
         static #validator_name: #core::Validator = #lazy::new(|| {
             std::boxed::Box::new(|a: &[#core::FunctionExprArg]| {
-                println!("validate args: {:#?}", a);
                 if a.len() != #args_len {
                     return #res::Err(#core::FunctionValidationError::NumberOfArgsMismatch {
                         expected: a.len(),
@@ -95,7 +94,7 @@ pub fn expand(input: ItemFn) -> TokenStream {
 
     // TODO - may just put the str in the components directly, if the ident is not used for anything
     //            else
-    let name_str = LitStr::new(name.to_string().as_str(), name.span());
+    let name_str = attrs.name.unwrap_or_else(||LitStr::new(name.to_string().as_str(), name.span()));
 
     TokenStream::from(quote! {
         #validator

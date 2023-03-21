@@ -71,7 +71,6 @@ pub fn parse_function_expr(input: &str) -> PResult<FunctionExpr> {
         ),
         |(name, args)| {
             let fn_expr = FunctionExpr { name, args };
-            println!("validating!");
             fn_expr.validate()
         },
     )(input)
