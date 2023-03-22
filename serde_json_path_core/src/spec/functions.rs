@@ -7,7 +7,7 @@ use crate::{node::NodeList, spec::query::Queryable};
 
 use super::{
     query::Query,
-    selector::filter::{Comparable, TestFilter},
+    selector::filter::{Literal, LogicalOrExpr, SingularQuery, TestFilter},
 };
 
 pub type Validator =
@@ -71,6 +71,7 @@ impl<'a> TryFrom<JsonPathType<'a>> for NodesType<'a> {
                 from: JsonPathTypeKind::Logical,
                 to: JsonPathTypeKind::Nodelist,
             }),
+            // TODO - is this correct or even necessary? ValueType does not coalesce into NodesType
             JsonPathType::Node(n) => Ok(Self(vec![n].into())),
             JsonPathType::ValueRef(_) => Err(ConversionError::LiteralToNodes),
             JsonPathType::Nothing => Ok(Self(vec![].into())),
@@ -114,6 +115,7 @@ impl<'a> TryFrom<JsonPathType<'a>> for LogicalType {
                 to: JsonPathTypeKind::Logical,
             }),
             JsonPathType::Logical(l) => Ok(l),
+            // TODO - is this correct, given that only NodesType coalesces to Logical...
             JsonPathType::Node(_) => Ok(Self::True),
             JsonPathType::ValueRef(_) => Err(ConversionError::IncompatibleTypes {
                 from: JsonPathTypeKind::ValueRef,
@@ -214,9 +216,9 @@ impl<'a> AsTypeKind for ValueType<'a> {
     fn as_type_kind(&self) -> JsonPathTypeKind {
         match self {
             ValueType::Value(_) => JsonPathTypeKind::Value,
-            ValueType::ValueRef(_) => JsonPathTypeKind::Value,
+            ValueType::ValueRef(_) => JsonPathTypeKind::ValueRef,
             ValueType::Node(_) => JsonPathTypeKind::Node,
-            ValueType::Nothing => JsonPathTypeKind::Value,
+            ValueType::Nothing => JsonPathTypeKind::Nothing,
         }
     }
 }
@@ -255,7 +257,7 @@ impl<'a> From<ValueType<'a>> for JsonPathType<'a> {
         match value {
             ValueType::Value(v) => Self::Value(v),
             ValueType::ValueRef(vr) => Self::ValueRef(vr),
-            ValueType::Node(n) => Self::ValueRef(n),
+            ValueType::Node(n) => Self::Node(n),
             ValueType::Nothing => Self::Nothing,
         }
     }
@@ -294,10 +296,16 @@ impl JsonPathTypeKind {
             (self, other),
             (JsonPathTypeKind::Nodelist, JsonPathTypeKind::Nodelist)
                 | (JsonPathTypeKind::Nodelist, JsonPathTypeKind::Logical)
-                | (JsonPathTypeKind::Node, JsonPathTypeKind::Nodelist)
+                // | (JsonPathTypeKind::Node, JsonPathTypeKind::Nodelist)
                 | (JsonPathTypeKind::Node, JsonPathTypeKind::Node)
                 | (JsonPathTypeKind::Node, JsonPathTypeKind::Value)
+                | (JsonPathTypeKind::Node, JsonPathTypeKind::ValueRef)
+                | (JsonPathTypeKind::Value, JsonPathTypeKind::Node)
                 | (JsonPathTypeKind::Value, JsonPathTypeKind::Value)
+                | (JsonPathTypeKind::Value, JsonPathTypeKind::ValueRef)
+                | (JsonPathTypeKind::ValueRef, JsonPathTypeKind::Node)
+                | (JsonPathTypeKind::ValueRef, JsonPathTypeKind::Value)
+                | (JsonPathTypeKind::ValueRef, JsonPathTypeKind::ValueRef)
                 | (JsonPathTypeKind::Logical, JsonPathTypeKind::Logical)
         )
     }
@@ -324,85 +332,6 @@ pub trait AsTypeKind {
 pub struct FunctionExpr {
     pub name: String,
     pub args: Vec<FunctionExprArg>,
-}
-
-impl std::fmt::Display for FunctionExpr {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{name}(", name = self.name)?;
-        for (i, arg) in self.args.iter().enumerate() {
-            write!(
-                f,
-                "{arg}{comma}",
-                comma = if i == self.args.len() - 1 { "" } else { "," }
-            )?;
-        }
-        write!(f, ")")
-    }
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum FunctionExprArg {
-    FilterPath(Query),
-    Comparable(Comparable),
-}
-
-impl std::fmt::Display for FunctionExprArg {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FunctionExprArg::FilterPath(query) => write!(f, "{query}"),
-            FunctionExprArg::Comparable(comparable) => write!(f, "{comparable}"),
-        }
-    }
-}
-
-impl FunctionExprArg {
-    #[cfg_attr(feature = "trace", tracing::instrument(name = "Evaluate Function Arg", level = "trace", parent = None, ret))]
-    fn evaluate<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> JsonPathType<'a> {
-        use FunctionExprArg::*;
-        match self {
-            FilterPath(q) => {
-                if q.is_singular() {
-                    match q.query(current, root).first() {
-                        Some(n) => JsonPathType::Node(n),
-                        None => JsonPathType::Nothing,
-                    }
-                } else {
-                    JsonPathType::Nodes(q.query(current, root).into())
-                }
-            }
-            Comparable(c) => c.as_value(current, root),
-        }
-    }
-
-    #[cfg_attr(feature = "trace", tracing::instrument(name = "Function Arg As Type Kind", level = "trace", parent = None, ret))]
-    pub fn as_type_kind(&self) -> Result<JsonPathTypeKind, FunctionValidationError> {
-        use FunctionExprArg::*;
-        match self {
-            FilterPath(query) => {
-                if query.is_singular() {
-                    Ok(JsonPathTypeKind::Node)
-                } else {
-                    Ok(JsonPathTypeKind::Nodelist)
-                }
-            }
-            Comparable(comp) => match comp {
-                super::selector::filter::Comparable::Primitive { kind: _, value: _ } => {
-                    Ok(JsonPathTypeKind::Value)
-                }
-                super::selector::filter::Comparable::SingularPath(_) => Ok(JsonPathTypeKind::Value),
-                super::selector::filter::Comparable::FunctionExpr(func) => {
-                    for f in inventory::iter::<Function> {
-                        if f.name == func.name.as_str() {
-                            return Ok(f.result_type);
-                        }
-                    }
-                    Err(FunctionValidationError::Undefined {
-                        name: func.name.to_owned(),
-                    })
-                }
-            },
-        }
-    }
 }
 
 impl FunctionExpr {
@@ -436,6 +365,95 @@ impl FunctionExpr {
             }
         }
         Err(FunctionValidationError::Undefined { name: self.name })
+    }
+}
+
+impl std::fmt::Display for FunctionExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{name}(", name = self.name)?;
+        for (i, arg) in self.args.iter().enumerate() {
+            write!(
+                f,
+                "{arg}{comma}",
+                comma = if i == self.args.len() - 1 { "" } else { "," }
+            )?;
+        }
+        write!(f, ")")
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum FunctionExprArg {
+    Literal(Literal),
+    SingularQuery(SingularQuery),
+    FilterQuery(Query),
+    LogicalExpr(LogicalOrExpr),
+    FunctionExpr(FunctionExpr),
+}
+
+impl std::fmt::Display for FunctionExprArg {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FunctionExprArg::Literal(lit) => write!(f, "{lit}"),
+            FunctionExprArg::FilterQuery(query) => write!(f, "{query}"),
+            FunctionExprArg::SingularQuery(sq) => write!(f, "{sq}"),
+            FunctionExprArg::LogicalExpr(log) => write!(f, "{log}"),
+            FunctionExprArg::FunctionExpr(func) => write!(f, "{func}"),
+        }
+    }
+}
+
+impl FunctionExprArg {
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Evaluate Function Arg", level = "trace", parent = None, ret))]
+    fn evaluate<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> JsonPathType<'a> {
+        use FunctionExprArg::*;
+        match self {
+            Literal(lit) => lit.into(),
+            SingularQuery(q) => match q.eval_path(current, root) {
+                Some(n) => JsonPathType::Node(n),
+                None => JsonPathType::Nothing,
+            },
+            FilterQuery(q) => JsonPathType::Nodes(q.query(current, root).into()),
+            LogicalExpr(l) => match l.test_filter(current, root) {
+                true => JsonPathType::Logical(LogicalType::True),
+                false => JsonPathType::Logical(LogicalType::False),
+            },
+            FunctionExpr(f) => f.evaluate(current, root),
+        }
+    }
+
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Function Arg As Type Kind", level = "trace", parent = None, ret))]
+    pub fn as_type_kind(&self) -> Result<JsonPathTypeKind, FunctionValidationError> {
+        use FunctionExprArg::*;
+        match self {
+            // TODO - is this a case that the type distinction is no longer needed??
+            Literal(_) => Ok(JsonPathTypeKind::Value),
+            SingularQuery(_) => Ok(JsonPathTypeKind::Node),
+            FilterQuery(query) => {
+                if query.is_singular() {
+                    Ok(JsonPathTypeKind::Node)
+                } else {
+                    Ok(JsonPathTypeKind::Nodelist)
+                }
+            },
+            LogicalExpr(_) => Ok(JsonPathTypeKind::Logical),
+            FunctionExpr(func) => {
+                for f in inventory::iter::<Function> {
+                    if f.name == func.name.as_str() {
+                        return Ok(f.result_type);
+                    }
+                }
+                Err(FunctionValidationError::Undefined {
+                    name: func.name.to_owned(),
+                })
+            }
+            // Comparable(comp) => match comp {
+            //     super::selector::filter::Comparable::Literal(_) => Ok(JsonPathTypeKind::ValueRef),
+            //     super::selector::filter::Comparable::SingularPath(_) => Ok(JsonPathTypeKind::Value),
+            //     super::selector::filter::Comparable::FunctionExpr(func) => {
+            //     }
+            // },
+        }
     }
 }
 

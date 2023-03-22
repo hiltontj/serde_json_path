@@ -3,12 +3,12 @@ use serde_json::Value;
 use super::{query::Queryable, selector::Selector};
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct PathSegment {
+pub struct QuerySegment {
     pub kind: PathSegmentKind,
     pub segment: Segment,
 }
 
-impl PathSegment {
+impl QuerySegment {
     pub fn is_child(&self) -> bool {
         matches!(self.kind, PathSegmentKind::Child)
     }
@@ -18,7 +18,7 @@ impl PathSegment {
     }
 }
 
-impl std::fmt::Display for PathSegment {
+impl std::fmt::Display for QuerySegment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if matches!(self.kind, PathSegmentKind::Descendant) {
             write!(f, "..")?;
@@ -33,7 +33,7 @@ pub enum PathSegmentKind {
     Descendant,
 }
 
-impl Queryable for PathSegment {
+impl Queryable for QuerySegment {
     #[cfg_attr(feature = "trace", tracing::instrument(name = "Query Path Segment", level = "trace", parent = None, ret))]
     fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
         let mut query = self.segment.query(current, root);
@@ -44,7 +44,7 @@ impl Queryable for PathSegment {
     }
 }
 
-fn descend<'b>(segment: &PathSegment, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
+fn descend<'b>(segment: &QuerySegment, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
     let mut query = Vec::new();
     if let Some(list) = current.as_array() {
         for v in list {

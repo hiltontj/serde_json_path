@@ -1,21 +1,18 @@
 use nom::character::complete::{char, space0};
-use nom::combinator::map;
-use nom::multi::{many0, separated_list1};
+use nom::combinator::{map, map_res};
+use nom::multi::separated_list1;
 use nom::sequence::{delimited, pair, preceded, separated_pair, tuple};
 use nom::{branch::alt, bytes::complete::tag, combinator::value};
-use serde_json::Value;
 use serde_json_path_core::spec::selector::filter::{
-    BasicExpr, Comparable, ComparablePrimitiveKind, ComparisonExpr, ComparisonOperator, ExistExpr,
-    Filter, LogicalAndExpr, LogicalOrExpr, SingularPath, SingularPathKind, SingularPathSegment,
+    BasicExpr, Comparable, ComparisonExpr, ComparisonOperator, ExistExpr, Filter, Literal,
+    LogicalAndExpr, LogicalOrExpr, SingularQuery,
 };
 
 use super::function::parse_function_expr;
-use super::{parse_index, parse_name, Index, Name};
 use crate::parser::primitive::number::parse_number;
 use crate::parser::primitive::string::parse_string_literal;
 use crate::parser::primitive::{parse_bool, parse_null};
-use crate::parser::segment::parse_dot_member_name;
-use crate::parser::{parse_path, PResult};
+use crate::parser::{parse_query, PResult};
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_filter(input: &str) -> PResult<Filter> {
@@ -34,7 +31,7 @@ fn parse_logical_and(input: &str) -> PResult<LogicalAndExpr> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_logical_or_expr(input: &str) -> PResult<LogicalOrExpr> {
+pub fn parse_logical_or_expr(input: &str) -> PResult<LogicalOrExpr> {
     map(
         separated_list1(tuple((space0, tag("||"), space0)), parse_logical_and),
         LogicalOrExpr,
@@ -43,7 +40,7 @@ fn parse_logical_or_expr(input: &str) -> PResult<LogicalOrExpr> {
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_exist_expr_inner(input: &str) -> PResult<ExistExpr> {
-    map(parse_path, ExistExpr)(input)
+    map(parse_query, ExistExpr)(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
@@ -100,10 +97,10 @@ fn parse_basic_expr(input: &str) -> PResult<BasicExpr> {
         parse_not_parent_expr,
         parse_paren_expr,
         map(parse_comp_expr, BasicExpr::Relation),
-        parse_func_expr,
-        parse_not_func_expr,
         parse_not_exist_expr,
         parse_exist_expr,
+        parse_func_expr,
+        parse_not_func_expr,
     ))(input)
 }
 
@@ -133,82 +130,23 @@ fn parse_comparison_operator(input: &str) -> PResult<ComparisonOperator> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_null_comparable(input: &str) -> PResult<Comparable> {
-    map(parse_null, |_| Comparable::Primitive {
-        kind: ComparablePrimitiveKind::Null,
-        value: Value::Null,
-    })(input)
-}
-
-#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_bool_comparable(input: &str) -> PResult<Comparable> {
-    map(parse_bool, |b| Comparable::Primitive {
-        kind: ComparablePrimitiveKind::Bool,
-        value: Value::Bool(b),
-    })(input)
-}
-
-#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_number_comparable(input: &str) -> PResult<Comparable> {
-    map(parse_number, |n| Comparable::Primitive {
-        kind: ComparablePrimitiveKind::Number,
-        value: Value::Number(n),
-    })(input)
-}
-
-#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_string_comparable(input: &str) -> PResult<Comparable> {
-    map(parse_string_literal, |s| Comparable::Primitive {
-        kind: ComparablePrimitiveKind::String,
-        value: Value::String(s),
-    })(input)
-}
-
-#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_singular_path_index_segment(input: &str) -> PResult<Index> {
-    delimited(char('['), parse_index, char(']'))(input)
-}
-
-#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_singular_path_name_segment(input: &str) -> PResult<Name> {
+pub fn parse_literal(input: &str) -> PResult<Literal> {
     alt((
-        delimited(char('['), parse_name, char(']')),
-        map(preceded(char('.'), parse_dot_member_name), Name),
+        map(parse_string_literal, Literal::String),
+        map(parse_number, Literal::Number),
+        map(parse_bool, Literal::Bool),
+        value(Literal::Null, parse_null),
     ))(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_singular_path_segments(input: &str) -> PResult<Vec<SingularPathSegment>> {
-    many0(preceded(
-        space0,
-        alt((
-            map(parse_singular_path_name_segment, SingularPathSegment::Name),
-            map(
-                parse_singular_path_index_segment,
-                SingularPathSegment::Index,
-            ),
-        )),
-    ))(input)
+fn parse_literal_comparable(input: &str) -> PResult<Comparable> {
+    map(parse_literal, Comparable::Literal)(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_singular_path(input: &str) -> PResult<SingularPath> {
-    alt((
-        map(
-            preceded(char('$'), parse_singular_path_segments),
-            |segments| SingularPath {
-                kind: SingularPathKind::Absolute,
-                segments,
-            },
-        ),
-        map(
-            preceded(char('@'), parse_singular_path_segments),
-            |segments| SingularPath {
-                kind: SingularPathKind::Relative,
-                segments,
-            },
-        ),
-    ))(input)
+pub fn parse_singular_path(input: &str) -> PResult<SingularQuery> {
+    map_res(parse_query, |q| q.try_into())(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
@@ -224,10 +162,7 @@ fn parse_function_expr_comparable(input: &str) -> PResult<Comparable> {
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_comparable(input: &str) -> PResult<Comparable> {
     alt((
-        parse_null_comparable,
-        parse_bool_comparable,
-        parse_number_comparable,
-        parse_string_comparable,
+        parse_literal_comparable,
         parse_singular_path_comparable,
         parse_function_expr_comparable,
     ))(input)
@@ -235,39 +170,41 @@ pub fn parse_comparable(input: &str) -> PResult<Comparable> {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::Number;
+    use serde_json_path_core::spec::selector::filter::{Comparable, Literal, SingularQuerySegment};
+
     use crate::parser::selector::{
-        filter::{ComparisonOperator, SingularPathSegment},
+        filter::{parse_literal, ComparisonOperator},
         Index, Name,
     };
 
     use super::{parse_basic_expr, parse_comp_expr, parse_comparable};
 
     #[test]
-    fn primitive_comparables() {
+    fn literals() {
         {
-            let (_, cmp) = parse_comparable("null").unwrap();
-            dbg!(&cmp);
-            assert!(cmp.is_null());
+            let (_, lit) = parse_literal("null").unwrap();
+            assert!(matches!(lit, Literal::Null));
         }
         {
-            let (_, cmp) = parse_comparable("true").unwrap();
-            assert!(cmp.as_bool().unwrap());
+            let (_, lit) = parse_literal("true").unwrap();
+            assert!(matches!(lit, Literal::Bool(true)));
         }
         {
-            let (_, cmp) = parse_comparable("false").unwrap();
-            assert!(!cmp.as_bool().unwrap());
+            let (_, lit) = parse_literal("false").unwrap();
+            assert!(matches!(lit, Literal::Bool(false)));
         }
         {
-            let (_, cmp) = parse_comparable("\"test\"").unwrap();
-            assert_eq!(cmp.as_str().unwrap(), "test");
+            let (_, lit) = parse_literal("\"test\"").unwrap();
+            assert!(matches!(lit, Literal::String(s) if s == "test"));
         }
         {
-            let (_, cmp) = parse_comparable("'test'").unwrap();
-            assert_eq!(cmp.as_str().unwrap(), "test");
+            let (_, lit) = parse_literal("'test'").unwrap();
+            assert!(matches!(lit, Literal::String(s) if s == "test"));
         }
         {
-            let (_, cmp) = parse_comparable("123").unwrap();
-            assert_eq!(cmp.as_i64().unwrap(), 123);
+            let (_, lit) = parse_literal("123").unwrap();
+            assert!(matches!(lit, Literal::Number(n) if n == Number::from(123)));
         }
     }
 
@@ -275,17 +212,20 @@ mod tests {
     fn comp_expr() {
         // TODO - test more
         let (_, cxp) = parse_comp_expr("true != false").unwrap();
-        assert!(cxp.left.as_bool().unwrap());
+        assert!(matches!(cxp.left, Comparable::Literal(Literal::Bool(true))));
         assert!(matches!(cxp.op, ComparisonOperator::NotEqualTo));
-        assert!(!cxp.right.as_bool().unwrap());
+        assert!(matches!(
+            cxp.right,
+            Comparable::Literal(Literal::Bool(false))
+        ));
     }
 
     #[test]
     fn basic_expr() {
         let (_, bxp) = parse_basic_expr("true == true").unwrap();
         let cx = bxp.as_relation().unwrap();
-        assert!(cx.left.as_bool().unwrap());
-        assert!(cx.right.as_bool().unwrap());
+        assert!(matches!(cx.left, Comparable::Literal(Literal::Bool(true))));
+        assert!(matches!(cx.right, Comparable::Literal(Literal::Bool(true))));
         assert!(matches!(cx.op, ComparisonOperator::EqualTo));
     }
 
@@ -294,14 +234,14 @@ mod tests {
         {
             let (_, cmp) = parse_comparable("@.name").unwrap();
             let sp = &cmp.as_singular_path().unwrap().segments;
-            assert!(matches!(&sp[0], SingularPathSegment::Name(Name(s)) if s == "name"));
+            assert!(matches!(&sp[0], SingularQuerySegment::Name(Name(s)) if s == "name"));
         }
         {
             let (_, cmp) = parse_comparable("$.data[0].id").unwrap();
             let sp = &cmp.as_singular_path().unwrap().segments;
-            assert!(matches!(&sp[0], SingularPathSegment::Name(Name(s)) if s == "data"));
-            assert!(matches!(&sp[1], SingularPathSegment::Index(Index(i)) if i == &0));
-            assert!(matches!(&sp[2], SingularPathSegment::Name(Name(s)) if s == "id"));
+            assert!(matches!(&sp[0], SingularQuerySegment::Name(Name(s)) if s == "data"));
+            assert!(matches!(&sp[1], SingularQuerySegment::Index(Index(i)) if i == &0));
+            assert!(matches!(&sp[2], SingularQuerySegment::Name(Name(s)) if s == "id"));
         }
     }
 }

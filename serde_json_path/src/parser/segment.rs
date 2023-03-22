@@ -11,7 +11,7 @@ use nom::{
     multi::{fold_many0, separated_list1},
     sequence::{delimited, pair, preceded},
 };
-use serde_json_path_core::spec::segment::{PathSegment, PathSegmentKind, Segment};
+use serde_json_path_core::spec::segment::{PathSegmentKind, QuerySegment, Segment};
 use serde_json_path_core::spec::selector::Selector;
 
 use super::selector::{parse_selector, parse_wildcard_selector};
@@ -104,13 +104,13 @@ fn parse_descendant_segment(input: &str) -> PResult<Segment> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub fn parse_segment(input: &str) -> PResult<PathSegment> {
+pub fn parse_segment(input: &str) -> PResult<QuerySegment> {
     alt((
-        map(parse_descendant_segment, |inner| PathSegment {
+        map(parse_descendant_segment, |inner| QuerySegment {
             kind: PathSegmentKind::Descendant,
             segment: inner,
         }),
-        map(parse_child_segment, |inner| PathSegment {
+        map(parse_child_segment, |inner| QuerySegment {
             kind: PathSegmentKind::Child,
             segment: inner,
         }),

@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-use super::segment::PathSegment;
+use super::segment::QuerySegment;
 
 pub trait Queryable {
     fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value>;
@@ -9,8 +9,8 @@ pub trait Queryable {
 /// Represents a JSONPath expression
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct Query {
-    pub kind: PathKind,
-    pub segments: Vec<PathSegment>,
+    pub kind: QueryKind,
+    pub segments: Vec<QuerySegment>,
 }
 
 impl Query {
@@ -30,8 +30,8 @@ impl Query {
 impl std::fmt::Display for Query {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.kind {
-            PathKind::Root => write!(f, "$")?,
-            PathKind::Current => write!(f, "@")?,
+            QueryKind::Root => write!(f, "$")?,
+            QueryKind::Current => write!(f, "@")?,
         }
         for s in &self.segments {
             write!(f, "{s}")?;
@@ -41,7 +41,7 @@ impl std::fmt::Display for Query {
 }
 
 #[derive(Debug, PartialEq, Clone, Default)]
-pub enum PathKind {
+pub enum QueryKind {
     #[default]
     Root,
     Current,
@@ -51,8 +51,8 @@ impl Queryable for Query {
     #[cfg_attr(feature = "trace", tracing::instrument(name = "Main Query", level = "trace", parent = None, ret))]
     fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
         let mut query = match self.kind {
-            PathKind::Root => vec![root],
-            PathKind::Current => vec![current],
+            QueryKind::Root => vec![root],
+            QueryKind::Current => vec![current],
         };
         for segment in &self.segments {
             let mut new_query = Vec::new();

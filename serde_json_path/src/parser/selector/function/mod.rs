@@ -1,7 +1,7 @@
 use nom::character::complete::char;
-use nom::combinator::map_res;
+use nom::combinator::{cut, map_res};
 use nom::multi::separated_list0;
-use nom::sequence::tuple;
+use nom::sequence::{preceded, terminated};
 use nom::{
     branch::alt,
     character::complete::{satisfy, space0},
@@ -14,9 +14,9 @@ use serde_json_path_core::spec::functions::{FunctionExpr, FunctionExprArg};
 #[cfg(feature = "registry")]
 pub mod registry;
 
-use crate::parser::{parse_path, PResult};
+use crate::parser::{parse_query, PResult};
 
-use super::filter::parse_comparable;
+use super::filter::{parse_literal, parse_logical_or_expr, parse_singular_path};
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_function_name_first(input: &str) -> PResult<char> {
@@ -53,25 +53,31 @@ fn parse_function_name(input: &str) -> PResult<String> {
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_function_argument(input: &str) -> PResult<FunctionExprArg> {
     alt((
-        map(parse_path, FunctionExprArg::FilterPath),
-        map(parse_comparable, FunctionExprArg::Comparable),
+        map(parse_literal, FunctionExprArg::Literal),
+        map(parse_singular_path, FunctionExprArg::SingularQuery),
+        map(parse_query, FunctionExprArg::FilterQuery),
+        map(parse_logical_or_expr, FunctionExprArg::LogicalExpr),
+        map(parse_function_expr, FunctionExprArg::FunctionExpr),
     ))(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_function_expr(input: &str) -> PResult<FunctionExpr> {
-    map_res(
+    cut(map_res(
         pair(
             parse_function_name,
             delimited(
-                pair(char('('), space0),
-                separated_list0(tuple((space0, char(','), space0)), parse_function_argument),
-                pair(space0, char(')')),
+                terminated(char('('), space0),
+                separated_list0(
+                    delimited(space0, char(','), space0),
+                    parse_function_argument,
+                ),
+                preceded(space0, char(')')),
             ),
         ),
         |(name, args)| {
             let fn_expr = FunctionExpr { name, args };
             fn_expr.validate()
         },
-    )(input)
+    ))(input)
 }

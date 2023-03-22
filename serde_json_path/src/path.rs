@@ -7,7 +7,7 @@ use serde_json_path_core::{
     spec::query::{Query, Queryable},
 };
 
-use crate::{error::Error, parser::parse_path_main};
+use crate::{error::Error, parser::parse_query_main};
 
 /// A parsed JSON Path query string
 ///
@@ -51,7 +51,7 @@ impl JsonPath {
     /// # }
     /// ```
     pub fn parse(path_str: &str) -> Result<Self, Error> {
-        let (_, path) = parse_path_main(path_str).map_err(|err| match err {
+        let (_, path) = parse_query_main(path_str).map_err(|err| match err {
             nom::Err::Error(e) | nom::Err::Failure(e) => (path_str, e),
             nom::Err::Incomplete(_) => unreachable!("we do not use streaming parsers"),
         })?;

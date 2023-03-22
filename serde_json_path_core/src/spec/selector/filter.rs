@@ -2,10 +2,11 @@ use serde_json::{Number, Value};
 
 use crate::spec::{
     functions::{FunctionExpr, JsonPathType},
-    query::{Query, Queryable},
+    query::{Query, QueryKind, Queryable},
+    segment::{QuerySegment, Segment},
 };
 
-use super::{index::Index, name::Name};
+use super::{index::Index, name::Name, Selector};
 
 pub trait TestFilter {
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool;
@@ -312,92 +313,34 @@ impl std::fmt::Display for ComparisonOperator {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Comparable {
-    Primitive {
-        kind: ComparablePrimitiveKind,
-        value: Value,
-    },
-    SingularPath(SingularPath),
+    Literal(Literal),
+    SingularPath(SingularQuery),
     FunctionExpr(FunctionExpr),
 }
 
 impl std::fmt::Display for Comparable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Comparable::Primitive { kind: _, value } => write!(f, "{value}"),
+            Comparable::Literal(lit) => write!(f, "{lit}"),
             Comparable::SingularPath(path) => write!(f, "{path}"),
             Comparable::FunctionExpr(expr) => write!(f, "{expr}"),
         }
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum ComparablePrimitiveKind {
-    Number,
-    String,
-    Bool,
-    Null,
-}
-
 impl Comparable {
     pub fn as_value<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> JsonPathType<'a> {
-        use Comparable::*;
         match self {
-            Primitive { kind: _, value } => JsonPathType::ValueRef(value),
-            SingularPath(sp) => match sp.eval_path(current, root) {
+            Comparable::Literal(lit) => lit.into(),
+            Comparable::SingularPath(sp) => match sp.eval_path(current, root) {
                 Some(v) => JsonPathType::Node(v),
                 None => JsonPathType::Nothing,
             },
-            FunctionExpr(expr) => expr.evaluate(current, root),
-        }
-    }
-}
-
-impl Comparable {
-    pub fn is_null(&self) -> bool {
-        match self {
-            Comparable::Primitive { kind, value }
-                if matches!(kind, ComparablePrimitiveKind::Null) =>
-            {
-                value.is_null()
-            }
-            _ => false,
+            Comparable::FunctionExpr(expr) => expr.evaluate(current, root),
         }
     }
 
-    pub fn as_bool(&self) -> Option<bool> {
-        match self {
-            Comparable::Primitive { kind, value }
-                if matches!(kind, ComparablePrimitiveKind::Bool) =>
-            {
-                value.as_bool()
-            }
-            _ => None,
-        }
-    }
-
-    pub fn as_str(&self) -> Option<&str> {
-        match self {
-            Comparable::Primitive { kind, value }
-                if matches!(kind, ComparablePrimitiveKind::String) =>
-            {
-                value.as_str()
-            }
-            _ => None,
-        }
-    }
-
-    pub fn as_i64(&self) -> Option<i64> {
-        match self {
-            Comparable::Primitive { kind, value }
-                if matches!(kind, ComparablePrimitiveKind::Number) =>
-            {
-                value.as_i64()
-            }
-            _ => None,
-        }
-    }
-
-    pub fn as_singular_path(&self) -> Option<&SingularPath> {
+    pub fn as_singular_path(&self) -> Option<&SingularQuery> {
         match self {
             Comparable::SingularPath(sp) => Some(sp),
             _ => None,
@@ -406,35 +349,104 @@ impl Comparable {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum SingularPathSegment {
-    Name(Name),
-    Index(Index),
+pub enum Literal {
+    Number(Number),
+    String(String),
+    Bool(bool),
+    Null,
 }
 
-impl std::fmt::Display for SingularPathSegment {
+impl<'a> From<&'a Literal> for JsonPathType<'a> {
+    fn from(value: &'a Literal) -> Self {
+        match value {
+            // Cloning here seems cheap, certainly for numbers, but it may not be desireable for
+            // strings.
+            Literal::Number(n) => JsonPathType::Value(n.to_owned().into()),
+            Literal::String(s) => JsonPathType::Value(s.to_owned().into()),
+            Literal::Bool(b) => JsonPathType::Value(Value::from(*b)),
+            Literal::Null => JsonPathType::Value(Value::Null),
+        }
+    }
+}
+
+impl std::fmt::Display for Literal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            SingularPathSegment::Name(name) => write!(f, "{name}"),
-            SingularPathSegment::Index(index) => write!(f, "{index}"),
+            Literal::Number(n) => write!(f, "{n}"),
+            Literal::String(s) => write!(f, "'{s}'"),
+            Literal::Bool(b) => write!(f, "{b}"),
+            Literal::Null => write!(f, "null"),
         }
     }
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct SingularPath {
-    pub kind: SingularPathKind,
-    pub segments: Vec<SingularPathSegment>,
+pub enum SingularQuerySegment {
+    Name(Name),
+    Index(Index),
 }
 
-impl SingularPath {
+impl std::fmt::Display for SingularQuerySegment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SingularQuerySegment::Name(name) => write!(f, "{name}"),
+            SingularQuerySegment::Index(index) => write!(f, "{index}"),
+        }
+    }
+}
+
+impl TryFrom<QuerySegment> for SingularQuerySegment {
+    type Error = NonSingularQueryError;
+
+    fn try_from(segment: QuerySegment) -> Result<Self, Self::Error> {
+        if segment.is_descendent() {
+            return Err(NonSingularQueryError);
+        }
+        match segment.segment {
+            Segment::LongHand(mut selectors) => {
+                if selectors.len() > 1 {
+                    Err(NonSingularQueryError)
+                } else if let Some(sel) = selectors.pop() {
+                    sel.try_into()
+                } else {
+                    Err(NonSingularQueryError)
+                }
+            }
+            Segment::DotName(name) => Ok(Self::Name(Name(name))),
+            Segment::Wildcard => Err(NonSingularQueryError),
+        }
+    }
+}
+
+impl TryFrom<Selector> for SingularQuerySegment {
+    type Error = NonSingularQueryError;
+
+    fn try_from(selector: Selector) -> Result<Self, Self::Error> {
+        match selector {
+            Selector::Name(n) => Ok(Self::Name(n)),
+            Selector::Wildcard => Err(NonSingularQueryError),
+            Selector::Index(i) => Ok(Self::Index(i)),
+            Selector::ArraySlice(_) => Err(NonSingularQueryError),
+            Selector::Filter(_) => Err(NonSingularQueryError),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct SingularQuery {
+    pub kind: SingularQueryKind,
+    pub segments: Vec<SingularQuerySegment>,
+}
+
+impl SingularQuery {
     pub fn eval_path<'b>(&self, current: &'b Value, root: &'b Value) -> Option<&'b Value> {
         let mut target = match self.kind {
-            SingularPathKind::Absolute => root,
-            SingularPathKind::Relative => current,
+            SingularQueryKind::Absolute => root,
+            SingularQueryKind::Relative => current,
         };
         for segment in &self.segments {
             match segment {
-                SingularPathSegment::Name(name) => {
+                SingularQuerySegment::Name(name) => {
                     if let Some(v) = target.as_object() {
                         if let Some(t) = v.get(name.as_str()) {
                             target = t;
@@ -443,7 +455,7 @@ impl SingularPath {
                         }
                     }
                 }
-                SingularPathSegment::Index(index) => {
+                SingularQuerySegment::Index(index) => {
                     if let Some(l) = target.as_array() {
                         if let Some(t) = usize::try_from(index.0).ok().and_then(|i| l.get(i)) {
                             target = t;
@@ -458,11 +470,34 @@ impl SingularPath {
     }
 }
 
-impl std::fmt::Display for SingularPath {
+impl TryFrom<Query> for SingularQuery {
+    type Error = NonSingularQueryError;
+
+    fn try_from(query: Query) -> Result<Self, Self::Error> {
+        let kind = SingularQueryKind::from(query.kind);
+        let segments = query
+            .segments
+            .into_iter()
+            .map(TryFrom::try_from)
+            .collect::<Result<Vec<SingularQuerySegment>, Self::Error>>()?;
+        Ok(Self { kind, segments })
+    }
+}
+
+impl Queryable for SingularQuery {
+    fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
+        match self.eval_path(current, root) {
+            Some(v) => vec![v],
+            None => vec![],
+        }
+    }
+}
+
+impl std::fmt::Display for SingularQuery {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.kind {
-            SingularPathKind::Absolute => write!(f, "$")?,
-            SingularPathKind::Relative => write!(f, "@")?,
+            SingularQueryKind::Absolute => write!(f, "$")?,
+            SingularQueryKind::Relative => write!(f, "@")?,
         }
         for s in &self.segments {
             write!(f, "[{s}]")?;
@@ -472,7 +507,20 @@ impl std::fmt::Display for SingularPath {
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub enum SingularPathKind {
+pub enum SingularQueryKind {
     Absolute,
     Relative,
 }
+
+impl From<QueryKind> for SingularQueryKind {
+    fn from(qk: QueryKind) -> Self {
+        match qk {
+            QueryKind::Root => Self::Absolute,
+            QueryKind::Current => Self::Relative,
+        }
+    }
+}
+
+#[derive(Debug, thiserror::Error, PartialEq)]
+#[error("expected singular query")]
+pub struct NonSingularQueryError;

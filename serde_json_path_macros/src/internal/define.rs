@@ -47,8 +47,8 @@ pub(crate) fn expand(attrs: FunctionMacroArgs, input: ItemFn) -> TokenStream {
                 #res::Ok(tk) => {
                     if !tk.converts_to(#ty::type_kind()) {
                         return #res::Err(#core::FunctionValidationError::MismatchTypeKind {
-                            expected: tk,
-                            received: #ty::type_kind(),
+                            expected: #ty::type_kind(),
+                            received: tk,
                             position: #idx,
                         });
                     }
