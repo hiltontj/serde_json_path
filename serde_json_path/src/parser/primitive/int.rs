@@ -18,6 +18,7 @@ fn is_non_zero_digit(chr: char) -> bool {
     ('1'..='9').contains(&chr)
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub fn parse_non_zero_first_digit(input: &str) -> PResult<&str> {
     take_while_m_n(1, 1, is_non_zero_digit)(input)
 }
