@@ -71,17 +71,9 @@ impl<'a> TryFrom<JsonPathType<'a>> for NodesType<'a> {
                 from: JsonPathTypeKind::Logical,
                 to: JsonPathTypeKind::Nodelist,
             }),
-            // TODO - is this correct or even necessary? ValueType does not coalesce into NodesType
             JsonPathType::Node(n) => Ok(Self(vec![n].into())),
-            JsonPathType::ValueRef(_) => Err(ConversionError::LiteralToNodes),
             JsonPathType::Nothing => Ok(Self(vec![].into())),
         }
-    }
-}
-
-impl<'a> AsTypeKind for NodesType<'a> {
-    fn as_type_kind(&self) -> JsonPathTypeKind {
-        JsonPathTypeKind::Nodelist
     }
 }
 
@@ -115,12 +107,7 @@ impl<'a> TryFrom<JsonPathType<'a>> for LogicalType {
                 to: JsonPathTypeKind::Logical,
             }),
             JsonPathType::Logical(l) => Ok(l),
-            // TODO - is this correct, given that only NodesType coalesces to Logical...
             JsonPathType::Node(_) => Ok(Self::True),
-            JsonPathType::ValueRef(_) => Err(ConversionError::IncompatibleTypes {
-                from: JsonPathTypeKind::ValueRef,
-                to: JsonPathTypeKind::Logical,
-            }),
             JsonPathType::Nothing => Ok(Self::False),
         }
     }
@@ -144,16 +131,9 @@ impl From<bool> for LogicalType {
     }
 }
 
-impl AsTypeKind for LogicalType {
-    fn as_type_kind(&self) -> JsonPathTypeKind {
-        JsonPathTypeKind::Logical
-    }
-}
-
 #[derive(Debug)]
 pub enum ValueType<'a> {
     Value(Value),
-    ValueRef(&'a Value),
     Node(&'a Value),
     Nothing,
 }
@@ -166,7 +146,6 @@ impl<'a> ValueType<'a> {
     pub fn as_value(&self) -> Option<&Value> {
         match self {
             ValueType::Value(v) => Some(v),
-            ValueType::ValueRef(v) => Some(v),
             ValueType::Node(v) => Some(v),
             ValueType::Nothing => None,
         }
@@ -180,7 +159,6 @@ impl<'a> TryFrom<JsonPathType<'a>> for ValueType<'a> {
         match value {
             JsonPathType::Value(v) => Ok(Self::Value(v)),
             JsonPathType::Node(n) => Ok(Self::Node(n)),
-            JsonPathType::ValueRef(vr) => Ok(Self::ValueRef(vr)),
             JsonPathType::Nothing => Ok(Self::Nothing),
             JsonPathType::Nodes(_) => Err(ConversionError::IncompatibleTypes {
                 from: JsonPathTypeKind::Nodelist,
@@ -194,15 +172,6 @@ impl<'a> TryFrom<JsonPathType<'a>> for ValueType<'a> {
     }
 }
 
-// impl<'a> From<Option<&'a Value>> for ValueType<'a> {
-//     fn from(value: Option<&'a Value>) -> Self {
-//         match value {
-//             Some(v) => Self::ValueRef(v),
-//             None => Self::Nothing,
-//         }
-//     }
-// }
-
 impl<'a, T> From<T> for ValueType<'a>
 where
     T: Into<Value>,
@@ -212,24 +181,12 @@ where
     }
 }
 
-impl<'a> AsTypeKind for ValueType<'a> {
-    fn as_type_kind(&self) -> JsonPathTypeKind {
-        match self {
-            ValueType::Value(_) => JsonPathTypeKind::Value,
-            ValueType::ValueRef(_) => JsonPathTypeKind::ValueRef,
-            ValueType::Node(_) => JsonPathTypeKind::Node,
-            ValueType::Nothing => JsonPathTypeKind::Nothing,
-        }
-    }
-}
-
 #[derive(Debug)]
 pub enum JsonPathType<'a> {
     Nodes(NodeList<'a>),
     Logical(LogicalType),
     Node(&'a Value),
     Value(Value),
-    ValueRef(&'a Value),
     Nothing,
 }
 
@@ -240,7 +197,6 @@ impl<'a> JsonPathType<'a> {
             JsonPathType::Value(_) => JsonPathTypeKind::Value,
             JsonPathType::Logical(_) => JsonPathTypeKind::Logical,
             JsonPathType::Node(_) => JsonPathTypeKind::Node,
-            JsonPathType::ValueRef(_) => JsonPathTypeKind::ValueRef,
             JsonPathType::Nothing => JsonPathTypeKind::Nothing,
         }
     }
@@ -256,7 +212,6 @@ impl<'a> From<ValueType<'a>> for JsonPathType<'a> {
     fn from(value: ValueType<'a>) -> Self {
         match value {
             ValueType::Value(v) => Self::Value(v),
-            ValueType::ValueRef(vr) => Self::ValueRef(vr),
             ValueType::Node(n) => Self::Node(n),
             ValueType::Nothing => Self::Nothing,
         }
@@ -285,7 +240,6 @@ pub enum JsonPathTypeKind {
     Nodelist,
     Node,
     Value,
-    ValueRef,
     Logical,
     Nothing,
 }
@@ -296,16 +250,11 @@ impl JsonPathTypeKind {
             (self, other),
             (JsonPathTypeKind::Nodelist, JsonPathTypeKind::Nodelist)
                 | (JsonPathTypeKind::Nodelist, JsonPathTypeKind::Logical)
-                // | (JsonPathTypeKind::Node, JsonPathTypeKind::Nodelist)
+                | (JsonPathTypeKind::Node, JsonPathTypeKind::Nodelist)
                 | (JsonPathTypeKind::Node, JsonPathTypeKind::Node)
                 | (JsonPathTypeKind::Node, JsonPathTypeKind::Value)
-                | (JsonPathTypeKind::Node, JsonPathTypeKind::ValueRef)
                 | (JsonPathTypeKind::Value, JsonPathTypeKind::Node)
                 | (JsonPathTypeKind::Value, JsonPathTypeKind::Value)
-                | (JsonPathTypeKind::Value, JsonPathTypeKind::ValueRef)
-                | (JsonPathTypeKind::ValueRef, JsonPathTypeKind::Node)
-                | (JsonPathTypeKind::ValueRef, JsonPathTypeKind::Value)
-                | (JsonPathTypeKind::ValueRef, JsonPathTypeKind::ValueRef)
                 | (JsonPathTypeKind::Logical, JsonPathTypeKind::Logical)
         )
     }
@@ -318,14 +267,9 @@ impl std::fmt::Display for JsonPathTypeKind {
             JsonPathTypeKind::Logical => write!(f, "LogicalType"),
             JsonPathTypeKind::Node => write!(f, "ValueType"),
             JsonPathTypeKind::Value => write!(f, "ValueType"),
-            JsonPathTypeKind::ValueRef => write!(f, "ValueType"),
             JsonPathTypeKind::Nothing => write!(f, "ValueType"),
         }
     }
-}
-
-pub trait AsTypeKind {
-    fn as_type_kind(&self) -> JsonPathTypeKind;
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -426,7 +370,6 @@ impl FunctionExprArg {
     pub fn as_type_kind(&self) -> Result<JsonPathTypeKind, FunctionValidationError> {
         use FunctionExprArg::*;
         match self {
-            // TODO - is this a case that the type distinction is no longer needed??
             Literal(_) => Ok(JsonPathTypeKind::Value),
             SingularQuery(_) => Ok(JsonPathTypeKind::Node),
             FilterQuery(query) => {
@@ -435,7 +378,7 @@ impl FunctionExprArg {
                 } else {
                     Ok(JsonPathTypeKind::Nodelist)
                 }
-            },
+            }
             LogicalExpr(_) => Ok(JsonPathTypeKind::Logical),
             FunctionExpr(func) => {
                 for f in inventory::iter::<Function> {
@@ -447,12 +390,6 @@ impl FunctionExprArg {
                     name: func.name.to_owned(),
                 })
             }
-            // Comparable(comp) => match comp {
-            //     super::selector::filter::Comparable::Literal(_) => Ok(JsonPathTypeKind::ValueRef),
-            //     super::selector::filter::Comparable::SingularPath(_) => Ok(JsonPathTypeKind::Value),
-            //     super::selector::filter::Comparable::FunctionExpr(func) => {
-            //     }
-            // },
         }
     }
 }
@@ -479,7 +416,6 @@ impl TestFilter for FunctionExpr {
             JsonPathType::Value(v) => v.test_filter(current, root),
             JsonPathType::Logical(l) => l.into(),
             JsonPathType::Node(n) => n.test_filter(current, root),
-            JsonPathType::ValueRef(vr) => vr.test_filter(current, root),
             JsonPathType::Nothing => false,
         }
     }

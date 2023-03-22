@@ -15,7 +15,7 @@ fn value_length(value: &Value) -> Option<usize> {
 fn length(value: ValueType) -> ValueType {
     match value {
         ValueType::Value(v) => value_length(&v),
-        ValueType::ValueRef(v) | ValueType::Node(v) => value_length(v),
+        ValueType::Node(v) => value_length(v),
         ValueType::Nothing => None,
     }
     .map_or(ValueType::Nothing, |l| ValueType::Value(l.into()))

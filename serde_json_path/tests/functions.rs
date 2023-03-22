@@ -34,6 +34,18 @@ fn test_count() {
     assert_eq!(1, q.len());
 }
 
+#[test]
+fn test_count_singular_query() {
+    let value = json!([
+        {"foo": "bar"},
+        {"foo": "baz"},
+    ]);
+    let path = JsonPath::parse("$[? count(@.foo) == 1]").unwrap();
+    let q = path.query(&value);
+    println!("{q:#?}");
+    assert_eq!(q.len(), 2);
+}
+
 fn simpsons_characters() -> Value {
     json!([
         { "name": "Homer Simpson" },
@@ -66,17 +78,8 @@ fn test_search() {
     assert_eq!(3, nodes.len());
 }
 
-#[serde_json_path::function]
-fn first(nodes: NodesType) -> ValueType {
-    match nodes.into_inner().first() {
-        Some(v) => ValueType::ValueRef(v),
-        None => ValueType::Nothing,
-    }
-}
-
-#[test]
-fn custom_first_function() {
-    let value = json!([
+fn get_some_books() -> Value {
+    json!([
         {
             "books": [
                 {
@@ -101,12 +104,37 @@ fn custom_first_function() {
                 }
             ]
         }
-    ]);
-    let path = JsonPath::parse("$[?first(@.books.*.author) == 'Alexandre Dumas']").unwrap();
+    ])
+}
+
+#[serde_json_path::function]
+fn first(nodes: NodesType) -> ValueType {
+    match nodes.into_inner().first() {
+        Some(v) => ValueType::Node(v),
+        None => ValueType::Nothing,
+    }
+}
+
+#[test]
+fn custom_first_function() {
+    let value = get_some_books();
+    let path = JsonPath::parse("$[? first(@.books.*.author) == 'Alexandre Dumas']").unwrap();
     let node = path.query(&value).exactly_one().unwrap();
     println!("{node:#?}");
     assert_eq!(
         "The Rise and Fall of the Third Reich",
         node.pointer("/books/1/title").unwrap().as_str().unwrap(),
     );
+}
+
+#[test]
+fn function_as_argument() {
+    let value = get_some_books();
+    let path = JsonPath::parse("$[? length(first(@.books.*.title)) == 18 ]").unwrap();
+    let node = path.query(&value).exactly_one().unwrap();
+    println!("{node:#?}");
+    assert_eq!(
+        "The Brothers Karamazov",
+        node.pointer("/books/1/title").unwrap().as_str().unwrap(),
+    )
 }

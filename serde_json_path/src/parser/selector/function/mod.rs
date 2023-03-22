@@ -56,8 +56,8 @@ fn parse_function_argument(input: &str) -> PResult<FunctionExprArg> {
         map(parse_literal, FunctionExprArg::Literal),
         map(parse_singular_path, FunctionExprArg::SingularQuery),
         map(parse_query, FunctionExprArg::FilterQuery),
-        map(parse_logical_or_expr, FunctionExprArg::LogicalExpr),
         map(parse_function_expr, FunctionExprArg::FunctionExpr),
+        map(parse_logical_or_expr, FunctionExprArg::LogicalExpr),
     ))(input)
 }
 

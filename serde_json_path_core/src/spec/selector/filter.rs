@@ -181,13 +181,8 @@ fn check_equal_to(left: &JsonPathType, right: &JsonPathType) -> bool {
     match (left, right) {
         (JsonPathType::Node(v1), JsonPathType::Node(v2)) => v1 == v2,
         (JsonPathType::Node(v1), JsonPathType::Value(v2)) => *v1 == v2,
-        (JsonPathType::Node(v1), JsonPathType::ValueRef(v2)) => v1 == v2,
         (JsonPathType::Value(v1), JsonPathType::Node(v2)) => v1 == *v2,
         (JsonPathType::Value(v1), JsonPathType::Value(v2)) => v1 == v2,
-        (JsonPathType::Value(v1), JsonPathType::ValueRef(v2)) => v1 == *v2,
-        (JsonPathType::ValueRef(v1), JsonPathType::Node(v2)) => v1 == v2,
-        (JsonPathType::ValueRef(v1), JsonPathType::Value(v2)) => *v1 == v2,
-        (JsonPathType::ValueRef(v1), JsonPathType::ValueRef(v2)) => v1 == v2,
         (JsonPathType::Nothing, JsonPathType::Nothing) => true,
         _ => false,
     }
@@ -205,13 +200,8 @@ fn check_less_than(left: &JsonPathType, right: &JsonPathType) -> bool {
     match (left, right) {
         (JsonPathType::Node(v1), JsonPathType::Node(v2)) => value_less_than(v1, v2),
         (JsonPathType::Node(v1), JsonPathType::Value(v2)) => value_less_than(v1, v2),
-        (JsonPathType::Node(v1), JsonPathType::ValueRef(v2)) => value_less_than(v1, v2),
         (JsonPathType::Value(v1), JsonPathType::Node(v2)) => value_less_than(v1, v2),
         (JsonPathType::Value(v1), JsonPathType::Value(v2)) => value_less_than(v1, v2),
-        (JsonPathType::Value(v1), JsonPathType::ValueRef(v2)) => value_less_than(v1, v2),
-        (JsonPathType::ValueRef(v1), JsonPathType::Node(v2)) => value_less_than(v1, v2),
-        (JsonPathType::ValueRef(v1), JsonPathType::Value(v2)) => value_less_than(v1, v2),
-        (JsonPathType::ValueRef(v1), JsonPathType::ValueRef(v2)) => value_less_than(v1, v2),
         _ => false,
     }
 }
@@ -229,13 +219,8 @@ fn check_same_type(left: &JsonPathType, right: &JsonPathType) -> bool {
     match (left, right) {
         (JsonPathType::Node(v1), JsonPathType::Node(v2)) => value_same_type(v1, v2),
         (JsonPathType::Node(v1), JsonPathType::Value(v2)) => value_same_type(v1, v2),
-        (JsonPathType::Node(v1), JsonPathType::ValueRef(v2)) => value_same_type(v1, v2),
         (JsonPathType::Value(v1), JsonPathType::Node(v2)) => value_same_type(v1, v2),
         (JsonPathType::Value(v1), JsonPathType::Value(v2)) => value_same_type(v1, v2),
-        (JsonPathType::Value(v1), JsonPathType::ValueRef(v2)) => value_same_type(v1, v2),
-        (JsonPathType::ValueRef(v1), JsonPathType::Node(v2)) => value_same_type(v1, v2),
-        (JsonPathType::ValueRef(v1), JsonPathType::Value(v2)) => value_same_type(v1, v2),
-        (JsonPathType::ValueRef(v1), JsonPathType::ValueRef(v2)) => value_same_type(v1, v2),
         _ => false,
     }
 }
