@@ -11,8 +11,8 @@ use crate::{JsonPath, NodeList};
 ///
 /// # fn main() -> Result<(), serde_json_path::Error> {
 /// let value = json!({"foo": ["bar", "baz"]});
-/// let path = JsonPath::parse("$.foo[*]")?;
-/// let nodes = path.query(&value).all();
+/// let query = JsonPath::parse("$.foo[*]")?;
+/// let nodes = value.json_path(&query).all();
 /// assert_eq!(nodes, vec!["bar", "baz"]);
 /// # Ok(())
 /// # }
