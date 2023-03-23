@@ -1,3 +1,4 @@
+//! Types representing the different selectors in JSONPath
 pub mod filter;
 pub mod index;
 pub mod name;
@@ -9,16 +10,26 @@ use self::{filter::Filter, index::Index, name::Name, slice::Slice};
 
 use super::query::Queryable;
 
+/// A JSONPath selector
 #[derive(Debug, PartialEq, Clone)]
 pub enum Selector {
+    /// Select an object key
     Name(Name),
+    /// Select all nodes
+    ///
+    /// For an object, this produces a nodelist of all member values; for an array, this produces a
+    /// nodelist of all array elements.
     Wildcard,
+    /// Select an array element
     Index(Index),
+    /// Select a slice from an array
     ArraySlice(Slice),
+    /// Use a filter to select nodes
     Filter(Filter),
 }
 
 impl Selector {
+    /// Will the selector select at most only a single node
     pub fn is_singular(&self) -> bool {
         matches!(self, Selector::Name(_) | Selector::Index(_))
     }

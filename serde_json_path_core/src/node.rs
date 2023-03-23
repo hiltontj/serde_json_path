@@ -1,3 +1,4 @@
+//! Types representing nodes within a JSON object
 use std::slice::Iter;
 
 use serde::Serialize;
@@ -170,14 +171,18 @@ impl<'a> NodeList<'a> {
     }
 }
 
+/// Error produced when expecting no more than one node from a query
 #[derive(Debug, thiserror::Error)]
 #[error("nodelist expected to contain at most one entry, but instead contains {0} entries")]
 pub struct AtMostOneError(pub usize);
 
+/// Error produced when expecting exactly one node from a query
 #[derive(Debug, thiserror::Error)]
 pub enum ExactlyOneError {
+    /// The query resulted in an empty [`Nodelist`]
     #[error("nodelist expected to contain one entry, but is empty")]
     Empty,
+    /// The query resulted in a [`Nodelist`] containing more than one node
     #[error("nodelist expected to contain one entry, but instead contains {0} entries")]
     MoreThanOne(usize),
 }

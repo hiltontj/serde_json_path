@@ -1,11 +1,24 @@
+//! Slice selectors for selecting array slices in JSONPath
 use serde_json::Value;
 
 use crate::spec::query::Queryable;
 
+/// A slice selector
 #[derive(Debug, PartialEq, Default, Clone, Copy)]
 pub struct Slice {
+    /// The start of the slice
+    ///
+    /// This can be negative to start the slice from a position relative to the end of the array
+    /// being sliced.
     pub start: Option<isize>,
+    /// The end of the slice
+    ///
+    /// This can be negative to end the slice at a position relative to the end of the array being
+    /// sliced.
     pub end: Option<isize>,
+    /// The step slice for the slice
+    ///
+    /// This can be negative to step in reverse order.
     pub step: Option<isize>,
 }
 
@@ -26,6 +39,7 @@ impl std::fmt::Display for Slice {
     }
 }
 
+#[doc(hidden)]
 impl Slice {
     pub fn new() -> Self {
         Self::default()

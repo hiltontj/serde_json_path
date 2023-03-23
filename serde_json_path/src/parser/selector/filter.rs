@@ -151,7 +151,7 @@ pub fn parse_singular_path(input: &str) -> PResult<SingularQuery> {
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_singular_path_comparable(input: &str) -> PResult<Comparable> {
-    map(parse_singular_path, Comparable::SingularPath)(input)
+    map(parse_singular_path, Comparable::SingularQuery)(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]

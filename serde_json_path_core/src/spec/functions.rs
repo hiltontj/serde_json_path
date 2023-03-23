@@ -1,3 +1,4 @@
+//! Types used for representing Function Extensions in JSONPath
 use std::collections::VecDeque;
 
 use once_cell::sync::Lazy;
@@ -10,12 +11,16 @@ use super::{
     selector::filter::{Literal, LogicalOrExpr, SingularQuery, TestFilter},
 };
 
+#[doc(hidden)]
 pub type Validator =
     Lazy<Box<dyn Fn(&[FunctionExprArg]) -> Result<(), FunctionValidationError> + Send + Sync>>;
 
+#[doc(hidden)]
 pub type Evaluator =
     Lazy<Box<dyn for<'a> Fn(VecDeque<JsonPathType<'a>>) -> JsonPathType<'a> + Sync + Send>>;
 
+#[doc(hidden)]
+#[allow(missing_debug_implementations)]
 pub struct Function {
     name: &'static str,
     result_type: JsonPathTypeKind,
@@ -41,14 +46,17 @@ impl Function {
 
 inventory::collect!(Function);
 
+/// JSONPath type epresenting a Nodelist
 #[derive(Debug)]
 pub struct NodesType<'a>(NodeList<'a>);
 
 impl<'a> NodesType<'a> {
+    #[doc(hidden)]
     pub const fn type_kind() -> JsonPathTypeKind {
         JsonPathTypeKind::Nodelist
     }
 
+    /// Extract the inner [`Nodelist`]
     pub fn into_inner(self) -> NodeList<'a> {
         self.0
     }
@@ -77,14 +85,18 @@ impl<'a> TryFrom<JsonPathType<'a>> for NodesType<'a> {
     }
 }
 
+/// JSONPath type representing `LogicalTrue` or `LogicalFalse`
 #[derive(Debug, Default)]
 pub enum LogicalType {
+    /// True
     True,
+    /// False
     #[default]
     False,
 }
 
 impl LogicalType {
+    #[doc(hidden)]
     pub const fn type_kind() -> JsonPathTypeKind {
         JsonPathTypeKind::Logical
     }
@@ -131,18 +143,24 @@ impl From<bool> for LogicalType {
     }
 }
 
+/// JSONPath type representing a JSON value or Nothing
 #[derive(Debug)]
 pub enum ValueType<'a> {
+    /// A literal value
     Value(Value),
+    /// A reference to a node in a JSON object, generally resulting from a singular query
     Node(&'a Value),
+    /// Nothing, generally the result of a singular query that did not produce a node
     Nothing,
 }
 
 impl<'a> ValueType<'a> {
+    #[doc(hidden)]
     pub const fn type_kind() -> JsonPathTypeKind {
         JsonPathTypeKind::Value
     }
 
+    /// Convert to a reference of a [`serde_json::Value`] if possible
     pub fn as_value(&self) -> Option<&Value> {
         match self {
             ValueType::Value(v) => Some(v),
@@ -181,6 +199,7 @@ where
     }
 }
 
+#[doc(hidden)]
 #[derive(Debug)]
 pub enum JsonPathType<'a> {
     Nodes(NodeList<'a>),
@@ -224,17 +243,23 @@ impl<'a> From<LogicalType> for JsonPathType<'a> {
     }
 }
 
+/// Error used to convey JSONPath queries that are not well-typed
 #[derive(Debug, thiserror::Error)]
 pub enum ConversionError {
+    /// Cannot convert `from` into `to`
     #[error("attempted to convert {from} to {to}")]
     IncompatibleTypes {
+        /// The type being converted from
         from: JsonPathTypeKind,
+        /// The type being converted to
         to: JsonPathTypeKind,
     },
+    /// Literal values can not be considered nodes
     #[error("cannot use a literal value in place of NodesType")]
     LiteralToNodes,
 }
 
+#[doc(hidden)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum JsonPathTypeKind {
     Nodelist,
@@ -272,6 +297,7 @@ impl std::fmt::Display for JsonPathTypeKind {
     }
 }
 
+#[doc(hidden)]
 #[derive(Debug, PartialEq, Clone)]
 pub struct FunctionExpr {
     pub name: String,
@@ -326,6 +352,7 @@ impl std::fmt::Display for FunctionExpr {
     }
 }
 
+#[doc(hidden)]
 #[derive(Debug, PartialEq, Clone)]
 pub enum FunctionExprArg {
     Literal(Literal),
@@ -353,7 +380,7 @@ impl FunctionExprArg {
         use FunctionExprArg::*;
         match self {
             Literal(lit) => lit.into(),
-            SingularQuery(q) => match q.eval_path(current, root) {
+            SingularQuery(q) => match q.eval_query(current, root) {
                 Some(n) => JsonPathType::Node(n),
                 None => JsonPathType::Nothing,
             },
@@ -394,16 +421,31 @@ impl FunctionExprArg {
     }
 }
 
+/// An error occurred while validating a function
 #[derive(Debug, thiserror::Error, PartialEq)]
 pub enum FunctionValidationError {
+    /// Function not defined in inventory
     #[error("function name '{name}' is not defined")]
-    Undefined { name: String },
+    Undefined {
+        /// The name of the function
+        name: String,
+    },
+    /// Mismatch in number of function arguments
     #[error("expected {expected} args, but received {received}")]
-    NumberOfArgsMismatch { expected: usize, received: usize },
+    NumberOfArgsMismatch {
+        /// Expected number of arguments
+        expected: usize,
+        /// Received number of arguments
+        received: usize,
+    },
+    /// The type of received argument does not match the function definition
     #[error("in argument position {position}, expected a type that converts to {expected}, received {received}")]
     MismatchTypeKind {
+        /// Expected type
         expected: JsonPathTypeKind,
+        /// Received type
         received: JsonPathTypeKind,
+        /// Argument position
         position: usize,
     },
 }

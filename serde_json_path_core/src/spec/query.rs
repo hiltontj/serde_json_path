@@ -1,15 +1,46 @@
+//! Types representing queries in JSONPath
 use serde_json::Value;
 
 use super::segment::QuerySegment;
 
-pub trait Queryable {
+mod sealed {
+    use crate::spec::{
+        segment::{QuerySegment, Segment},
+        selector::{
+            filter::{Filter, SingularQuery},
+            index::Index,
+            name::Name,
+            slice::Slice,
+            Selector,
+        },
+    };
+
+    use super::Query;
+
+    pub trait Sealed {}
+    impl Sealed for Query {}
+    impl Sealed for QuerySegment {}
+    impl Sealed for Segment {}
+    impl Sealed for Slice {}
+    impl Sealed for Name {}
+    impl Sealed for Selector {}
+    impl Sealed for Index {}
+    impl Sealed for Filter {}
+    impl Sealed for SingularQuery {}
+}
+
+/// A type that is query-able
+pub trait Queryable: sealed::Sealed {
+    /// Query `self` using a current node, and the root node
     fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value>;
 }
 
 /// Represents a JSONPath expression
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct Query {
+    /// The kind of query, root (`$`), or current (`@`)
     pub kind: QueryKind,
+    /// The segments constituting the query
     pub segments: Vec<QuerySegment>,
 }
 
@@ -40,10 +71,13 @@ impl std::fmt::Display for Query {
     }
 }
 
+/// The kind of query
 #[derive(Debug, PartialEq, Clone, Default)]
 pub enum QueryKind {
+    /// A query against the root of a JSON object, i.e., with `$`
     #[default]
     Root,
+    /// A query against the current node within a JSON object, i.e., with `@`
     Current,
 }
 

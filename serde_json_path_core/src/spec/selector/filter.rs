@@ -1,3 +1,4 @@
+//! Types representing filter selectors in JSONPath
 use serde_json::{Number, Value};
 
 use crate::spec::{
@@ -8,7 +9,26 @@ use crate::spec::{
 
 use super::{index::Index, name::Name, Selector};
 
-pub trait TestFilter {
+mod sealed {
+    use serde_json::Value;
+
+    use crate::spec::functions::FunctionExpr;
+
+    use super::{BasicExpr, ComparisonExpr, ExistExpr, LogicalAndExpr, LogicalOrExpr};
+
+    pub trait Sealed {}
+    impl Sealed for Value {}
+    impl Sealed for LogicalOrExpr {}
+    impl Sealed for LogicalAndExpr {}
+    impl Sealed for BasicExpr {}
+    impl Sealed for ExistExpr {}
+    impl Sealed for ComparisonExpr {}
+    impl Sealed for FunctionExpr {}
+}
+
+/// Trait for testing a filter type
+pub trait TestFilter: sealed::Sealed {
+    /// Test self using the current and root nodes
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool;
 }
 
@@ -23,6 +43,7 @@ impl TestFilter for Value {
     }
 }
 
+/// The main filter type for JSONPath
 #[derive(Debug, PartialEq, Clone)]
 pub struct Filter(pub LogicalOrExpr);
 
@@ -52,8 +73,8 @@ impl Queryable for Filter {
 
 /// The top level boolean expression type
 ///
-/// This is also `boolean-expression` in the JSONPath specification, but the naming
-/// was chosen to make it more clear that it represents the logical OR.
+/// This is also `ligical-expression` in the JSONPath specification, but the naming was chosen to
+/// make it more clear that it represents the logical OR, and to not have an extra wrapping type.
 #[derive(Debug, PartialEq, Clone)]
 pub struct LogicalOrExpr(pub Vec<LogicalAndExpr>);
 
@@ -77,6 +98,7 @@ impl TestFilter for LogicalOrExpr {
     }
 }
 
+/// A logical AND expression
 #[derive(Debug, PartialEq, Clone)]
 pub struct LogicalAndExpr(pub Vec<BasicExpr>);
 
@@ -100,14 +122,22 @@ impl TestFilter for LogicalAndExpr {
     }
 }
 
+/// The basic for m of expression in a filter
 #[derive(Debug, PartialEq, Clone)]
 pub enum BasicExpr {
+    /// An expression wrapped in parenthesis
     Paren(LogicalOrExpr),
+    /// A parenthesized expression preceded with a `!`
     NotParen(LogicalOrExpr),
+    /// A relationship expression which compares two JSON values
     Relation(ComparisonExpr),
+    /// An existence expression
     Exist(ExistExpr),
+    /// The inverse of an existence expression, i.e., preceded by `!`
     NotExist(ExistExpr),
+    /// A function expression
     FuncExpr(FunctionExpr),
+    /// The inverse of a function expression, i.e., preceded by `!`
     NotFuncExpr(FunctionExpr),
 }
 
@@ -126,6 +156,7 @@ impl std::fmt::Display for BasicExpr {
 }
 
 impl BasicExpr {
+    /// Optionally express as a relation expression
     pub fn as_relation(&self) -> Option<&ComparisonExpr> {
         match self {
             BasicExpr::Relation(cx) => Some(cx),
@@ -170,10 +201,14 @@ impl TestFilter for ExistExpr {
     }
 }
 
+/// A comparison expression comparing two JSON values
 #[derive(Debug, PartialEq, Clone)]
 pub struct ComparisonExpr {
+    /// The JSON value on the left of the comparison
     pub left: Comparable,
+    /// The operator of comparison
     pub op: ComparisonOperator,
+    /// The JSON value on the right of the comparison
     pub right: Comparable,
 }
 
@@ -273,13 +308,20 @@ fn number_less_than(n1: &Number, n2: &Number) -> bool {
     }
 }
 
+/// The comparison operator
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum ComparisonOperator {
+    /// `==`
     EqualTo,
+    /// `!=`
     NotEqualTo,
+    /// `<`
     LessThan,
+    /// `>`
     GreaterThan,
+    /// `<=`
     LessThanEqualTo,
+    /// `>=`
     GreaterThanEqualTo,
 }
 
@@ -296,10 +338,16 @@ impl std::fmt::Display for ComparisonOperator {
     }
 }
 
+/// A type that is comparable
 #[derive(Debug, PartialEq, Clone)]
 pub enum Comparable {
+    /// A literal JSON value, excluding objects and arrays
     Literal(Literal),
-    SingularPath(SingularQuery),
+    /// A singular query
+    ///
+    /// This will only produce a single node, i.e., JSON value, or nothing
+    SingularQuery(SingularQuery),
+    /// A function expression that can only produce a `ValueType`
     FunctionExpr(FunctionExpr),
 }
 
@@ -307,17 +355,18 @@ impl std::fmt::Display for Comparable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Comparable::Literal(lit) => write!(f, "{lit}"),
-            Comparable::SingularPath(path) => write!(f, "{path}"),
+            Comparable::SingularQuery(path) => write!(f, "{path}"),
             Comparable::FunctionExpr(expr) => write!(f, "{expr}"),
         }
     }
 }
 
 impl Comparable {
+    #[doc(hidden)]
     pub fn as_value<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> JsonPathType<'a> {
         match self {
             Comparable::Literal(lit) => lit.into(),
-            Comparable::SingularPath(sp) => match sp.eval_path(current, root) {
+            Comparable::SingularQuery(sp) => match sp.eval_query(current, root) {
                 Some(v) => JsonPathType::Node(v),
                 None => JsonPathType::Nothing,
             },
@@ -325,19 +374,25 @@ impl Comparable {
         }
     }
 
+    #[doc(hidden)]
     pub fn as_singular_path(&self) -> Option<&SingularQuery> {
         match self {
-            Comparable::SingularPath(sp) => Some(sp),
+            Comparable::SingularQuery(sp) => Some(sp),
             _ => None,
         }
     }
 }
 
+/// A literal JSON value that can be represented in a JSONPath query
 #[derive(Debug, PartialEq, Clone)]
 pub enum Literal {
+    /// A valid JSON number
     Number(Number),
+    /// A string
     String(String),
+    /// `true` or `false`
     Bool(bool),
+    /// `null`
     Null,
 }
 
@@ -365,9 +420,12 @@ impl std::fmt::Display for Literal {
     }
 }
 
+/// A segment in a singular query
 #[derive(Debug, PartialEq, Clone)]
 pub enum SingularQuerySegment {
+    /// A single name segment
     Name(Name),
+    /// A single index segment
     Index(Index),
 }
 
@@ -385,20 +443,20 @@ impl TryFrom<QuerySegment> for SingularQuerySegment {
 
     fn try_from(segment: QuerySegment) -> Result<Self, Self::Error> {
         if segment.is_descendent() {
-            return Err(NonSingularQueryError);
+            return Err(NonSingularQueryError::Descendant);
         }
         match segment.segment {
             Segment::LongHand(mut selectors) => {
                 if selectors.len() > 1 {
-                    Err(NonSingularQueryError)
+                    Err(NonSingularQueryError::TooManySelectors)
                 } else if let Some(sel) = selectors.pop() {
                     sel.try_into()
                 } else {
-                    Err(NonSingularQueryError)
+                    Err(NonSingularQueryError::NoSelectors)
                 }
             }
             Segment::DotName(name) => Ok(Self::Name(Name(name))),
-            Segment::Wildcard => Err(NonSingularQueryError),
+            Segment::Wildcard => Err(NonSingularQueryError::Wildcard),
         }
     }
 }
@@ -409,22 +467,26 @@ impl TryFrom<Selector> for SingularQuerySegment {
     fn try_from(selector: Selector) -> Result<Self, Self::Error> {
         match selector {
             Selector::Name(n) => Ok(Self::Name(n)),
-            Selector::Wildcard => Err(NonSingularQueryError),
+            Selector::Wildcard => Err(NonSingularQueryError::Wildcard),
             Selector::Index(i) => Ok(Self::Index(i)),
-            Selector::ArraySlice(_) => Err(NonSingularQueryError),
-            Selector::Filter(_) => Err(NonSingularQueryError),
+            Selector::ArraySlice(_) => Err(NonSingularQueryError::Slice),
+            Selector::Filter(_) => Err(NonSingularQueryError::Filter),
         }
     }
 }
 
+/// Represents a singular query in JSONPath
 #[derive(Debug, PartialEq, Clone)]
 pub struct SingularQuery {
+    /// The kind of singular query, relative or absolute
     pub kind: SingularQueryKind,
+    /// The segments making up the query
     pub segments: Vec<SingularQuerySegment>,
 }
 
 impl SingularQuery {
-    pub fn eval_path<'b>(&self, current: &'b Value, root: &'b Value) -> Option<&'b Value> {
+    /// Evaluate the singular query
+    pub fn eval_query<'b>(&self, current: &'b Value, root: &'b Value) -> Option<&'b Value> {
         let mut target = match self.kind {
             SingularQueryKind::Absolute => root,
             SingularQueryKind::Relative => current,
@@ -471,7 +533,7 @@ impl TryFrom<Query> for SingularQuery {
 
 impl Queryable for SingularQuery {
     fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
-        match self.eval_path(current, root) {
+        match self.eval_query(current, root) {
             Some(v) => vec![v],
             None => vec![],
         }
@@ -491,9 +553,12 @@ impl std::fmt::Display for SingularQuery {
     }
 }
 
+/// The kind of singular query
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum SingularQueryKind {
+    /// Referencing the root node, i.e., `$`
     Absolute,
+    /// Referencing the current node, i.e., `@`
     Relative,
 }
 
@@ -506,6 +571,25 @@ impl From<QueryKind> for SingularQueryKind {
     }
 }
 
+/// Error when parsing a singular query
 #[derive(Debug, thiserror::Error, PartialEq)]
-#[error("expected singular query")]
-pub struct NonSingularQueryError;
+pub enum NonSingularQueryError {
+    /// Descendant segment
+    #[error("descendant segments are not singular")]
+    Descendant,
+    /// Long hand segment with too many internal selectors
+    #[error("long hand segment contained more than one selector")]
+    TooManySelectors,
+    /// Long hand segment with no selectors
+    #[error("long hand segment contained no selectors")]
+    NoSelectors,
+    /// A wildcard segment
+    #[error("wildcard segments are not singular")]
+    Wildcard,
+    /// A slice segment
+    #[error("slice segments are not singular")]
+    Slice,
+    /// A filter segment
+    #[error("filter segments are not singular")]
+    Filter,
+}

@@ -1,11 +1,14 @@
+//! Name selector for selecting object keys in JSONPath
 use serde_json::Value;
 
 use crate::spec::query::Queryable;
 
+/// Select a single JSON object key
 #[derive(Debug, PartialEq, Clone)]
 pub struct Name(pub String);
 
 impl Name {
+    /// Get as a string slice
     pub fn as_str(&self) -> &str {
         &self.0
     }

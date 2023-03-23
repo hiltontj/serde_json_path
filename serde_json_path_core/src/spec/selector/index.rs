@@ -1,7 +1,11 @@
+//! Index selectors in JSONPath
 use serde_json::Value;
 
 use crate::spec::query::Queryable;
 
+/// For selecting array elements by their index
+///
+/// Can use negative indices to index from the end of an array
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Index(pub isize);
 
