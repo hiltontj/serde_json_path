@@ -23,7 +23,7 @@ fn parse_int_space_before(input: &str) -> PResult<isize> {
 /// See [Section 2.5.4](https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-09.html#name-array-slice-selector)
 /// in the JSONPath standard.
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub fn parse_array_slice(input: &str) -> PResult<Slice> {
+pub(crate) fn parse_array_slice(input: &str) -> PResult<Slice> {
     map(
         separated_pair(
             opt(parse_int_space_after),

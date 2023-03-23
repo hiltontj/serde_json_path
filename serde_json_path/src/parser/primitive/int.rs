@@ -19,7 +19,7 @@ fn is_non_zero_digit(chr: char) -> bool {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub fn parse_non_zero_first_digit(input: &str) -> PResult<&str> {
+pub(crate) fn parse_non_zero_first_digit(input: &str) -> PResult<&str> {
     take_while_m_n(1, 1, is_non_zero_digit)(input)
 }
 
@@ -32,12 +32,12 @@ fn parse_non_zero_int(input: &str) -> PResult<&str> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub fn parse_int_string(input: &str) -> PResult<&str> {
+pub(crate) fn parse_int_string(input: &str) -> PResult<&str> {
     alt((parse_zero, parse_non_zero_int))(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub fn parse_int(input: &str) -> PResult<isize> {
+pub(crate) fn parse_int(input: &str) -> PResult<isize> {
     map_res(parse_int_string, |i_str| i_str.parse::<isize>())(input)
 }
 

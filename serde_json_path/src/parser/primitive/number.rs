@@ -33,7 +33,7 @@ fn parse_number_string(input: &str) -> PResult<&str> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub fn parse_number(input: &str) -> PResult<Number> {
+pub(crate) fn parse_number(input: &str) -> PResult<Number> {
     map_res(parse_number_string, Number::from_str)(input)
 }
 

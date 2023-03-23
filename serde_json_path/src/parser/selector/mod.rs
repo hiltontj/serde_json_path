@@ -13,17 +13,17 @@ use super::primitive::int::parse_int;
 use super::primitive::string::parse_string_literal;
 use super::PResult;
 
-pub mod filter;
-pub mod function;
-pub mod slice;
+pub(crate) mod filter;
+pub(crate) mod function;
+pub(crate) mod slice;
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub fn parse_wildcard_selector(input: &str) -> PResult<Selector> {
+pub(crate) fn parse_wildcard_selector(input: &str) -> PResult<Selector> {
     map(char('*'), |_| Selector::Wildcard)(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub fn parse_name(input: &str) -> PResult<Name> {
+pub(crate) fn parse_name(input: &str) -> PResult<Name> {
     map(parse_string_literal, Name)(input)
 }
 
@@ -53,7 +53,7 @@ fn parse_filter_selector(input: &str) -> PResult<Selector> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub fn parse_selector(input: &str) -> PResult<Selector> {
+pub(crate) fn parse_selector(input: &str) -> PResult<Selector> {
     context(
         "selector",
         alt((

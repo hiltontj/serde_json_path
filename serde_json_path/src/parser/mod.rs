@@ -12,9 +12,9 @@ use serde_json_path_core::spec::selector::filter::NonSingularQueryError;
 
 use self::segment::parse_segment;
 
-pub mod primitive;
-pub mod segment;
-pub mod selector;
+pub(crate) mod primitive;
+pub(crate) mod segment;
+pub(crate) mod selector;
 
 type PResult<'a, O> = IResult<&'a str, O, ParserError<&'a str>>;
 
@@ -103,7 +103,7 @@ pub(self) fn parse_query(input: &str) -> PResult<Query> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub fn parse_query_main(input: &str) -> PResult<Query> {
+pub(crate) fn parse_query_main(input: &str) -> PResult<Query> {
     all_consuming(parse_root_query)(input)
 }
 

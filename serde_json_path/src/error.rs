@@ -7,8 +7,12 @@ use crate::parser::ParserError;
 /// A JSONPath error
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    /// An invalid JSONPath query string
     #[error("invalid JSONPath string:\n{message}")]
-    InvalidJsonPathString { message: String },
+    InvalidJsonPathString {
+        /// The error message
+        message: String,
+    },
 }
 
 impl<T> From<(T, VerboseError<T>)> for Error

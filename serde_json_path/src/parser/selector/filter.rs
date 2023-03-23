@@ -15,7 +15,7 @@ use crate::parser::primitive::{parse_bool, parse_null};
 use crate::parser::{parse_query, PResult};
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub fn parse_filter(input: &str) -> PResult<Filter> {
+pub(crate) fn parse_filter(input: &str) -> PResult<Filter> {
     map(
         preceded(pair(char('?'), space0), parse_logical_or_expr),
         Filter,
@@ -31,7 +31,7 @@ fn parse_logical_and(input: &str) -> PResult<LogicalAndExpr> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub fn parse_logical_or_expr(input: &str) -> PResult<LogicalOrExpr> {
+pub(crate) fn parse_logical_or_expr(input: &str) -> PResult<LogicalOrExpr> {
     map(
         separated_list1(tuple((space0, tag("||"), space0)), parse_logical_and),
         LogicalOrExpr,
@@ -130,7 +130,7 @@ fn parse_comparison_operator(input: &str) -> PResult<ComparisonOperator> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub fn parse_literal(input: &str) -> PResult<Literal> {
+pub(crate) fn parse_literal(input: &str) -> PResult<Literal> {
     alt((
         map(parse_string_literal, Literal::String),
         map(parse_number, Literal::Number),
@@ -145,7 +145,7 @@ fn parse_literal_comparable(input: &str) -> PResult<Comparable> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub fn parse_singular_path(input: &str) -> PResult<SingularQuery> {
+pub(crate) fn parse_singular_path(input: &str) -> PResult<SingularQuery> {
     map_res(parse_query, |q| q.try_into())(input)
 }
 
@@ -160,7 +160,7 @@ fn parse_function_expr_comparable(input: &str) -> PResult<Comparable> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub fn parse_comparable(input: &str) -> PResult<Comparable> {
+pub(crate) fn parse_comparable(input: &str) -> PResult<Comparable> {
     alt((
         parse_literal_comparable,
         parse_singular_path_comparable,

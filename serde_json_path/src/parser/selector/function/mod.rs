@@ -12,7 +12,7 @@ use nom::{
 use serde_json_path_core::spec::functions::{FunctionExpr, FunctionExprArg};
 
 #[cfg(feature = "registry")]
-pub mod registry;
+pub(crate) mod registry;
 
 use crate::parser::{parse_query, PResult};
 
@@ -62,7 +62,7 @@ fn parse_function_argument(input: &str) -> PResult<FunctionExprArg> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub fn parse_function_expr(input: &str) -> PResult<FunctionExpr> {
+pub(crate) fn parse_function_expr(input: &str) -> PResult<FunctionExpr> {
     cut(map_res(
         pair(
             parse_function_name,

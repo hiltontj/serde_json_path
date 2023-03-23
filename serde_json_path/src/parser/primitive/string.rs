@@ -202,7 +202,7 @@ fn parse_double_quoted(input: &str) -> PResult<String> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub fn parse_string_literal(input: &str) -> PResult<String> {
+pub(crate) fn parse_string_literal(input: &str) -> PResult<String> {
     context(
         "string literal",
         alt((parse_single_quoted, parse_double_quoted)),

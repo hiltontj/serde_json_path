@@ -38,7 +38,7 @@ fn parse_name_char(input: &str) -> PResult<&str> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub fn parse_dot_member_name(input: &str) -> PResult<String> {
+pub(crate) fn parse_dot_member_name(input: &str) -> PResult<String> {
     map(
         recognize(pair(
             parse_name_first,
@@ -104,7 +104,7 @@ fn parse_descendant_segment(input: &str) -> PResult<Segment> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub fn parse_segment(input: &str) -> PResult<QuerySegment> {
+pub(crate) fn parse_segment(input: &str) -> PResult<QuerySegment> {
     alt((
         map(parse_descendant_segment, |inner| QuerySegment {
             kind: QuerySegmentKind::Descendant,
