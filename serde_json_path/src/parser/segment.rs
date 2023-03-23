@@ -180,7 +180,7 @@ mod tests {
             let err = parse_child_long_hand("[010]").unwrap_err();
             match err {
                 nom::Err::Error(e) | nom::Err::Failure(e) => println!("{e:#?}"),
-                _ => panic!("wrong error kind: {err:?}"),
+                nom::Err::Incomplete(_) => panic!("wrong error kind: {err:?}"),
             }
         }
     }
