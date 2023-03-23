@@ -7,6 +7,7 @@ mod args;
 mod define;
 mod extract;
 
+/// Register a function for use in JSONPath queries
 #[proc_macro_attribute]
 pub fn function(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr as FunctionMacroArgs);

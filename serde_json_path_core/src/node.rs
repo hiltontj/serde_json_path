@@ -179,10 +179,10 @@ pub struct AtMostOneError(pub usize);
 /// Error produced when expecting exactly one node from a query
 #[derive(Debug, thiserror::Error)]
 pub enum ExactlyOneError {
-    /// The query resulted in an empty [`Nodelist`]
+    /// The query resulted in an empty [`NodeList`]
     #[error("nodelist expected to contain one entry, but is empty")]
     Empty,
-    /// The query resulted in a [`Nodelist`] containing more than one node
+    /// The query resulted in a [`NodeList`] containing more than one node
     #[error("nodelist expected to contain one entry, but instead contains {0} entries")]
     MoreThanOne(usize),
 }

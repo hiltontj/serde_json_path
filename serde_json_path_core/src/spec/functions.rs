@@ -56,7 +56,7 @@ impl<'a> NodesType<'a> {
         JsonPathTypeKind::Nodelist
     }
 
-    /// Extract the inner [`Nodelist`]
+    /// Extract the inner [`NodeList`]
     pub fn into_inner(self) -> NodeList<'a> {
         self.0
     }
