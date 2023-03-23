@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+# 0.5.3 (14 March 2023)
+
+- **fixed:** Fix serialization behaviour of `NodeList` ([#30])
+
+[#30]: https://github.com/hiltontj/serde_json_path/pull/30
+
 # 0.5.2 (13 March 2023)
 
 - **added:** Add `first`, `last`, and `get` methods to `NodeList` type ([#16])

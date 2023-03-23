@@ -13,4 +13,4 @@ serde_json = "1.0"
 thiserror = "1.0"
 
 [dev-dependencies]
-serde_json_path = { path = "../serde_json_path", version = "0.5.2" }
+serde_json_path = { path = "../serde_json_path", version = "0.5.3" }

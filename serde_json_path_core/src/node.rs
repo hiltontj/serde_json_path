@@ -9,9 +9,7 @@ use serde_json::Value;
 /// Each node within the list is a borrowed reference to the node in the original
 /// [`serde_json::Value`] that was queried.
 #[derive(Debug, Default, Eq, PartialEq, Serialize)]
-pub struct NodeList<'a> {
-    pub(crate) nodes: Vec<&'a Value>,
-}
+pub struct NodeList<'a>(pub(crate) Vec<&'a Value>);
 
 impl<'a> NodeList<'a> {
     /// Extract _at most_ one node from a [`NodeList`]
@@ -39,12 +37,12 @@ impl<'a> NodeList<'a> {
     /// # }
     /// ```
     pub fn at_most_one(&self) -> Result<Option<&'a Value>, AtMostOneError> {
-        if self.nodes.is_empty() {
+        if self.0.is_empty() {
             Ok(None)
-        } else if self.nodes.len() > 1 {
-            Err(AtMostOneError(self.nodes.len()))
+        } else if self.0.len() > 1 {
+            Err(AtMostOneError(self.0.len()))
         } else {
-            Ok(self.nodes.get(0).copied())
+            Ok(self.0.get(0).copied())
         }
     }
 
@@ -73,12 +71,12 @@ impl<'a> NodeList<'a> {
     /// # }
     /// ```
     pub fn exactly_one(&self) -> Result<&'a Value, ExactlyOneError> {
-        if self.nodes.is_empty() {
+        if self.0.is_empty() {
             Err(ExactlyOneError::Empty)
-        } else if self.nodes.len() > 1 {
-            Err(ExactlyOneError::MoreThanOne(self.nodes.len()))
+        } else if self.0.len() > 1 {
+            Err(ExactlyOneError::MoreThanOne(self.0.len()))
         } else {
-            Ok(self.nodes.get(0).unwrap())
+            Ok(self.0.get(0).unwrap())
         }
     }
 
@@ -99,40 +97,40 @@ impl<'a> NodeList<'a> {
     /// # }
     /// ```
     pub fn all(self) -> Vec<&'a Value> {
-        self.nodes
+        self.0
     }
 
     /// Get the length of a [`NodeList`]
     pub fn len(&self) -> usize {
-        self.nodes.len()
+        self.0.len()
     }
 
     /// Check if a [NodeList] is empty
     pub fn is_empty(&self) -> bool {
-        self.nodes.is_empty()
+        self.0.is_empty()
     }
 
     /// Get an iterator over a [`NodeList`]
     ///
     /// Note that [`NodeList`] also implements [`IntoIterator`].
     pub fn iter(&self) -> Iter<'_, &Value> {
-        self.nodes.iter()
+        self.0.iter()
     }
 
     /// Returns the first node in the [`NodeList`], or `None` if it is empty
     pub fn first(&self) -> Option<&'a Value> {
-        self.nodes.first().copied()
+        self.0.first().copied()
     }
 
     /// Returns the last node in the [`NodeList`], or `None` if it is empty
     pub fn last(&self) -> Option<&'a Value> {
-        self.nodes.last().copied()
+        self.0.last().copied()
     }
 
     /// Returns the node at the given index in the [`NodeList`], or `None` if the given index is
     /// out of bounds.
     pub fn get(&self, index: usize) -> Option<&'a Value> {
-        self.nodes.get(index).copied()
+        self.0.get(index).copied()
     }
 
     /// Extract _at most_ one node from a [`NodeList`]
@@ -163,10 +161,10 @@ impl<'a> NodeList<'a> {
         note = "it is recommended to use `at_most_one`, `exactly_one`, `first`, `last`, or `get` instead"
     )]
     pub fn one(self) -> Option<&'a Value> {
-        if self.nodes.is_empty() || self.nodes.len() > 1 {
+        if self.0.is_empty() || self.0.len() > 1 {
             None
         } else {
-            self.nodes.get(0).copied()
+            self.0.get(0).copied()
         }
     }
 }
@@ -189,7 +187,7 @@ pub enum ExactlyOneError {
 
 impl<'a> From<Vec<&'a Value>> for NodeList<'a> {
     fn from(nodes: Vec<&'a Value>) -> Self {
-        Self { nodes }
+        Self(nodes)
     }
 }
 
@@ -199,23 +197,15 @@ impl<'a> IntoIterator for NodeList<'a> {
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.nodes.into_iter()
+        self.0.into_iter()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::node::NodeList;
-
-    // TODO - where to re-locate this, if even neccessary
-    // #[test]
-    // fn api_tests() {
-    //     let v = json!([1, 2, 3, 4, 5]);
-    //     let q = JsonPath::parse("$.*").expect("valid query").query(&v);
-    //     assert_eq!(q.first().unwrap(), 1);
-    //     assert_eq!(q.last().unwrap(), 5);
-    //     assert_eq!(q.get(1).unwrap(), 2);
-    // }
+    use serde_json::{json, to_value};
+    use serde_json_path::JsonPath;
 
     #[test]
     fn test_send() {
@@ -227,5 +217,12 @@ mod tests {
     fn test_sync() {
         fn assert_sync<T: Sync>() {}
         assert_sync::<NodeList>();
+    }
+
+    #[test]
+    fn test_serialize() {
+        let v = json!([1, 2, 3, 4]);
+        let q = JsonPath::parse("$.*").expect("valid query").query(&v);
+        assert_eq!(to_value(q).expect("serialize"), v);
     }
 }
