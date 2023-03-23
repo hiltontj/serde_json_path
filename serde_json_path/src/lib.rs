@@ -260,4 +260,6 @@ pub use path::JsonPath;
 #[doc(inline)]
 pub use serde_json_path_core::node::{AtMostOneError, ExactlyOneError, NodeList};
 
+pub use serde_json_path_core::spec::functions;
+
 pub use serde_json_path_macros::function;

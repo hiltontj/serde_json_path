@@ -146,11 +146,11 @@ impl From<bool> for LogicalType {
 /// JSONPath type representing a JSON value or Nothing
 #[derive(Debug)]
 pub enum ValueType<'a> {
-    /// A literal value
+    /// A literal value, either defined in a query, or produced by a function
     Value(Value),
     /// A reference to a node in a JSON object, generally resulting from a singular query
     Node(&'a Value),
-    /// Nothing, generally the result of a singular query that did not produce a node
+    /// The result of a singular query that did not produce a node
     Nothing,
 }
 
@@ -243,6 +243,7 @@ impl<'a> From<LogicalType> for JsonPathType<'a> {
     }
 }
 
+#[doc(hidden)]
 /// Error used to convey JSONPath queries that are not well-typed
 #[derive(Debug, thiserror::Error)]
 pub enum ConversionError {
@@ -421,6 +422,7 @@ impl FunctionExprArg {
     }
 }
 
+#[doc(hidden)]
 /// An error occurred while validating a function
 #[derive(Debug, thiserror::Error, PartialEq)]
 pub enum FunctionValidationError {
