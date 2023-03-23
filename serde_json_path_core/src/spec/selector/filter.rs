@@ -275,23 +275,26 @@ impl std::fmt::Display for ComparisonExpr {
 impl TestFilter for ComparisonExpr {
     #[cfg_attr(feature = "trace", tracing::instrument(name = "Test Comparison Expr", level = "trace", parent = None, ret))]
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
-        use ComparisonOperator::*;
         let left = self.left.as_value(current, root);
         let right = self.right.as_value(current, root);
         match self.op {
-            EqualTo => check_equal_to(&left, &right),
-            NotEqualTo => !check_equal_to(&left, &right),
-            LessThan => check_same_type(&left, &right) && check_less_than(&left, &right),
-            GreaterThan => {
+            ComparisonOperator::EqualTo => check_equal_to(&left, &right),
+            ComparisonOperator::NotEqualTo => !check_equal_to(&left, &right),
+            ComparisonOperator::LessThan => {
+                check_same_type(&left, &right) && check_less_than(&left, &right)
+            }
+            ComparisonOperator::GreaterThan => {
                 check_same_type(&left, &right)
                     && !check_less_than(&left, &right)
                     && !check_equal_to(&left, &right)
             }
-            LessThanEqualTo => {
+            ComparisonOperator::LessThanEqualTo => {
                 check_same_type(&left, &right)
                     && (check_less_than(&left, &right) || check_equal_to(&left, &right))
             }
-            GreaterThanEqualTo => check_same_type(&left, &right) && !check_less_than(&left, &right),
+            ComparisonOperator::GreaterThanEqualTo => {
+                check_same_type(&left, &right) && !check_less_than(&left, &right)
+            }
         }
     }
 }

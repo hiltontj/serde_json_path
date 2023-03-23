@@ -273,14 +273,16 @@ impl JsonPathTypeKind {
     pub fn converts_to(&self, other: Self) -> bool {
         matches!(
             (self, other),
-            (JsonPathTypeKind::Nodelist, JsonPathTypeKind::Nodelist)
-                | (JsonPathTypeKind::Nodelist, JsonPathTypeKind::Logical)
-                | (JsonPathTypeKind::Node, JsonPathTypeKind::Nodelist)
-                | (JsonPathTypeKind::Node, JsonPathTypeKind::Node)
-                | (JsonPathTypeKind::Node, JsonPathTypeKind::Value)
-                | (JsonPathTypeKind::Value, JsonPathTypeKind::Node)
-                | (JsonPathTypeKind::Value, JsonPathTypeKind::Value)
-                | (JsonPathTypeKind::Logical, JsonPathTypeKind::Logical)
+            (
+                JsonPathTypeKind::Nodelist,
+                JsonPathTypeKind::Nodelist | JsonPathTypeKind::Logical
+            ) | (
+                JsonPathTypeKind::Node,
+                JsonPathTypeKind::Nodelist | JsonPathTypeKind::Node | JsonPathTypeKind::Value
+            ) | (
+                JsonPathTypeKind::Value,
+                JsonPathTypeKind::Node | JsonPathTypeKind::Value
+            ) | (JsonPathTypeKind::Logical, JsonPathTypeKind::Logical)
         )
     }
 }
@@ -377,37 +379,35 @@ impl std::fmt::Display for FunctionExprArg {
 impl FunctionExprArg {
     #[cfg_attr(feature = "trace", tracing::instrument(name = "Evaluate Function Arg", level = "trace", parent = None, ret))]
     fn evaluate<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> JsonPathType<'a> {
-        use FunctionExprArg::*;
         match self {
-            Literal(lit) => lit.into(),
-            SingularQuery(q) => match q.eval_query(current, root) {
+            FunctionExprArg::Literal(lit) => lit.into(),
+            FunctionExprArg::SingularQuery(q) => match q.eval_query(current, root) {
                 Some(n) => JsonPathType::Node(n),
                 None => JsonPathType::Nothing,
             },
-            FilterQuery(q) => JsonPathType::Nodes(q.query(current, root).into()),
-            LogicalExpr(l) => match l.test_filter(current, root) {
+            FunctionExprArg::FilterQuery(q) => JsonPathType::Nodes(q.query(current, root).into()),
+            FunctionExprArg::LogicalExpr(l) => match l.test_filter(current, root) {
                 true => JsonPathType::Logical(LogicalType::True),
                 false => JsonPathType::Logical(LogicalType::False),
             },
-            FunctionExpr(f) => f.evaluate(current, root),
+            FunctionExprArg::FunctionExpr(f) => f.evaluate(current, root),
         }
     }
 
     #[cfg_attr(feature = "trace", tracing::instrument(name = "Function Arg As Type Kind", level = "trace", parent = None, ret))]
     pub fn as_type_kind(&self) -> Result<JsonPathTypeKind, FunctionValidationError> {
-        use FunctionExprArg::*;
         match self {
-            Literal(_) => Ok(JsonPathTypeKind::Value),
-            SingularQuery(_) => Ok(JsonPathTypeKind::Node),
-            FilterQuery(query) => {
+            FunctionExprArg::Literal(_) => Ok(JsonPathTypeKind::Value),
+            FunctionExprArg::SingularQuery(_) => Ok(JsonPathTypeKind::Node),
+            FunctionExprArg::FilterQuery(query) => {
                 if query.is_singular() {
                     Ok(JsonPathTypeKind::Node)
                 } else {
                     Ok(JsonPathTypeKind::Nodelist)
                 }
             }
-            LogicalExpr(_) => Ok(JsonPathTypeKind::Logical),
-            FunctionExpr(func) => {
+            FunctionExprArg::LogicalExpr(_) => Ok(JsonPathTypeKind::Logical),
+            FunctionExprArg::FunctionExpr(func) => {
                 for f in inventory::iter::<Function> {
                     if f.name == func.name.as_str() {
                         return Ok(f.result_type);

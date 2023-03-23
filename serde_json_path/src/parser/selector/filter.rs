@@ -118,14 +118,13 @@ fn parse_comp_expr(input: &str) -> PResult<ComparisonExpr> {
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_comparison_operator(input: &str) -> PResult<ComparisonOperator> {
-    use ComparisonOperator::*;
     alt((
-        value(EqualTo, tag("==")),
-        value(NotEqualTo, tag("!=")),
-        value(LessThanEqualTo, tag("<=")),
-        value(GreaterThanEqualTo, tag(">=")),
-        value(LessThan, char('<')),
-        value(GreaterThan, char('>')),
+        value(ComparisonOperator::EqualTo, tag("==")),
+        value(ComparisonOperator::NotEqualTo, tag("!=")),
+        value(ComparisonOperator::LessThanEqualTo, tag("<=")),
+        value(ComparisonOperator::GreaterThanEqualTo, tag(">=")),
+        value(ComparisonOperator::LessThan, char('<')),
+        value(ComparisonOperator::GreaterThan, char('>')),
     ))(input)
 }
 

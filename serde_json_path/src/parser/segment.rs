@@ -47,7 +47,7 @@ pub(crate) fn parse_dot_member_name(input: &str) -> PResult<String> {
                 s
             }),
         )),
-        |s| s.to_string(),
+        |s| s.to_owned(),
     )(input)
 }
 
