@@ -34,4 +34,4 @@ additional terms or conditions.
 [license]: https://github.com/hiltontj/serde_json_path/blob/main/LICENSE-MIT
 [func_ext_issue]: https://github.com/hiltontj/serde_json_path/issues/1
 [error_issue]: https://github.com/hiltontj/serde_json_path/issues/4
-[jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-10.html
+[jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-11.html
