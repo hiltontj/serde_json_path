@@ -1,24 +1,13 @@
 //! Function Extensions in JSONPath
 //!
-//! The type system used in JSONPath function extensions is comprised of three types:
+//! Function Extensions in JSONPath serve as a way to extend the capability of queries in a way that
+//! the standard query syntax can not support. There are various functions included in JSONPath, all
+//! of which conform to a specified type system.
 //!
-//! ## 1. `NodesType`
+//! # The JSONPath Type System
 //!
-//! [`NodesType`] is a thin wrapper around a [`NodeList`], and generally represents the result of a
-//! JSONPath query.
-//!
-//! ## 2. `ValueType`
-//!
-//! [`ValueType`] can represent three things:
-//!
-//! * the result of a singular JSONPath query that produces a single node, i.e., a reference to a
-//!   [`serde_json::Value`]
-//! * the result of a singular JSONPath query that produces nothing
-//! * a literal JSON value, i.e., an owned [`serde_json::Value`]
-//!
-//! ## 3. `LogicalType`
-//!
-//! [`LogicalType`] represents either a logical true, or logical false value.
+//! The type system used in JSONPath function extensions is comprised of three types: [`NodesType`],
+//! [`ValueType`], and [`LogicalType`].
 //!
 //! # Registered Functions
 //!
@@ -34,13 +23,13 @@
 //!
 //! | Type | Description |
 //! |------|-------------|
-//! | `ValueType` | string, object, or array, possibly taken from a singular query |
+//! | [`ValueType`] | string, object, or array, possibly taken from a singular query |
 //!
 //! ### Result
 //!
 //! | Type | Description |
 //! |------|-------------|
-//! | `ValueType` | unsigned integer, or nothing |
+//! | [`ValueType`] | unsigned integer, or nothing |
 //!
 //! ### Example
 //!
@@ -57,13 +46,13 @@
 //!
 //! | Type | Description |
 //! |------|-------------|
-//! | `NodesType` | the nodelist whose members are being counted |
+//! | [`NodesType`] | the nodelist whose members are being counted |
 //!
 //! ### Result
 //!
 //! | Type | Description |
 //! |------|-------------|
-//! | `ValueType` | an unsigned integer |
+//! | [`ValueType`] | an unsigned integer |
 //!
 //! ### Example
 //!
@@ -80,14 +69,14 @@
 //!
 //! | Type | Description |
 //! |------|-------------|
-//! | `ValueType` | a string |
-//! | `ValueType` | a string representing a valid regular expression |
+//! | [`ValueType`] | a string |
+//! | [`ValueType`] | a string representing a valid regular expression |
 //!
 //! ### Result
 //!
 //! | Type | Description |
 //! |------|-------------|
-//! | `LogicalType` | true for a match, false otherwise |
+//! | [`LogicalType`] | true for a match, false otherwise |
 //!
 //! ### Example
 //!
@@ -104,14 +93,14 @@
 //!
 //! | Type | Description |
 //! |------|-------------|
-//! | `ValueType` | a string |
-//! | `ValueType` | a string representing a valid regular expression |
+//! | [`ValueType`] | a string |
+//! | [`ValueType`] | a string representing a valid regular expression |
 //!
 //! ### Result
 //!
 //! | Type | Description |
 //! |------|-------------|
-//! | `LogicalType` | true for a match, false otherwise |
+//! | [`LogicalType`] | true for a match, false otherwise |
 //!
 //! ### Example
 //!
@@ -128,13 +117,13 @@
 //!
 //! | Type | Description |
 //! |------|-------------|
-//! | `NodesType` | a nodelist to convert to a value |
+//! | [`NodesType`] | a nodelist to convert to a value |
 //!
 //! ### Result
 //!
 //! | Type | Description |
 //! |------|-------------|
-//! | `ValueType` | if the input nodelist contains a single node, the result is the value of that node, otherwise it is nothing |
+//! | [`ValueType`] | if the input nodelist contains a single node, the result is the value of that node, otherwise it is nothing |
 //!
 //! ### Example
 //!
@@ -190,6 +179,9 @@ impl Function {
 inventory::collect!(Function);
 
 /// JSONPath type epresenting a Nodelist
+///
+/// This is a thin wrapper around a [`NodeList`], and generally represents the result of a JSONPath
+/// query. It may also be produced by a function.
 #[derive(Debug)]
 pub struct NodesType<'a>(NodeList<'a>);
 
@@ -289,11 +281,14 @@ impl From<bool> for LogicalType {
 /// JSONPath type representing a JSON value or Nothing
 #[derive(Debug)]
 pub enum ValueType<'a> {
-    /// A literal value, either defined in a query, or produced by a function
+    /// This may come from a literal value declared in a JSONPath query, or be produced by a
+    /// function.
     Value(Value),
-    /// A reference to a node in a JSON object, generally resulting from a singular query
+    /// This would be a reference to a location in the JSON object being queried, i.e., the result
+    /// of a singular query, or produced by a function.
     Node(&'a Value),
-    /// The result of a singular query that did not produce a node
+    /// This would be the result of a singular query that does not result in any nodes, or be
+    /// produced by a function.
     Nothing,
 }
 

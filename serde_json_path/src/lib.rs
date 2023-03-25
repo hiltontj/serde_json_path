@@ -5,7 +5,7 @@
 //!
 //! Please note that the specification has not yet been published as an RFC; therefore, this crate
 //! may evolve as JSONPath becomes standardized.
-//! 
+//!
 //! # Features
 //!
 //! This crate provides two key abstractions:
@@ -16,9 +16,9 @@
 //!
 //! In addition, the [`JsonPathExt`] trait is provided, which extends the [`serde_json::Value`]
 //! type with the [`json_path`][JsonPathExt::json_path] method for performing JSONPath queries.
-//! 
-//! Finally, checkout the [`#[function]`][function] attribute macro, which allows you to extend your
-//! JSONPath queries to use custom fucntions.
+//!
+//! Finally, the [`#[function]`][function] attribute macro allows you to extend your JSONPath
+//! queries to use custom functions.
 //!
 //! # Usage
 //!
@@ -153,6 +153,25 @@
 //! # Ok(())
 //! # }
 //! ```
+//!
+//! Filters also allow you to make use of [functions] in your queries:
+//!
+//! ```rust
+//! # use serde_json::json;
+//! # use serde_json_path::JsonPath;
+//! # fn main() -> Result<(), serde_json_path::Error> {
+//! let value = json!([
+//!     "a short string",
+//!     "a longer string",
+//!     "an unnecessarily long string",
+//! ]);
+//! let path = JsonPath::parse("$[? length(@) < 20 ]")?;
+//! let nodes = path.query(&value).all();
+//! assert_eq!(nodes, vec!["a short string", "a longer string"]);
+//! # Ok(())
+//! # }
+//! ```
+//!
 //! #### Recursive descent (`..`)
 //!
 //! ```rust
@@ -170,27 +189,6 @@
 //! let path = JsonPath::parse("$.foo..baz")?;
 //! let nodes = path.query(&value).all();
 //! assert_eq!(nodes, vec![2, 1]);
-//! # Ok(())
-//! # }
-//! ```
-//!
-//! As seen there, one of the useful features of JSONPath is its ability to extract deeply nested values.
-//! Here is another example:
-//!
-//! ```rust
-//! # use serde_json::json;
-//! # use serde_json_path::JsonPath;
-//! # fn main() -> Result<(), serde_json_path::Error> {
-//! let value = json!({
-//!     "foo": [
-//!         { "bar": 1 },
-//!         { "bar": 2 },
-//!         { "bar": 3 }
-//!     ]
-//! });
-//! let path = JsonPath::parse("$.foo.*.bar")?;
-//! let nodes = path.query(&value).all();
-//! assert_eq!(nodes, vec![1, 2, 3]);
 //! # Ok(())
 //! # }
 //! ```
@@ -262,9 +260,10 @@ pub use serde_json_path_core::spec::functions;
 /// Register a function for use in JSONPath queries
 ///
 /// The `#[function]` attribute macro allows you to define your own functions for use in your
-/// JSONPath queries. Note that `serde_json_path` already provides the functions defined in the IETF
-/// JSONPath specification. You can find documentation for those functions in the [functions]
-/// module.
+/// JSONPath queries.
+///
+/// Note that `serde_json_path` already provides the functions defined in the IETF JSONPath
+/// specification. You can find documentation for those in the [functions] module.
 ///
 /// # Usage
 ///
@@ -273,7 +272,8 @@ pub use serde_json_path_core::spec::functions;
 /// use serde_json_path::JsonPath;
 /// use serde_json_path::functions::{NodesType, ValueType};
 ///
-/// // This will register a function called `first`:
+/// // This will register a function called "first" that takes the first node from a nodelist and
+/// // returns a reference to that node, if it contains any nodes, or nothing otherwise:
 /// #[serde_json_path::function]
 /// fn first(nodes: NodesType) -> ValueType {
 ///     match nodes.into_inner().first() {
@@ -298,23 +298,20 @@ pub use serde_json_path_core::spec::functions;
 ///
 /// # Compile-time Checking
 ///
-/// The JSONPath type system is outlined in detail in the [functions] module, and consists of the
-/// three types:
-///
-/// - [`NodesType`][functions::NodesType],
-/// - [`ValueType`][functions::ValueType], and
-/// - [`LogicalType`][functions::LogicalType].
+/// `#[function]` will ensure validity of your custom functions at compile time. The JSONPath type
+/// system is outlined in more detail in the [functions] module, but consists of the three types:
+/// [`NodesType`][functions::NodesType], [`ValueType`][functions::ValueType], and
+/// [`LogicalType`][functions::LogicalType].
 ///
 /// When defining your own JSONPath functions, you must use only these types as arguments to your
-/// functions. In addition, your function must return one of these types.
-///
-/// If you fail to do so, the macro will produce a compilation error.
+/// functions. In addition, your function must return one of these types. If you do not, the macro
+/// will produce a helpful compiler error.
 ///
 /// # Override function name using the `name` argument
 ///
 /// By default, the function name available in your JSONPath queries will be that of the function
 /// defined in your Rust code. However, you can specify the name that will be used from within your
-/// JSONPath queries using the `name` argument.
+/// JSONPath queries using the `name` argument:
 ///
 /// ```
 /// # use serde_json_path::JsonPath;
@@ -324,7 +321,7 @@ pub use serde_json_path_core::spec::functions;
 ///     /* ... */
 ///     # LogicalType::False
 /// }
-/// // You can then call this in your queries using `match` (instead of `match_func`):
+/// // You can then call this in your queries using "match" (instead of "match_func"):
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let path = JsonPath::parse("$[? match(@.foo, 'ba[rz]')]")?;
 /// # Ok(())
