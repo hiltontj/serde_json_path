@@ -4,7 +4,7 @@ use serde_json_path_core::spec::functions::{LogicalType, NodesType, ValueType};
 
 fn value_length(value: &Value) -> Option<usize> {
     match value {
-        Value::String(s) => Some(s.len()),
+        Value::String(s) => Some(s.chars().count()),
         Value::Array(a) => Some(a.len()),
         Value::Object(o) => Some(o.len()),
         _ => None,

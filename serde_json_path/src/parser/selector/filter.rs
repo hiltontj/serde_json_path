@@ -3,6 +3,9 @@ use nom::combinator::{map, map_res};
 use nom::multi::separated_list1;
 use nom::sequence::{delimited, pair, preceded, separated_pair, tuple};
 use nom::{branch::alt, bytes::complete::tag, combinator::value};
+use serde_json_path_core::spec::functions::{
+    FunctionExpr, FunctionValidationError, JsonPathTypeKind,
+};
 use serde_json_path_core::spec::selector::filter::{
     BasicExpr, Comparable, ComparisonExpr, ComparisonOperator, ExistExpr, Filter, Literal,
     LogicalAndExpr, LogicalOrExpr, SingularQuery,
@@ -12,6 +15,7 @@ use super::function::parse_function_expr;
 use crate::parser::primitive::number::parse_number;
 use crate::parser::primitive::string::parse_string_literal;
 use crate::parser::primitive::{parse_bool, parse_null};
+use crate::parser::utils::uncut;
 use crate::parser::{parse_query, PResult};
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
@@ -57,14 +61,22 @@ fn parse_not_exist_expr(input: &str) -> PResult<BasicExpr> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
+fn parse_func_expr_inner(input: &str) -> PResult<FunctionExpr> {
+    map_res(parse_function_expr, |fe| match fe.return_type {
+        JsonPathTypeKind::Nodelist | JsonPathTypeKind::Logical => Ok(fe),
+        _ => Err(FunctionValidationError::IncorrectFunctionReturnType),
+    })(input)
+}
+
+#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_func_expr(input: &str) -> PResult<BasicExpr> {
-    map(parse_function_expr, BasicExpr::FuncExpr)(input)
+    map(parse_func_expr_inner, BasicExpr::FuncExpr)(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_not_func_expr(input: &str) -> PResult<BasicExpr> {
     map(
-        preceded(pair(char('!'), space0), parse_function_expr),
+        preceded(pair(char('!'), space0), parse_func_expr_inner),
         BasicExpr::NotFuncExpr,
     )(input)
 }
@@ -99,8 +111,8 @@ fn parse_basic_expr(input: &str) -> PResult<BasicExpr> {
         map(parse_comp_expr, BasicExpr::Relation),
         parse_not_exist_expr,
         parse_exist_expr,
-        parse_func_expr,
         parse_not_func_expr,
+        parse_func_expr,
     ))(input)
 }
 
@@ -155,16 +167,22 @@ fn parse_singular_path_comparable(input: &str) -> PResult<Comparable> {
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_function_expr_comparable(input: &str) -> PResult<Comparable> {
-    map(parse_function_expr, Comparable::FunctionExpr)(input)
+    map_res(parse_function_expr, |fe| {
+        match fe.return_type {
+            JsonPathTypeKind::Node | JsonPathTypeKind::Value | JsonPathTypeKind::Nothing => Ok(fe),
+            _ => Err(FunctionValidationError::IncorrectFunctionReturnType),
+        }
+        .map(Comparable::FunctionExpr)
+    })(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub(crate) fn parse_comparable(input: &str) -> PResult<Comparable> {
-    alt((
+    uncut(alt((
         parse_literal_comparable,
         parse_singular_path_comparable,
         parse_function_expr_comparable,
-    ))(input)
+    )))(input)
 }
 
 #[cfg(test)]

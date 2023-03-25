@@ -15,6 +15,7 @@ use self::segment::parse_segment;
 pub(crate) mod primitive;
 pub(crate) mod segment;
 pub(crate) mod selector;
+pub(crate) mod utils;
 
 type PResult<'a, O> = IResult<&'a str, O, ParserError<&'a str>>;
 

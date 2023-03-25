@@ -75,9 +75,6 @@ pub(crate) fn parse_function_expr(input: &str) -> PResult<FunctionExpr> {
                 preceded(space0, char(')')),
             ),
         ),
-        |(name, args)| {
-            let fn_expr = FunctionExpr { name, args };
-            fn_expr.validate()
-        },
+        |(name, args)| FunctionExpr::validate(name, args),
     ))(input)
 }

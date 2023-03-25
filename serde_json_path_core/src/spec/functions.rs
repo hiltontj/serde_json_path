@@ -448,6 +448,7 @@ impl std::fmt::Display for JsonPathTypeKind {
 pub struct FunctionExpr {
     pub name: String,
     pub args: Vec<FunctionExprArg>,
+    pub return_type: JsonPathTypeKind,
 }
 
 impl FunctionExpr {
@@ -471,16 +472,21 @@ impl FunctionExpr {
         unreachable!()
     }
 
-    pub fn validate(self) -> Result<Self, FunctionValidationError> {
+    pub fn validate(
+        name: String,
+        args: Vec<FunctionExprArg>,
+    ) -> Result<Self, FunctionValidationError> {
         for f in inventory::iter::<Function> {
-            if f.name == self.name {
-                match (f.validator)(self.args.as_slice()) {
-                    Ok(_) => return Ok(self),
-                    Err(e) => return Err(e),
-                }
+            if f.name == name {
+                (f.validator)(args.as_slice())?;
+                return Ok(Self {
+                    name,
+                    args,
+                    return_type: f.result_type,
+                });
             }
         }
-        Err(FunctionValidationError::Undefined { name: self.name })
+        Err(FunctionValidationError::Undefined { name })
     }
 }
 
@@ -593,6 +599,8 @@ pub enum FunctionValidationError {
         /// Argument position
         position: usize,
     },
+    #[error("function with incorrect return type used")]
+    IncorrectFunctionReturnType,
 }
 
 impl TestFilter for FunctionExpr {
