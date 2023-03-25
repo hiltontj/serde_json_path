@@ -15,7 +15,6 @@
 
 ## Planned Development
 
-* [Function Expressions][func_ext_issue]
 * [Improved Error Handling][error_issue]
 
 ## License
