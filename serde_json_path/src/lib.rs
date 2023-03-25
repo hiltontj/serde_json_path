@@ -4,9 +4,8 @@
 //! specification to read more about JSONPath, and to find many examples of its usage.
 //!
 //! Please note that the specification has not yet been published as an RFC; therefore, this crate
-//! may evolve as JSONPath becomes standardized. See [Unimplemented Features](#unimplemented-features)
-//! for more details on which parts of the specification are not implemented by this crate.
-//!
+//! may evolve as JSONPath becomes standardized.
+//! 
 //! # Features
 //!
 //! This crate provides two key abstractions:
@@ -17,6 +16,9 @@
 //!
 //! In addition, the [`JsonPathExt`] trait is provided, which extends the [`serde_json::Value`]
 //! type with the [`json_path`][JsonPathExt::json_path] method for performing JSONPath queries.
+//! 
+//! Finally, checkout the [`#[function]`][function] attribute macro, which allows you to extend your
+//! JSONPath queries to use custom fucntions.
 //!
 //! # Usage
 //!
@@ -195,14 +197,6 @@
 //!
 //! See the [integration tests][tests] in the repository for more examples based on those found in
 //! the JSONPath specification.
-//!
-//! # Unimplemented Features
-//!
-//! Parts of the JSONPath specification that are not implemented by this crate are listed here.
-//!
-//! * [Function Extensions][func_ext]: this is a planned feature for the crate, but has not yet
-//!   been implemented.
-//! * [Normalized Paths][norm_path]: this is not a planned feature for the crate.
 //!
 //! [tests]: https://github.com/hiltontj/serde_json_path/blob/main/tests/spec_examples.rs
 //! [jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-11.html
