@@ -3,7 +3,7 @@ use syn::{
     LitStr, Token,
 };
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub(crate) struct FunctionMacroArgs {
     pub(crate) name: Option<LitStr>,
 }

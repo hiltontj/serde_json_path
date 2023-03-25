@@ -254,12 +254,105 @@ mod ext;
 mod parser;
 mod path;
 
+#[doc(inline)]
 pub use error::Error;
+#[doc(inline)]
 pub use ext::JsonPathExt;
+#[doc(inline)]
 pub use path::JsonPath;
 #[doc(inline)]
 pub use serde_json_path_core::node::{AtMostOneError, ExactlyOneError, NodeList};
 
 pub use serde_json_path_core::spec::functions;
 
+/// Register a function for use in JSONPath queries
+///
+/// The `#[function]` attribute macro allows you to define your own functions for use in your
+/// JSONPath queries. Note that `serde_json_path` already provides the functions defined in the IETF
+/// JSONPath specification. You can find documentation for those functions in the [functions]
+/// module.
+///
+/// # Usage
+///
+/// ```
+/// use serde_json::json;
+/// use serde_json_path::JsonPath;
+/// use serde_json_path::functions::{NodesType, ValueType};
+///
+/// // This will register a function called `first`:
+/// #[serde_json_path::function]
+/// fn first(nodes: NodesType) -> ValueType {
+///     match nodes.into_inner().first() {
+///         Some(n) => ValueType::Node(n),
+///         None => ValueType::Nothing,
+///     }
+/// }
+///
+/// // You can now use this function in your JSONPath queries:
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let value = json!([
+///     [1, 2, 3],
+///     [4, 5, 6],
+///     [7, 8, 9],
+/// ]);
+/// let path = JsonPath::parse("$[? first(@.*) == 4 ]")?;
+/// let node = path.query(&value).exactly_one()?;
+/// assert_eq!(node, &json!([4, 5, 6]));
+/// # Ok(())
+/// # }
+/// ```
+///
+/// # Compile-time Checking
+///
+/// The JSONPath type system is outlined in detail in the [functions] module, and consists of the
+/// three types:
+///
+/// - [`NodesType`][functions::NodesType],
+/// - [`ValueType`][functions::ValueType], and
+/// - [`LogicalType`][functions::LogicalType].
+///
+/// When defining your own JSONPath functions, you must use only these types as arguments to your
+/// functions. In addition, your function must return one of these types.
+///
+/// If you fail to do so, the macro will produce a compilation error.
+///
+/// # Override function name using the `name` argument
+///
+/// By default, the function name available in your JSONPath queries will be that of the function
+/// defined in your Rust code. However, you can specify the name that will be used from within your
+/// JSONPath queries using the `name` argument.
+///
+/// ```
+/// # use serde_json_path::JsonPath;
+/// # use serde_json_path::functions::{ValueType, LogicalType};
+/// #[serde_json_path::function(name = "match")]
+/// fn match_func(node: ValueType, regexp: ValueType) -> LogicalType {
+///     /* ... */
+///     # LogicalType::False
+/// }
+/// // You can then call this in your queries using `match` (instead of `match_func`):
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let path = JsonPath::parse("$[? match(@.foo, 'ba[rz]')]")?;
+/// # Ok(())
+/// # }
+/// ```
+///
+/// # How it works
+///
+/// In addition to type checking the function signature, the `#[function]` macro generates two
+/// pieces of code: a validator and an evaluator.
+///
+/// The validator is used to ensure validity of function usage in your JSONPath query strings during
+/// parsing, and will produce errors when calling, e.g., [`JsonPath::parse`], if you have misused a
+/// function in your query.
+///
+/// The evaluator is used to evaluate the function when using [`JsonPath::query`] to evaluate a
+/// JSONPath query against a [`serde_json::Value`].
+///
+/// The validator and evaluator are generated as lazily evaluated static closures and registered
+/// into a single function registry using the [`inventory`] crate. This means you can define your
+/// functions in any source file linked into your application.
+///
+/// [`inventory`]: https://docs.rs/inventory/latest/inventory/
+#[doc(inline)]
 pub use serde_json_path_macros::function;

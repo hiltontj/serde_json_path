@@ -87,8 +87,8 @@ fn get_some_books() -> Value {
                     "title": "The Three Musketeers"
                 },
                 {
-                    "author": "William Schirer",
-                    "title": "The Rise and Fall of the Third Reich"
+                    "author": "Leo Tolstoy",
+                    "title": "War and Peace"
                 }
             ]
         },
@@ -122,7 +122,7 @@ fn custom_first_function() {
     let node = path.query(&value).exactly_one().unwrap();
     println!("{node:#?}");
     assert_eq!(
-        "The Rise and Fall of the Third Reich",
+        "War and Peace",
         node.pointer("/books/1/title").unwrap().as_str().unwrap(),
     );
 }

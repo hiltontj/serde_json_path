@@ -1,4 +1,147 @@
-//! Types used for representing Function Extensions in JSONPath
+//! Function Extensions in JSONPath
+//!
+//! The type system used in JSONPath function extensions is comprised of three types:
+//!
+//! ## 1. `NodesType`
+//!
+//! [`NodesType`] is a thin wrapper around a [`NodeList`], and generally represents the result of a
+//! JSONPath query.
+//!
+//! ## 2. `ValueType`
+//!
+//! [`ValueType`] can represent three things:
+//!
+//! * the result of a singular JSONPath query that produces a single node, i.e., a reference to a
+//!   [`serde_json::Value`]
+//! * the result of a singular JSONPath query that produces nothing
+//! * a literal JSON value, i.e., an owned [`serde_json::Value`]
+//!
+//! ## 3. `LogicalType`
+//!
+//! [`LogicalType`] represents either a logical true, or logical false value.
+//!
+//! # Registered Functions
+//!
+//! The IETF JSONPath Specification defines several functions for use in JSONPath query filter
+//! expressions, all of which are provided for use in `serde_json_path`, and defined below.
+//!
+//! ## `length`
+//!
+//! The `length` function extension provides a way to compute the length of a value and make that
+//! available for further processing in the filter expression.
+//!
+//! ### Parameters
+//!
+//! | Type | Description |
+//! |------|-------------|
+//! | `ValueType` | string, object, or array, possibly taken from a singular query |
+//!
+//! ### Result
+//!
+//! | Type | Description |
+//! |------|-------------|
+//! | `ValueType` | unsigned integer, or nothing |
+//!
+//! ### Example
+//!
+//! ```text
+//! $[?length(@.authors) >= 5]
+//! ```
+//!
+//! ## `count`
+//!
+//! The `count` function extension provides a way to obtain the number of nodes in a nodelist and
+//! make that available for further processing inthe filter expression.
+//!
+//! ### Parameters
+//!
+//! | Type | Description |
+//! |------|-------------|
+//! | `NodesType` | the nodelist whose members are being counted |
+//!
+//! ### Result
+//!
+//! | Type | Description |
+//! |------|-------------|
+//! | `ValueType` | an unsigned integer |
+//!
+//! ### Example
+//!
+//! ```text
+//! $[?count(@.*.author) >= 5]
+//! ```
+//!
+//! ## `match`
+//!
+//! The `match` function extension provides a way to check whether **the entirety** of a given
+//! string matches a given regular expression.
+//!
+//! ### Parameters
+//!
+//! | Type | Description |
+//! |------|-------------|
+//! | `ValueType` | a string |
+//! | `ValueType` | a string representing a valid regular expression |
+//!
+//! ### Result
+//!
+//! | Type | Description |
+//! |------|-------------|
+//! | `LogicalType` | true for a match, false otherwise |
+//!
+//! ### Example
+//!
+//! ```text
+//! $[?match(@.date, "1974-05-..")]
+//! ```
+//!
+//! ## `search`
+//!
+//! The `search` function extension provides a way to check whether a given string contains a
+//! substring that matches a given regular expression.
+//!
+//! ### Parameters
+//!
+//! | Type | Description |
+//! |------|-------------|
+//! | `ValueType` | a string |
+//! | `ValueType` | a string representing a valid regular expression |
+//!
+//! ### Result
+//!
+//! | Type | Description |
+//! |------|-------------|
+//! | `LogicalType` | true for a match, false otherwise |
+//!
+//! ### Example
+//!
+//! ```text
+//! $[?search(@.author, "[BR]ob")]
+//! ```
+//!
+//! ## `value`
+//!
+//! The `value` function extension provides a way to convert an instance of `NodesType` to a value
+//! and make that available for further processing in the filter expression.
+//!
+//! ### Parameters
+//!
+//! | Type | Description |
+//! |------|-------------|
+//! | `NodesType` | a nodelist to convert to a value |
+//!
+//! ### Result
+//!
+//! | Type | Description |
+//! |------|-------------|
+//! | `ValueType` | if the input nodelist contains a single node, the result is the value of that node, otherwise it is nothing |
+//!
+//! ### Example
+//!
+//! ```text
+//! $[?value(@..color) == "red"]
+//! ```
+//!
 use std::collections::VecDeque;
 
 use once_cell::sync::Lazy;
@@ -167,6 +310,11 @@ impl<'a> ValueType<'a> {
             ValueType::Node(v) => Some(v),
             ValueType::Nothing => None,
         }
+    }
+
+    /// Check if this `ValueType` is nothing
+    pub fn is_nothing(&self) -> bool {
+        matches!(self, ValueType::Nothing)
     }
 }
 
