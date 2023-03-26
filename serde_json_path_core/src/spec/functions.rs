@@ -149,13 +149,13 @@ pub type Validator =
 
 #[doc(hidden)]
 pub type Evaluator =
-    Lazy<Box<dyn for<'a> Fn(VecDeque<JsonPathType<'a>>) -> JsonPathType<'a> + Sync + Send>>;
+    Lazy<Box<dyn for<'a> Fn(VecDeque<JsonPathValue<'a>>) -> JsonPathValue<'a> + Sync + Send>>;
 
 #[doc(hidden)]
 #[allow(missing_debug_implementations)]
 pub struct Function {
     name: &'static str,
-    result_type: JsonPathTypeKind,
+    result_type: FunctionArgType,
     validator: &'static Validator,
     evaluator: &'static Evaluator,
 }
@@ -163,7 +163,7 @@ pub struct Function {
 impl Function {
     pub const fn new(
         name: &'static str,
-        result_type: JsonPathTypeKind,
+        result_type: FunctionArgType,
         evaluator: &'static Evaluator,
         validator: &'static Validator,
     ) -> Self {
@@ -187,8 +187,13 @@ pub struct NodesType<'a>(NodeList<'a>);
 
 impl<'a> NodesType<'a> {
     #[doc(hidden)]
-    pub const fn type_kind() -> JsonPathTypeKind {
-        JsonPathTypeKind::Nodelist
+    pub const fn json_path_type() -> JsonPathType {
+        JsonPathType::Nodes
+    }
+
+    #[doc(hidden)]
+    pub const fn function_type() -> FunctionArgType {
+        FunctionArgType::Nodelist
     }
 
     /// Extract the inner [`NodeList`]
@@ -203,19 +208,19 @@ impl<'a> From<NodeList<'a>> for NodesType<'a> {
     }
 }
 
-impl<'a> TryFrom<JsonPathType<'a>> for NodesType<'a> {
+impl<'a> TryFrom<JsonPathValue<'a>> for NodesType<'a> {
     type Error = ConversionError;
 
-    fn try_from(value: JsonPathType<'a>) -> Result<Self, Self::Error> {
+    fn try_from(value: JsonPathValue<'a>) -> Result<Self, Self::Error> {
         match value {
-            JsonPathType::Nodes(nl) => Ok(nl.into()),
-            JsonPathType::Value(_) => Err(ConversionError::LiteralToNodes),
-            JsonPathType::Logical(_) => Err(ConversionError::IncompatibleTypes {
-                from: JsonPathTypeKind::Logical,
-                to: JsonPathTypeKind::Nodelist,
+            JsonPathValue::Nodes(nl) => Ok(nl.into()),
+            JsonPathValue::Value(_) => Err(ConversionError::LiteralToNodes),
+            JsonPathValue::Logical(_) => Err(ConversionError::IncompatibleTypes {
+                from: JsonPathType::Logical,
+                to: JsonPathType::Nodes,
             }),
-            JsonPathType::Node(n) => Ok(Self(vec![n].into())),
-            JsonPathType::Nothing => Ok(Self(vec![].into())),
+            JsonPathValue::Node(n) => Ok(Self(vec![n].into())),
+            JsonPathValue::Nothing => Ok(Self(vec![].into())),
         }
     }
 }
@@ -232,30 +237,35 @@ pub enum LogicalType {
 
 impl LogicalType {
     #[doc(hidden)]
-    pub const fn type_kind() -> JsonPathTypeKind {
-        JsonPathTypeKind::Logical
+    pub const fn json_path_type() -> JsonPathType {
+        JsonPathType::Logical
+    }
+
+    #[doc(hidden)]
+    pub const fn function_type() -> FunctionArgType {
+        FunctionArgType::Logical
     }
 }
 
-impl<'a> TryFrom<JsonPathType<'a>> for LogicalType {
+impl<'a> TryFrom<JsonPathValue<'a>> for LogicalType {
     type Error = ConversionError;
 
-    fn try_from(value: JsonPathType<'a>) -> Result<Self, Self::Error> {
+    fn try_from(value: JsonPathValue<'a>) -> Result<Self, Self::Error> {
         match value {
-            JsonPathType::Nodes(nl) => {
+            JsonPathValue::Nodes(nl) => {
                 if nl.is_empty() {
                     Ok(Self::False)
                 } else {
                     Ok(Self::True)
                 }
             }
-            JsonPathType::Value(_) => Err(ConversionError::IncompatibleTypes {
-                from: JsonPathTypeKind::Value,
-                to: JsonPathTypeKind::Logical,
+            JsonPathValue::Value(_) => Err(ConversionError::IncompatibleTypes {
+                from: JsonPathType::Value,
+                to: JsonPathType::Logical,
             }),
-            JsonPathType::Logical(l) => Ok(l),
-            JsonPathType::Node(_) => Ok(Self::True),
-            JsonPathType::Nothing => Ok(Self::False),
+            JsonPathValue::Logical(l) => Ok(l),
+            JsonPathValue::Node(_) => Ok(Self::True),
+            JsonPathValue::Nothing => Ok(Self::False),
         }
     }
 }
@@ -294,8 +304,13 @@ pub enum ValueType<'a> {
 
 impl<'a> ValueType<'a> {
     #[doc(hidden)]
-    pub const fn type_kind() -> JsonPathTypeKind {
-        JsonPathTypeKind::Value
+    pub const fn json_path_type() -> JsonPathType {
+        JsonPathType::Value
+    }
+
+    #[doc(hidden)]
+    pub const fn function_type() -> FunctionArgType {
+        FunctionArgType::Value
     }
 
     /// Convert to a reference of a [`serde_json::Value`] if possible
@@ -313,21 +328,21 @@ impl<'a> ValueType<'a> {
     }
 }
 
-impl<'a> TryFrom<JsonPathType<'a>> for ValueType<'a> {
+impl<'a> TryFrom<JsonPathValue<'a>> for ValueType<'a> {
     type Error = ConversionError;
 
-    fn try_from(value: JsonPathType<'a>) -> Result<Self, Self::Error> {
+    fn try_from(value: JsonPathValue<'a>) -> Result<Self, Self::Error> {
         match value {
-            JsonPathType::Value(v) => Ok(Self::Value(v)),
-            JsonPathType::Node(n) => Ok(Self::Node(n)),
-            JsonPathType::Nothing => Ok(Self::Nothing),
-            JsonPathType::Nodes(_) => Err(ConversionError::IncompatibleTypes {
-                from: JsonPathTypeKind::Nodelist,
-                to: JsonPathTypeKind::Value,
+            JsonPathValue::Value(v) => Ok(Self::Value(v)),
+            JsonPathValue::Node(n) => Ok(Self::Node(n)),
+            JsonPathValue::Nothing => Ok(Self::Nothing),
+            JsonPathValue::Nodes(_) => Err(ConversionError::IncompatibleTypes {
+                from: JsonPathType::Nodes,
+                to: JsonPathType::Value,
             }),
-            JsonPathType::Logical(_) => Err(ConversionError::IncompatibleTypes {
-                from: JsonPathTypeKind::Nodelist,
-                to: JsonPathTypeKind::Value,
+            JsonPathValue::Logical(_) => Err(ConversionError::IncompatibleTypes {
+                from: JsonPathType::Nodes,
+                to: JsonPathType::Value,
             }),
         }
     }
@@ -344,7 +359,7 @@ where
 
 #[doc(hidden)]
 #[derive(Debug)]
-pub enum JsonPathType<'a> {
+pub enum JsonPathValue<'a> {
     Nodes(NodeList<'a>),
     Logical(LogicalType),
     Node(&'a Value),
@@ -352,25 +367,13 @@ pub enum JsonPathType<'a> {
     Nothing,
 }
 
-impl<'a> JsonPathType<'a> {
-    pub fn as_kind(&self) -> JsonPathTypeKind {
-        match self {
-            JsonPathType::Nodes(_) => JsonPathTypeKind::Nodelist,
-            JsonPathType::Value(_) => JsonPathTypeKind::Value,
-            JsonPathType::Logical(_) => JsonPathTypeKind::Logical,
-            JsonPathType::Node(_) => JsonPathTypeKind::Node,
-            JsonPathType::Nothing => JsonPathTypeKind::Nothing,
-        }
-    }
-}
-
-impl<'a> From<NodesType<'a>> for JsonPathType<'a> {
+impl<'a> From<NodesType<'a>> for JsonPathValue<'a> {
     fn from(value: NodesType<'a>) -> Self {
         Self::Nodes(value.0)
     }
 }
 
-impl<'a> From<ValueType<'a>> for JsonPathType<'a> {
+impl<'a> From<ValueType<'a>> for JsonPathValue<'a> {
     fn from(value: ValueType<'a>) -> Self {
         match value {
             ValueType::Value(v) => Self::Value(v),
@@ -380,7 +383,7 @@ impl<'a> From<ValueType<'a>> for JsonPathType<'a> {
     }
 }
 
-impl<'a> From<LogicalType> for JsonPathType<'a> {
+impl<'a> From<LogicalType> for JsonPathValue<'a> {
     fn from(value: LogicalType) -> Self {
         Self::Logical(value)
     }
@@ -394,9 +397,9 @@ pub enum ConversionError {
     #[error("attempted to convert {from} to {to}")]
     IncompatibleTypes {
         /// The type being converted from
-        from: JsonPathTypeKind,
+        from: JsonPathType,
         /// The type being converted to
-        to: JsonPathTypeKind,
+        to: JsonPathType,
     },
     /// Literal values can not be considered nodes
     #[error("cannot use a literal value in place of NodesType")]
@@ -405,40 +408,18 @@ pub enum ConversionError {
 
 #[doc(hidden)]
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum JsonPathTypeKind {
-    Nodelist,
-    Node,
+pub enum JsonPathType {
+    Nodes,
     Value,
     Logical,
-    Nothing,
 }
 
-impl JsonPathTypeKind {
-    pub fn converts_to(&self, other: Self) -> bool {
-        matches!(
-            (self, other),
-            (
-                JsonPathTypeKind::Nodelist,
-                JsonPathTypeKind::Nodelist | JsonPathTypeKind::Logical
-            ) | (
-                JsonPathTypeKind::Node,
-                JsonPathTypeKind::Nodelist | JsonPathTypeKind::Node | JsonPathTypeKind::Value
-            ) | (
-                JsonPathTypeKind::Value,
-                JsonPathTypeKind::Node | JsonPathTypeKind::Value
-            ) | (JsonPathTypeKind::Logical, JsonPathTypeKind::Logical)
-        )
-    }
-}
-
-impl std::fmt::Display for JsonPathTypeKind {
+impl std::fmt::Display for JsonPathType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            JsonPathTypeKind::Nodelist => write!(f, "NodesType"),
-            JsonPathTypeKind::Logical => write!(f, "LogicalType"),
-            JsonPathTypeKind::Node => write!(f, "ValueType"),
-            JsonPathTypeKind::Value => write!(f, "ValueType"),
-            JsonPathTypeKind::Nothing => write!(f, "ValueType"),
+            JsonPathType::Nodes => write!(f, "NodesType"),
+            JsonPathType::Logical => write!(f, "LogicalType"),
+            JsonPathType::Value => write!(f, "ValueType"),
         }
     }
 }
@@ -448,7 +429,7 @@ impl std::fmt::Display for JsonPathTypeKind {
 pub struct FunctionExpr {
     pub name: String,
     pub args: Vec<FunctionExprArg>,
-    pub return_type: JsonPathTypeKind,
+    pub return_type: FunctionArgType,
 }
 
 impl FunctionExpr {
@@ -456,8 +437,12 @@ impl FunctionExpr {
         feature = "trace",
         tracing::instrument(name = "Evaluate Function Expr", level = "trace", parent = None, ret)
     )]
-    pub fn evaluate<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> JsonPathType<'_> {
-        let args: VecDeque<JsonPathType> = self
+    pub fn evaluate<'a, 'b: 'a>(
+        &'a self,
+        current: &'b Value,
+        root: &'b Value,
+    ) -> JsonPathValue<'_> {
+        let args: VecDeque<JsonPathValue> = self
             .args
             .iter()
             .map(|a| a.evaluate(current, root))
@@ -531,17 +516,17 @@ impl FunctionExprArg {
         feature = "trace",
         tracing::instrument(name = "Evaluate Function Arg", level = "trace", parent = None, ret)
     )]
-    fn evaluate<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> JsonPathType<'a> {
+    fn evaluate<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> JsonPathValue<'a> {
         match self {
             FunctionExprArg::Literal(lit) => lit.into(),
             FunctionExprArg::SingularQuery(q) => match q.eval_query(current, root) {
-                Some(n) => JsonPathType::Node(n),
-                None => JsonPathType::Nothing,
+                Some(n) => JsonPathValue::Node(n),
+                None => JsonPathValue::Nothing,
             },
-            FunctionExprArg::FilterQuery(q) => JsonPathType::Nodes(q.query(current, root).into()),
+            FunctionExprArg::FilterQuery(q) => JsonPathValue::Nodes(q.query(current, root).into()),
             FunctionExprArg::LogicalExpr(l) => match l.test_filter(current, root) {
-                true => JsonPathType::Logical(LogicalType::True),
-                false => JsonPathType::Logical(LogicalType::False),
+                true => JsonPathValue::Logical(LogicalType::True),
+                false => JsonPathValue::Logical(LogicalType::False),
             },
             FunctionExprArg::FunctionExpr(f) => f.evaluate(current, root),
         }
@@ -551,18 +536,18 @@ impl FunctionExprArg {
         feature = "trace",
         tracing::instrument(name = "Function Arg As Type Kind", level = "trace", parent = None, ret)
     )]
-    pub fn as_type_kind(&self) -> Result<JsonPathTypeKind, FunctionValidationError> {
+    pub fn as_type_kind(&self) -> Result<FunctionArgType, FunctionValidationError> {
         match self {
-            FunctionExprArg::Literal(_) => Ok(JsonPathTypeKind::Value),
-            FunctionExprArg::SingularQuery(_) => Ok(JsonPathTypeKind::Node),
+            FunctionExprArg::Literal(_) => Ok(FunctionArgType::Literal),
+            FunctionExprArg::SingularQuery(_) => Ok(FunctionArgType::Node),
             FunctionExprArg::FilterQuery(query) => {
                 if query.is_singular() {
-                    Ok(JsonPathTypeKind::Node)
+                    Ok(FunctionArgType::Node)
                 } else {
-                    Ok(JsonPathTypeKind::Nodelist)
+                    Ok(FunctionArgType::Nodelist)
                 }
             }
-            FunctionExprArg::LogicalExpr(_) => Ok(JsonPathTypeKind::Logical),
+            FunctionExprArg::LogicalExpr(_) => Ok(FunctionArgType::Logical),
             FunctionExprArg::FunctionExpr(func) => {
                 for f in inventory::iter::<Function> {
                     if f.name == func.name.as_str() {
@@ -574,6 +559,46 @@ impl FunctionExprArg {
                 })
             }
         }
+    }
+}
+
+#[doc(hidden)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum FunctionArgType {
+    Literal,
+    Node,
+    Value,
+    Nodelist,
+    Logical,
+}
+
+impl std::fmt::Display for FunctionArgType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FunctionArgType::Literal => write!(f, "literal"),
+            FunctionArgType::Node => write!(f, "singular query"),
+            FunctionArgType::Value => write!(f, "value type"),
+            FunctionArgType::Nodelist => write!(f, "nodes type"),
+            FunctionArgType::Logical => write!(f, "logical type"),
+        }
+    }
+}
+
+impl FunctionArgType {
+    pub fn converts_to(&self, json_path_type: JsonPathType) -> bool {
+        matches!(
+            (self, json_path_type),
+            (
+                FunctionArgType::Literal | FunctionArgType::Value,
+                JsonPathType::Value
+            ) | (
+                FunctionArgType::Node,
+                JsonPathType::Value | JsonPathType::Nodes | JsonPathType::Logical
+            ) | (
+                FunctionArgType::Nodelist,
+                JsonPathType::Nodes | JsonPathType::Logical
+            ) | (FunctionArgType::Logical, JsonPathType::Logical),
+        )
     }
 }
 
@@ -599,9 +624,9 @@ pub enum FunctionValidationError {
     #[error("in argument position {position}, expected a type that converts to {expected}, received {received}")]
     MismatchTypeKind {
         /// Expected type
-        expected: JsonPathTypeKind,
+        expected: JsonPathType,
         /// Received type
-        received: JsonPathTypeKind,
+        received: FunctionArgType,
         /// Argument position
         position: usize,
     },
@@ -616,11 +641,11 @@ impl TestFilter for FunctionExpr {
     )]
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
         match self.evaluate(current, root) {
-            JsonPathType::Nodes(nl) => !nl.is_empty(),
-            JsonPathType::Value(v) => v.test_filter(current, root),
-            JsonPathType::Logical(l) => l.into(),
-            JsonPathType::Node(n) => n.test_filter(current, root),
-            JsonPathType::Nothing => false,
+            JsonPathValue::Nodes(nl) => !nl.is_empty(),
+            JsonPathValue::Value(v) => v.test_filter(current, root),
+            JsonPathValue::Logical(l) => l.into(),
+            JsonPathValue::Node(n) => n.test_filter(current, root),
+            JsonPathValue::Nothing => false,
         }
     }
 }

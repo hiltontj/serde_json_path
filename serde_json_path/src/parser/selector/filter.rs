@@ -4,7 +4,7 @@ use nom::multi::separated_list1;
 use nom::sequence::{delimited, pair, preceded, separated_pair, tuple};
 use nom::{branch::alt, bytes::complete::tag, combinator::value};
 use serde_json_path_core::spec::functions::{
-    FunctionExpr, FunctionValidationError, JsonPathTypeKind,
+    FunctionArgType, FunctionExpr, FunctionValidationError,
 };
 use serde_json_path_core::spec::selector::filter::{
     BasicExpr, Comparable, ComparisonExpr, ComparisonOperator, ExistExpr, Filter, Literal,
@@ -63,7 +63,7 @@ fn parse_not_exist_expr(input: &str) -> PResult<BasicExpr> {
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_func_expr_inner(input: &str) -> PResult<FunctionExpr> {
     map_res(parse_function_expr, |fe| match fe.return_type {
-        JsonPathTypeKind::Nodelist | JsonPathTypeKind::Logical => Ok(fe),
+        FunctionArgType::Logical | FunctionArgType::Nodelist => Ok(fe),
         _ => Err(FunctionValidationError::IncorrectFunctionReturnType),
     })(input)
 }
@@ -169,7 +169,7 @@ fn parse_singular_path_comparable(input: &str) -> PResult<Comparable> {
 fn parse_function_expr_comparable(input: &str) -> PResult<Comparable> {
     map_res(parse_function_expr, |fe| {
         match fe.return_type {
-            JsonPathTypeKind::Node | JsonPathTypeKind::Value | JsonPathTypeKind::Nothing => Ok(fe),
+            FunctionArgType::Value => Ok(fe),
             _ => Err(FunctionValidationError::IncorrectFunctionReturnType),
         }
         .map(Comparable::FunctionExpr)

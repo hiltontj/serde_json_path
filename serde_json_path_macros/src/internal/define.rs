@@ -45,9 +45,9 @@ pub(crate) fn expand(attrs: FunctionMacroArgs, input: ItemFn) -> TokenStream {
         quote! {
             match a[#idx].as_type_kind() {
                 #res::Ok(tk) => {
-                    if !tk.converts_to(#ty::type_kind()) {
+                    if !tk.converts_to(#ty::json_path_type()) {
                         return #res::Err(#core::FunctionValidationError::MismatchTypeKind {
-                            expected: #ty::type_kind(),
+                            expected: #ty::json_path_type(),
                             received: tk,
                             position: #idx,
                         });
@@ -88,7 +88,7 @@ pub(crate) fn expand(attrs: FunctionMacroArgs, input: ItemFn) -> TokenStream {
     let evaluator = quote! {
         fn #name(#inputs) #ret #block
         static #evaluator_name: #core::Evaluator = #lazy::new(|| {
-            std::boxed::Box::new(|mut v: std::collections::VecDeque<#core::JsonPathType>| {
+            std::boxed::Box::new(|mut v: std::collections::VecDeque<#core::JsonPathValue>| {
                 #(#arg_declarations)*
                 return #name(#(#arg_names,)*).into()
             })
@@ -107,7 +107,7 @@ pub(crate) fn expand(attrs: FunctionMacroArgs, input: ItemFn) -> TokenStream {
         #inventory::submit! {
             #core::Function::new(
                 #name_str,
-                #result::type_kind(),
+                #result::function_type(),
                 &#evaluator_name,
                 &#validator_name,
             )

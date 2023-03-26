@@ -2,7 +2,7 @@
 use serde_json::{Number, Value};
 
 use crate::spec::{
-    functions::{FunctionExpr, JsonPathType},
+    functions::{FunctionExpr, JsonPathValue},
     query::{Query, QueryKind, Queryable},
     segment::{QuerySegment, Segment},
 };
@@ -212,13 +212,13 @@ pub struct ComparisonExpr {
     pub right: Comparable,
 }
 
-fn check_equal_to(left: &JsonPathType, right: &JsonPathType) -> bool {
+fn check_equal_to(left: &JsonPathValue, right: &JsonPathValue) -> bool {
     match (left, right) {
-        (JsonPathType::Node(v1), JsonPathType::Node(v2)) => v1 == v2,
-        (JsonPathType::Node(v1), JsonPathType::Value(v2)) => *v1 == v2,
-        (JsonPathType::Value(v1), JsonPathType::Node(v2)) => v1 == *v2,
-        (JsonPathType::Value(v1), JsonPathType::Value(v2)) => v1 == v2,
-        (JsonPathType::Nothing, JsonPathType::Nothing) => true,
+        (JsonPathValue::Node(v1), JsonPathValue::Node(v2)) => v1 == v2,
+        (JsonPathValue::Node(v1), JsonPathValue::Value(v2)) => *v1 == v2,
+        (JsonPathValue::Value(v1), JsonPathValue::Node(v2)) => v1 == *v2,
+        (JsonPathValue::Value(v1), JsonPathValue::Value(v2)) => v1 == v2,
+        (JsonPathValue::Nothing, JsonPathValue::Nothing) => true,
         _ => false,
     }
 }
@@ -231,12 +231,12 @@ fn value_less_than(left: &Value, right: &Value) -> bool {
     }
 }
 
-fn check_less_than(left: &JsonPathType, right: &JsonPathType) -> bool {
+fn check_less_than(left: &JsonPathValue, right: &JsonPathValue) -> bool {
     match (left, right) {
-        (JsonPathType::Node(v1), JsonPathType::Node(v2)) => value_less_than(v1, v2),
-        (JsonPathType::Node(v1), JsonPathType::Value(v2)) => value_less_than(v1, v2),
-        (JsonPathType::Value(v1), JsonPathType::Node(v2)) => value_less_than(v1, v2),
-        (JsonPathType::Value(v1), JsonPathType::Value(v2)) => value_less_than(v1, v2),
+        (JsonPathValue::Node(v1), JsonPathValue::Node(v2)) => value_less_than(v1, v2),
+        (JsonPathValue::Node(v1), JsonPathValue::Value(v2)) => value_less_than(v1, v2),
+        (JsonPathValue::Value(v1), JsonPathValue::Node(v2)) => value_less_than(v1, v2),
+        (JsonPathValue::Value(v1), JsonPathValue::Value(v2)) => value_less_than(v1, v2),
         _ => false,
     }
 }
@@ -250,12 +250,12 @@ fn value_same_type(left: &Value, right: &Value) -> bool {
         | matches!((left, right), (Value::Object(_), Value::Object(_)))
 }
 
-fn check_same_type(left: &JsonPathType, right: &JsonPathType) -> bool {
+fn check_same_type(left: &JsonPathValue, right: &JsonPathValue) -> bool {
     match (left, right) {
-        (JsonPathType::Node(v1), JsonPathType::Node(v2)) => value_same_type(v1, v2),
-        (JsonPathType::Node(v1), JsonPathType::Value(v2)) => value_same_type(v1, v2),
-        (JsonPathType::Value(v1), JsonPathType::Node(v2)) => value_same_type(v1, v2),
-        (JsonPathType::Value(v1), JsonPathType::Value(v2)) => value_same_type(v1, v2),
+        (JsonPathValue::Node(v1), JsonPathValue::Node(v2)) => value_same_type(v1, v2),
+        (JsonPathValue::Node(v1), JsonPathValue::Value(v2)) => value_same_type(v1, v2),
+        (JsonPathValue::Value(v1), JsonPathValue::Node(v2)) => value_same_type(v1, v2),
+        (JsonPathValue::Value(v1), JsonPathValue::Value(v2)) => value_same_type(v1, v2),
         _ => false,
     }
 }
@@ -366,12 +366,16 @@ impl std::fmt::Display for Comparable {
 
 impl Comparable {
     #[doc(hidden)]
-    pub fn as_value<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> JsonPathType<'a> {
+    pub fn as_value<'a, 'b: 'a>(
+        &'a self,
+        current: &'b Value,
+        root: &'b Value,
+    ) -> JsonPathValue<'a> {
         match self {
             Comparable::Literal(lit) => lit.into(),
             Comparable::SingularQuery(sp) => match sp.eval_query(current, root) {
-                Some(v) => JsonPathType::Node(v),
-                None => JsonPathType::Nothing,
+                Some(v) => JsonPathValue::Node(v),
+                None => JsonPathValue::Nothing,
             },
             Comparable::FunctionExpr(expr) => expr.evaluate(current, root),
         }
@@ -399,15 +403,15 @@ pub enum Literal {
     Null,
 }
 
-impl<'a> From<&'a Literal> for JsonPathType<'a> {
+impl<'a> From<&'a Literal> for JsonPathValue<'a> {
     fn from(value: &'a Literal) -> Self {
         match value {
             // Cloning here seems cheap, certainly for numbers, but it may not be desireable for
             // strings.
-            Literal::Number(n) => JsonPathType::Value(n.to_owned().into()),
-            Literal::String(s) => JsonPathType::Value(s.to_owned().into()),
-            Literal::Bool(b) => JsonPathType::Value(Value::from(*b)),
-            Literal::Null => JsonPathType::Value(Value::Null),
+            Literal::Number(n) => JsonPathValue::Value(n.to_owned().into()),
+            Literal::String(s) => JsonPathValue::Value(s.to_owned().into()),
+            Literal::Bool(b) => JsonPathValue::Value(Value::from(*b)),
+            Literal::Null => JsonPathValue::Value(Value::Null),
         }
     }
 }
