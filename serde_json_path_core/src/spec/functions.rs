@@ -527,7 +527,10 @@ impl std::fmt::Display for FunctionExprArg {
 }
 
 impl FunctionExprArg {
-    #[cfg_attr(feature = "trace", tracing::instrument(name = "Evaluate Function Arg", level = "trace", parent = None, ret))]
+    #[cfg_attr(
+        feature = "trace",
+        tracing::instrument(name = "Evaluate Function Arg", level = "trace", parent = None, ret)
+    )]
     fn evaluate<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> JsonPathType<'a> {
         match self {
             FunctionExprArg::Literal(lit) => lit.into(),
@@ -544,7 +547,10 @@ impl FunctionExprArg {
         }
     }
 
-    #[cfg_attr(feature = "trace", tracing::instrument(name = "Function Arg As Type Kind", level = "trace", parent = None, ret))]
+    #[cfg_attr(
+        feature = "trace",
+        tracing::instrument(name = "Function Arg As Type Kind", level = "trace", parent = None, ret)
+    )]
     pub fn as_type_kind(&self) -> Result<JsonPathTypeKind, FunctionValidationError> {
         match self {
             FunctionExprArg::Literal(_) => Ok(JsonPathTypeKind::Value),
@@ -604,7 +610,10 @@ pub enum FunctionValidationError {
 }
 
 impl TestFilter for FunctionExpr {
-    #[cfg_attr(feature = "trace", tracing::instrument(name = "Test Function Expr", level = "trace", parent = None, ret))]
+    #[cfg_attr(
+        feature = "trace",
+        tracing::instrument(name = "Test Function Expr", level = "trace", parent = None, ret)
+    )]
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
         match self.evaluate(current, root) {
             JsonPathType::Nodes(nl) => !nl.is_empty(),
