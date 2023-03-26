@@ -7,7 +7,7 @@ use serde_json_path_core::{
     spec::query::{Query, Queryable},
 };
 
-use crate::{error::Error, parser::parse_query_main};
+use crate::{parser::parse_query_main, Error};
 
 /// A parsed JSON Path query string
 ///

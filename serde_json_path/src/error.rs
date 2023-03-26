@@ -1,7 +1,5 @@
 use std::ops::Deref;
 
-use nom::error::{convert_error, VerboseError};
-
 use crate::parser::ParserError;
 
 /// A JSONPath error
@@ -15,17 +13,7 @@ pub enum Error {
     },
 }
 
-impl<T> From<(T, VerboseError<T>)> for Error
-where
-    T: Deref<Target = str>,
-{
-    fn from((i, e): (T, VerboseError<T>)) -> Self {
-        Self::InvalidJsonPathString {
-            message: convert_error(i, e),
-        }
-    }
-}
-
+// TODO - use error kind for more detailed error message output?
 impl<I> From<(I, ParserError<I>)> for Error
 where
     I: Deref<Target = str>,
