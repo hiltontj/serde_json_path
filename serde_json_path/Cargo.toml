@@ -11,7 +11,7 @@ keywords = ["json", "jsonpath", "json_path", "serde", "serde_json"]
 
 [features]
 default = ["registry"]
-trace = ["dep:tracing"]
+trace = ["dep:tracing", "serde_json_path_core/trace"]
 registry = []
 
 [dependencies]

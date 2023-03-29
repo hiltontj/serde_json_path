@@ -57,6 +57,7 @@ impl Queryable for QuerySegment {
     }
 }
 
+#[cfg_attr(feature = "trace", tracing::instrument(name = "Query Path Segment", level = "trace", parent = None, ret))]
 fn descend<'b>(segment: &QuerySegment, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
     let mut query = Vec::new();
     if let Some(list) = current.as_array() {

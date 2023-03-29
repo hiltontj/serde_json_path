@@ -17,6 +17,7 @@ pub(crate) fn expand(attrs: FunctionMacroArgs, input: ItemFn) -> TokenStream {
 
     let Components {
         name,
+        generics,
         validator_name,
         evaluator_name,
         result,
@@ -27,6 +28,12 @@ pub(crate) fn expand(attrs: FunctionMacroArgs, input: ItemFn) -> TokenStream {
         Ok(fd) => fd,
         Err(e) => return e.into_compile_error().into(),
     };
+    // TODO - may just put the str in the components directly, if the ident is not used for anything
+    //            else
+    let name_str = attrs
+        .name
+        .unwrap_or_else(|| LitStr::new(name.to_string().as_str(), name.span()));
+
     let args_len = args.len();
     let inventory = quote! {
         ::serde_json_path_macros::inventory
@@ -47,6 +54,7 @@ pub(crate) fn expand(attrs: FunctionMacroArgs, input: ItemFn) -> TokenStream {
                 #res::Ok(tk) => {
                     if !tk.converts_to(#ty::json_path_type()) {
                         return #res::Err(#core::FunctionValidationError::MismatchTypeKind {
+                            name: String::from(#name_str),
                             expected: #ty::json_path_type(),
                             received: tk,
                             position: #idx,
@@ -86,7 +94,7 @@ pub(crate) fn expand(attrs: FunctionMacroArgs, input: ItemFn) -> TokenStream {
     });
 
     let evaluator = quote! {
-        fn #name(#inputs) #ret #block
+        fn #name #generics (#inputs) #ret #block
         static #evaluator_name: #core::Evaluator = #lazy::new(|| {
             std::boxed::Box::new(|mut v: std::collections::VecDeque<#core::JsonPathValue>| {
                 #(#arg_declarations)*
@@ -94,12 +102,6 @@ pub(crate) fn expand(attrs: FunctionMacroArgs, input: ItemFn) -> TokenStream {
             })
         });
     };
-
-    // TODO - may just put the str in the components directly, if the ident is not used for anything
-    //            else
-    let name_str = attrs
-        .name
-        .unwrap_or_else(|| LitStr::new(name.to_string().as_str(), name.span()));
 
     TokenStream::from(quote! {
         #validator

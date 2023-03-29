@@ -208,6 +208,12 @@ impl<'a> From<NodeList<'a>> for NodesType<'a> {
     }
 }
 
+impl<'a> From<Vec<&'a Value>> for NodesType<'a> {
+    fn from(values: Vec<&'a Value>) -> Self {
+        Self(values.into())
+    }
+}
+
 impl<'a> TryFrom<JsonPathValue<'a>> for NodesType<'a> {
     type Error = ConversionError;
 
@@ -289,7 +295,7 @@ impl From<bool> for LogicalType {
 }
 
 /// JSONPath type representing a JSON value or Nothing
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub enum ValueType<'a> {
     /// This may come from a literal value declared in a JSONPath query, or be produced by a
     /// function.
@@ -299,6 +305,7 @@ pub enum ValueType<'a> {
     Node(&'a Value),
     /// This would be the result of a singular query that does not result in any nodes, or be
     /// produced by a function.
+    #[default]
     Nothing,
 }
 
@@ -402,7 +409,7 @@ pub enum ConversionError {
         to: JsonPathType,
     },
     /// Literal values can not be considered nodes
-    #[error("cannot use a literal value in place of NodesType")]
+    #[error("cannot convert a literal value to NodesType")]
     LiteralToNodes,
 }
 
@@ -636,8 +643,10 @@ pub enum FunctionValidationError {
         received: usize,
     },
     /// The type of received argument does not match the function definition
-    #[error("in argument position {position}, expected a type that converts to {expected}, received {received}")]
+    #[error("in function {name}, in argument position {position}, expected a type that converts to {expected}, received {received}")]
     MismatchTypeKind {
+        /// Function name
+        name: String,
         /// Expected type
         expected: JsonPathType,
         /// Received type

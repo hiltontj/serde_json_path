@@ -3,12 +3,13 @@ use std::collections::VecDeque;
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use syn::{
-    punctuated::Punctuated, spanned::Spanned, token::Comma, Error, FnArg, Pat, PatType, Path,
-    Result, ReturnType, Signature, Type,
+    punctuated::Punctuated, spanned::Spanned, token::Comma, Error, FnArg, Generics, Pat, PatType,
+    Path, Result, ReturnType, Signature, Type,
 };
 
 pub struct Components {
     pub name: Ident,
+    pub generics: Generics,
     pub validator_name: Ident,
     pub evaluator_name: Ident,
     pub result: TokenStream,
@@ -73,6 +74,7 @@ fn extract_json_path_type(p: &Path) -> Result<TokenStream> {
 
 pub fn extract_components(input: Signature) -> Result<Components> {
     let name = input.ident.clone();
+    let generics = input.generics.clone();
     let inputs = input.inputs.clone();
     let ret = input.output.clone();
 
@@ -143,6 +145,7 @@ pub fn extract_components(input: Signature) -> Result<Components> {
 
     Ok(Components {
         name,
+        generics,
         result,
         inputs,
         ret,
