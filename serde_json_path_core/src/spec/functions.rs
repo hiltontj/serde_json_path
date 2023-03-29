@@ -539,10 +539,10 @@ impl FunctionExprArg {
     pub fn as_type_kind(&self) -> Result<FunctionArgType, FunctionValidationError> {
         match self {
             FunctionExprArg::Literal(_) => Ok(FunctionArgType::Literal),
-            FunctionExprArg::SingularQuery(_) => Ok(FunctionArgType::Node),
+            FunctionExprArg::SingularQuery(_) => Ok(FunctionArgType::SingularQuery),
             FunctionExprArg::FilterQuery(query) => {
                 if query.is_singular() {
-                    Ok(FunctionArgType::Node)
+                    Ok(FunctionArgType::SingularQuery)
                 } else {
                     Ok(FunctionArgType::Nodelist)
                 }
@@ -562,13 +562,28 @@ impl FunctionExprArg {
     }
 }
 
+/// Function argument types
+///
+/// This is used to describe the type of a function argument to determine if it will be valid as a
+/// parameter to the function it is being passed to.
+///
+/// The reason for having this type in addition to [`JsonPathType`] is that we need to have an
+/// intermediate representation of arguments that are singular queries. This is because singular
+/// queries can be used as an argument to both [`ValueType`] and [`NodesType`] parameters.
+/// Therefore, we require a `Node` variant here to indicate that an argument may be converted into
+/// either type of parameter.
 #[doc(hidden)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum FunctionArgType {
+    /// Denotes a literal owned JSON value
     Literal,
-    Node,
+    /// Denotes a borrowed JSON value from a singular query
+    SingularQuery,
+    /// Denotes a literal or borrowed JSON value, used to represent functions that return [`ValueType`]
     Value,
+    /// Denotes a node list, either from a filter query argument, or a function that returns [`NodesType`]
     Nodelist,
+    /// Denotes a logical, either from a logical expression, or from a function that returns [`LogicalType`]
     Logical,
 }
 
@@ -576,7 +591,7 @@ impl std::fmt::Display for FunctionArgType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             FunctionArgType::Literal => write!(f, "literal"),
-            FunctionArgType::Node => write!(f, "singular query"),
+            FunctionArgType::SingularQuery => write!(f, "singular query"),
             FunctionArgType::Value => write!(f, "value type"),
             FunctionArgType::Nodelist => write!(f, "nodes type"),
             FunctionArgType::Logical => write!(f, "logical type"),
@@ -592,7 +607,7 @@ impl FunctionArgType {
                 FunctionArgType::Literal | FunctionArgType::Value,
                 JsonPathType::Value
             ) | (
-                FunctionArgType::Node,
+                FunctionArgType::SingularQuery,
                 JsonPathType::Value | JsonPathType::Nodes | JsonPathType::Logical
             ) | (
                 FunctionArgType::Nodelist,
