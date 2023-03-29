@@ -193,14 +193,8 @@
 //! # }
 //! ```
 //!
-//! See the [integration tests][tests] in the repository for more examples based on those found in
-//! the JSONPath specification.
-//!
-//! [tests]: https://github.com/hiltontj/serde_json_path/blob/main/tests/spec_examples.rs
-//! [jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-11.html
-//! [jp_selectors]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-11.html#name-selectors-2
-//! [func_ext]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-11.html#name-function-extensions-2
-//! [norm_path]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-11.html#name-normalized-paths
+//! [jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-12.html
+//! [jp_selectors]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-12.html#name-selectors-2
 
 #![warn(
     clippy::all,
