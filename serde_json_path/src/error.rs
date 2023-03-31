@@ -10,7 +10,7 @@ pub struct Error {
 }
 
 impl Error {
-    /// Get the error position
+    /// Get the 1-indexed error position
     pub fn position(&self) -> usize {
         self.err.position
     }
