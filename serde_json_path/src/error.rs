@@ -45,7 +45,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{Error, JsonPath};
+    use crate::Error;
     #[cfg(feature = "trace")]
     use test_log::test;
 
@@ -59,11 +59,5 @@ mod tests {
     fn test_sync() {
         fn assert_sync<T: Sync>() {}
         assert_sync::<Error>();
-    }
-
-    #[test]
-    fn test_errors() {
-        let e = JsonPath::parse("$['test]").unwrap_err();
-        println!("{e}");
     }
 }
