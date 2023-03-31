@@ -1,14 +1,13 @@
-use std::num::ParseIntError;
-use std::string::FromUtf16Error;
+use std::fmt::Display;
+use std::ops::Deref;
 
 use nom::character::complete::char;
 use nom::combinator::all_consuming;
 use nom::error::{ContextError, ErrorKind, FromExternalError, ParseError};
+use nom::Offset;
 use nom::{branch::alt, combinator::map, multi::many0, sequence::preceded, IResult};
-use serde_json_path_core::spec::functions::FunctionValidationError;
 use serde_json_path_core::spec::query::{Query, QueryKind};
 use serde_json_path_core::spec::segment::QuerySegment;
-use serde_json_path_core::spec::selector::filter::NonSingularQueryError;
 
 use self::segment::parse_segment;
 
@@ -19,96 +18,113 @@ pub(crate) mod utils;
 
 type PResult<'a, O> = IResult<&'a str, O, ParserError<&'a str>>;
 
-/// Parser error
 #[derive(Debug, PartialEq)]
-pub struct ParserError<I> {
-    /// List of errors accumulated by the parser chain
-    pub errors: Vec<(I, ParserErrorKind)>,
+pub(crate) struct ParserError<I> {
+    pub(crate) errors: Vec<ParserErrorInner<I>>,
+}
+
+impl<I> ParserError<I>
+where
+    I: Deref<Target = str>,
+{
+    pub(crate) fn calculate_position(&self, input: I) -> usize {
+        self.errors
+            .first()
+            .map(|e| input.offset(&e.input))
+            .unwrap_or(0)
+    }
 }
 
 impl<I> std::fmt::Display for ParserError<I> {
-    /// Print the inner-most error
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some((_, e)) = self.errors.first() {
-            write!(f, "{e}")
+        if let Some(e) = self.errors.first() {
+            if let Some(ctx) = e.context {
+                write!(f, "in {ctx}, ")?;
+            }
+            write!(f, "{err}", err = e.kind)
         } else {
-            write!(f, "empty error, this is strange...")
+            write!(f, "empty error")
         }
     }
 }
 
 impl<I: std::fmt::Debug + std::fmt::Display> std::error::Error for ParserError<I> {}
 
-#[derive(Debug, thiserror::Error, PartialEq)]
-pub enum ParserErrorKind {
-    #[error(transparent)]
-    FunctionValidation(FunctionValidationError),
-    #[error(transparent)]
-    NonSingularQuery(NonSingularQueryError),
+#[derive(Debug, PartialEq)]
+pub(crate) struct ParserErrorInner<I> {
+    input: I,
+    kind: ParserErrorKind,
+    context: Option<&'static str>,
+}
+
+#[derive(Debug, PartialEq, thiserror::Error)]
+pub(crate) enum ParserErrorKind {
     #[error("{0}")]
-    External(String),
-    #[error("context: {0}")]
-    Context(&'static str),
-    #[error("nom error")]
+    Message(Box<str>),
+    #[error("parser error")]
     Nom(ErrorKind),
 }
 
 impl<I> ParseError<I> for ParserError<I> {
     fn from_error_kind(input: I, kind: ErrorKind) -> Self {
         Self {
-            errors: vec![(input, ParserErrorKind::Nom(kind))],
+            errors: vec![ParserErrorInner {
+                input,
+                kind: ParserErrorKind::Nom(kind),
+                context: None,
+            }],
         }
     }
 
     fn append(input: I, kind: ErrorKind, mut other: Self) -> Self {
-        other.errors.push((input, ParserErrorKind::Nom(kind)));
+        other.errors.push(ParserErrorInner {
+            input,
+            kind: ParserErrorKind::Nom(kind),
+            context: None,
+        });
         other
     }
 }
 
 impl<I> ContextError<I> for ParserError<I> {
-    fn add_context(input: I, ctx: &'static str, mut other: Self) -> Self {
-        other.errors.push((input, ParserErrorKind::Context(ctx)));
+    fn add_context(_input: I, ctx: &'static str, mut other: Self) -> Self {
+        if let Some(e) = other.errors.first_mut() {
+            e.context = Some(ctx);
+        };
         other
     }
 }
 
-impl<I> FromExternalError<I, FunctionValidationError> for ParserError<I> {
-    fn from_external_error(input: I, _kind: ErrorKind, error: FunctionValidationError) -> Self {
+impl<I, E> FromExternalError<I, E> for ParserError<I>
+where
+    E: std::error::Error + Display,
+{
+    fn from_external_error(input: I, _kind: ErrorKind, e: E) -> Self {
         Self {
-            errors: vec![(input, ParserErrorKind::FunctionValidation(error))],
+            errors: vec![ParserErrorInner {
+                input,
+                kind: ParserErrorKind::Message(e.to_string().into()),
+                context: None,
+            }],
         }
     }
 }
 
-impl<I> FromExternalError<I, NonSingularQueryError> for ParserError<I> {
-    fn from_external_error(input: I, _kind: ErrorKind, error: NonSingularQueryError) -> Self {
-        Self {
-            errors: vec![(input, ParserErrorKind::NonSingularQuery(error))],
-        }
-    }
+pub(crate) trait FromInternalError<I, E> {
+    fn from_internal_error(input: I, e: E) -> Self;
 }
 
-impl<I> FromExternalError<I, ParseIntError> for ParserError<I> {
-    fn from_external_error(input: I, _kind: ErrorKind, e: ParseIntError) -> Self {
+impl<I, E> FromInternalError<I, E> for ParserError<I>
+where
+    E: std::error::Error + Display,
+{
+    fn from_internal_error(input: I, e: E) -> Self {
         Self {
-            errors: vec![(input, ParserErrorKind::External(e.to_string()))],
-        }
-    }
-}
-
-impl<I> FromExternalError<I, serde_json::Error> for ParserError<I> {
-    fn from_external_error(input: I, _kind: ErrorKind, e: serde_json::Error) -> Self {
-        Self {
-            errors: vec![(input, ParserErrorKind::External(e.to_string()))],
-        }
-    }
-}
-
-impl<I> FromExternalError<I, FromUtf16Error> for ParserError<I> {
-    fn from_external_error(input: I, _kind: ErrorKind, e: FromUtf16Error) -> Self {
-        Self {
-            errors: vec![(input, ParserErrorKind::External(e.to_string()))],
+            errors: vec![ParserErrorInner {
+                input,
+                kind: ParserErrorKind::Message(e.to_string().into()),
+                context: None,
+            }],
         }
     }
 }

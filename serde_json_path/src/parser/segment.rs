@@ -1,6 +1,5 @@
 use nom::bytes::complete::tag;
 use nom::character::complete::char;
-use nom::combinator::cut;
 use nom::error::context;
 use nom::sequence::terminated;
 use nom::{
@@ -15,6 +14,7 @@ use serde_json_path_core::spec::segment::{QuerySegment, QuerySegmentKind, Segmen
 use serde_json_path_core::spec::selector::Selector;
 
 use super::selector::{parse_selector, parse_wildcard_selector};
+use super::utils::cut_with;
 use super::PResult;
 
 // TODO - I have no idea if this is correct, supposed to be %x80-10FFFF
@@ -41,7 +41,9 @@ fn parse_name_char(input: &str) -> PResult<&str> {
 pub(crate) fn parse_dot_member_name(input: &str) -> PResult<String> {
     map(
         recognize(pair(
-            parse_name_first,
+            cut_with(parse_name_first, |_| {
+                SegmentError::InvalidFirstNameCharacter
+            }),
             fold_many0(parse_name_char, String::new, |mut s, item| {
                 s.push_str(item);
                 s
@@ -53,7 +55,10 @@ pub(crate) fn parse_dot_member_name(input: &str) -> PResult<String> {
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_dot_member_name_shorthand(input: &str) -> PResult<Segment> {
-    map(preceded(char('.'), parse_dot_member_name), Segment::DotName)(input)
+    map(
+        preceded(char('.'), context("dot member name", parse_dot_member_name)),
+        Segment::DotName,
+    )(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
@@ -64,13 +69,16 @@ fn parse_multi_selector(input: &str) -> PResult<Vec<Selector>> {
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_child_long_hand(input: &str) -> PResult<Segment> {
     context(
-        "child long-hand segment",
+        "long-hand segment",
         preceded(
             pair(char('['), space0),
-            cut(terminated(
+            terminated(
                 map(parse_multi_selector, Segment::LongHand),
-                pair(space0, char(']')),
-            )),
+                pair(
+                    space0,
+                    cut_with(char(']'), |_| SegmentError::ExpectedClosingBrace),
+                ),
+            ),
         ),
     )(input)
 }
@@ -97,8 +105,8 @@ fn parse_descendant_segment(input: &str) -> PResult<Segment> {
         tag(".."),
         alt((
             map(parse_wildcard_selector, |_| Segment::Wildcard),
+            parse_child_long_hand,
             map(parse_dot_member_name, Segment::DotName),
-            parse_child_segment,
         )),
     )(input)
 }
@@ -117,8 +125,20 @@ pub(crate) fn parse_segment(input: &str) -> PResult<QuerySegment> {
     ))(input)
 }
 
+#[doc(hidden)]
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum SegmentError {
+    #[error("must start with lowercase alpha or '_'")]
+    InvalidFirstNameCharacter,
+    #[error("expected closing ']'")]
+    ExpectedClosingBrace,
+}
+
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "trace")]
+    use test_log::test;
+
     use nom::combinator::all_consuming;
     use serde_json_path_core::spec::selector::{index::Index, name::Name, slice::Slice, Selector};
 
@@ -214,15 +234,7 @@ mod tests {
             assert_eq!(sk.as_dot_name().unwrap(), "name");
         }
         {
-            let (_, sk) = parse_descendant_segment("...name").unwrap();
-            assert_eq!(sk.as_dot_name().unwrap(), "name");
-        }
-        {
             let (_, sk) = parse_descendant_segment("..*").unwrap();
-            assert!(matches!(sk, Segment::Wildcard));
-        }
-        {
-            let (_, sk) = parse_descendant_segment("...*").unwrap();
             assert!(matches!(sk, Segment::Wildcard));
         }
     }

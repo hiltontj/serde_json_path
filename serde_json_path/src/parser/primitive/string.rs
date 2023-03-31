@@ -12,6 +12,7 @@ use nom::{
     sequence::{delimited, preceded},
 };
 
+use crate::parser::utils::cut_with;
 use crate::parser::PResult;
 
 #[derive(Debug, Copy, Clone)]
@@ -97,7 +98,6 @@ fn parse_unicode_sequence(input: &str) -> PResult<String> {
     context("unicode sequence", preceded(char('u'), parse_hex_char))(input)
 }
 
-#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None))]
 fn parse_escaped_quote(quoted_with: Quotes) -> impl Fn(&str) -> PResult<char> {
     move |input: &str| match quoted_with {
         Quotes::Single => value('\u{0027}', char('\''))(input),
@@ -105,7 +105,6 @@ fn parse_escaped_quote(quoted_with: Quotes) -> impl Fn(&str) -> PResult<char> {
     }
 }
 
-#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None))]
 fn parse_escaped_char(quoted_with: Quotes) -> impl Fn(&str) -> PResult<String> {
     move |input: &str| {
         context(
@@ -148,7 +147,6 @@ fn is_valid_unescaped_char(chr: char, quoted_with: Quotes) -> bool {
     }
 }
 
-#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None))]
 fn parse_unescaped(quoted_with: Quotes) -> impl Fn(&str) -> PResult<&str> {
     move |input: &str| {
         context(
@@ -161,7 +159,6 @@ fn parse_unescaped(quoted_with: Quotes) -> impl Fn(&str) -> PResult<&str> {
     }
 }
 
-#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None))]
 fn parse_fragment(quoted_with: Quotes) -> impl Fn(&str) -> PResult<String> {
     move |input: &str| {
         alt((
@@ -171,7 +168,6 @@ fn parse_fragment(quoted_with: Quotes) -> impl Fn(&str) -> PResult<String> {
     }
 }
 
-#[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None))]
 fn parse_internal(quoted_with: Quotes) -> impl Fn(&str) -> PResult<String> {
     move |input: &str| {
         fold_many0(
@@ -189,7 +185,11 @@ fn parse_internal(quoted_with: Quotes) -> impl Fn(&str) -> PResult<String> {
 fn parse_single_quoted(input: &str) -> PResult<String> {
     context(
         "single quoted",
-        delimited(char('\''), parse_internal(Quotes::Single), cut(char('\''))),
+        delimited(
+            char('\''),
+            parse_internal(Quotes::Single),
+            cut_with(char('\''), |_| StringError::ExpectedEndQuote),
+        ),
     )(input)
 }
 
@@ -207,6 +207,12 @@ pub(crate) fn parse_string_literal(input: &str) -> PResult<String> {
         "string literal",
         alt((parse_single_quoted, parse_double_quoted)),
     )(input)
+}
+
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum StringError {
+    #[error("expected an ending quote")]
+    ExpectedEndQuote,
 }
 
 #[cfg(test)]

@@ -187,6 +187,9 @@ pub(crate) fn parse_comparable(input: &str) -> PResult<Comparable> {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "trace")]
+    use test_log::test;
+
     use serde_json::Number;
     use serde_json_path_core::spec::selector::filter::{Comparable, Literal, SingularQuerySegment};
 
