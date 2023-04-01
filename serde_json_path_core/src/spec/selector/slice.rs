@@ -4,7 +4,7 @@ use serde_json::Value;
 use crate::spec::query::Queryable;
 
 /// A slice selector
-#[derive(Debug, PartialEq, Default, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Default, Clone, Copy)]
 pub struct Slice {
     /// The start of the slice
     ///

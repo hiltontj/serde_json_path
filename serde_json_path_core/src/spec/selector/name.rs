@@ -4,7 +4,7 @@ use serde_json::Value;
 use crate::spec::query::Queryable;
 
 /// Select a single JSON object key
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Name(pub String);
 
 impl Name {

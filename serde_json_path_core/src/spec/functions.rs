@@ -462,7 +462,7 @@ impl std::fmt::Display for JsonPathType {
 }
 
 #[doc(hidden)]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct FunctionExpr<V> {
     pub name: String,
     pub args: Vec<FunctionExprArg>,
@@ -485,6 +485,8 @@ impl PartialEq for Validated {
         true
     }
 }
+
+impl Eq for Validated {}
 
 impl std::fmt::Debug for Validated {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -550,7 +552,7 @@ impl<V> std::fmt::Display for FunctionExpr<V> {
 }
 
 #[doc(hidden)]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum FunctionExprArg {
     Literal(Literal),
     SingularQuery(SingularQuery),
@@ -633,7 +635,7 @@ impl FunctionExprArg {
 /// Therefore, we require a `Node` variant here to indicate that an argument may be converted into
 /// either type of parameter.
 #[doc(hidden)]
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum FunctionArgType {
     /// Denotes a literal owned JSON value
     Literal,

@@ -4,7 +4,7 @@ use serde_json::Value;
 use super::{query::Queryable, selector::Selector};
 
 /// A segment of a JSONPath query
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct QuerySegment {
     /// The kind of segment
     pub kind: QuerySegmentKind,
@@ -34,7 +34,7 @@ impl std::fmt::Display for QuerySegment {
 }
 
 /// The kind of query segment
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum QuerySegmentKind {
     /// A normal child
     ///
@@ -73,7 +73,7 @@ fn descend<'b>(segment: &QuerySegment, current: &'b Value, root: &'b Value) -> V
 }
 
 /// Represents the different forms of JSONPath segment
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Segment {
     /// Long hand segments contain multiple selectors inside square brackets
     LongHand(Vec<Selector>),
