@@ -44,7 +44,7 @@ impl TestFilter for Value {
 }
 
 /// The main filter type for JSONPath
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Filter(pub LogicalOrExpr);
 
 impl std::fmt::Display for Filter {
@@ -75,7 +75,7 @@ impl Queryable for Filter {
 ///
 /// This is also `ligical-expression` in the JSONPath specification, but the naming was chosen to
 /// make it more clear that it represents the logical OR, and to not have an extra wrapping type.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct LogicalOrExpr(pub Vec<LogicalAndExpr>);
 
 impl std::fmt::Display for LogicalOrExpr {
@@ -99,7 +99,7 @@ impl TestFilter for LogicalOrExpr {
 }
 
 /// A logical AND expression
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct LogicalAndExpr(pub Vec<BasicExpr>);
 
 impl std::fmt::Display for LogicalAndExpr {
@@ -123,7 +123,7 @@ impl TestFilter for LogicalAndExpr {
 }
 
 /// The basic for m of expression in a filter
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum BasicExpr {
     /// An expression wrapped in parenthesis
     Paren(LogicalOrExpr),
@@ -185,7 +185,7 @@ impl TestFilter for BasicExpr {
 /// ### Implementation Note
 ///
 /// This does not support the function expression notation outlined in the JSONPath spec.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct ExistExpr(pub Query);
 
 impl std::fmt::Display for ExistExpr {
@@ -202,7 +202,7 @@ impl TestFilter for ExistExpr {
 }
 
 /// A comparison expression comparing two JSON values
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct ComparisonExpr {
     /// The JSON value on the left of the comparison
     pub left: Comparable,
@@ -312,7 +312,7 @@ fn number_less_than(n1: &Number, n2: &Number) -> bool {
 }
 
 /// The comparison operator
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ComparisonOperator {
     /// `==`
     EqualTo,
@@ -342,7 +342,7 @@ impl std::fmt::Display for ComparisonOperator {
 }
 
 /// A type that is comparable
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Comparable {
     /// A literal JSON value, excluding objects and arrays
     Literal(Literal),
@@ -391,7 +391,7 @@ impl Comparable {
 }
 
 /// A literal JSON value that can be represented in a JSONPath query
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Literal {
     /// A valid JSON number
     Number(Number),
@@ -428,7 +428,7 @@ impl std::fmt::Display for Literal {
 }
 
 /// A segment in a singular query
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum SingularQuerySegment {
     /// A single name segment
     Name(Name),
@@ -483,7 +483,7 @@ impl TryFrom<Selector> for SingularQuerySegment {
 }
 
 /// Represents a singular query in JSONPath
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct SingularQuery {
     /// The kind of singular query, relative or absolute
     pub kind: SingularQueryKind,
@@ -561,7 +561,7 @@ impl std::fmt::Display for SingularQuery {
 }
 
 /// The kind of singular query
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum SingularQueryKind {
     /// Referencing the root node, i.e., `$`
     Absolute,

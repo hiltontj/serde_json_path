@@ -36,7 +36,7 @@ pub trait Queryable: sealed::Sealed {
 }
 
 /// Represents a JSONPath expression
-#[derive(Debug, PartialEq, Clone, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct Query {
     /// The kind of query, root (`$`), or current (`@`)
     pub kind: QueryKind,
@@ -72,7 +72,7 @@ impl std::fmt::Display for Query {
 }
 
 /// The kind of query
-#[derive(Debug, PartialEq, Clone, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub enum QueryKind {
     /// A query against the root of a JSON object, i.e., with `$`
     #[default]

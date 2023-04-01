@@ -11,7 +11,7 @@ use self::{filter::Filter, index::Index, name::Name, slice::Slice};
 use super::query::Queryable;
 
 /// A JSONPath selector
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Selector {
     /// Select an object key
     Name(Name),

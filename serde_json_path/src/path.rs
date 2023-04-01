@@ -37,7 +37,7 @@ use crate::{parser::parse_query_main, Error};
 /// ```
 ///
 /// [jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-10.html
-#[derive(Debug, PartialEq, Clone, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct JsonPath(Query);
 
 impl JsonPath {

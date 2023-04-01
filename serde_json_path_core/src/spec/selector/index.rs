@@ -6,7 +6,7 @@ use crate::spec::query::Queryable;
 /// For selecting array elements by their index
 ///
 /// Can use negative indices to index from the end of an array
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Index(pub isize);
 
 impl std::fmt::Display for Index {
