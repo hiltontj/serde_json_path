@@ -89,6 +89,12 @@ isolate cases where specific errors can be propagated up, and give better error 
 [#32]: https://github.com/hiltontj/serde_json_path/pull/32
 [jpspec_base12_func_ext]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-12.html#name-function-extensions
 
+## Other Changes
+
+- **added:** updated to latest version of CTS to ensure compliance [#33]
+
+[#33]: https://github.com/hiltontj/serde_json_path/pull/33
+
 # 0.5.3 (14 March 2023)
 
 - **fixed:** Fix serialization behaviour of `NodeList` ([#30])
