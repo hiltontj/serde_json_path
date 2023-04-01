@@ -1,16 +1,22 @@
 use proc_macro::TokenStream;
 use syn::{parse_macro_input, ItemFn};
 
-use crate::args::FunctionMacroArgs;
-
-mod args;
-mod define;
-mod extract;
+mod common;
+mod func;
+mod reg;
 
 #[proc_macro_attribute]
 pub fn function(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let args = parse_macro_input!(attr as FunctionMacroArgs);
-    let func = parse_macro_input!(item as ItemFn);
+    let args = parse_macro_input!(attr as func::FunctionMacroArgs);
+    let item_fn = parse_macro_input!(item as ItemFn);
 
-    define::expand(args, func)
+    func::expand(args, item_fn)
+}
+
+#[proc_macro_attribute]
+pub fn register(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(attr as reg::RegisterMacroArgs);
+    let item_fn = parse_macro_input!(item as ItemFn);
+
+    reg::expand(args, item_fn)
 }

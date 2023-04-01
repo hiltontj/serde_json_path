@@ -154,10 +154,10 @@ pub type Evaluator =
 #[doc(hidden)]
 #[allow(missing_debug_implementations)]
 pub struct Function {
-    name: &'static str,
-    result_type: FunctionArgType,
-    validator: &'static Validator,
-    evaluator: &'static Evaluator,
+    pub name: &'static str,
+    pub result_type: FunctionArgType,
+    pub validator: &'static Validator,
+    pub evaluator: &'static Evaluator,
 }
 
 impl Function {
@@ -176,6 +176,7 @@ impl Function {
     }
 }
 
+#[cfg(feature = "functions")]
 inventory::collect!(Function);
 
 /// JSONPath type epresenting a Nodelist
@@ -433,13 +434,38 @@ impl std::fmt::Display for JsonPathType {
 
 #[doc(hidden)]
 #[derive(Debug, PartialEq, Clone)]
-pub struct FunctionExpr {
+pub struct FunctionExpr<V> {
     pub name: String,
     pub args: Vec<FunctionExprArg>,
     pub return_type: FunctionArgType,
+    pub validated: V,
 }
 
-impl FunctionExpr {
+#[doc(hidden)]
+#[derive(Debug)]
+pub struct NotValidated;
+
+#[doc(hidden)]
+#[derive(Clone)]
+pub struct Validated {
+    pub evaluator: &'static Evaluator,
+}
+
+impl PartialEq for Validated {
+    fn eq(&self, _other: &Self) -> bool {
+        true
+    }
+}
+
+impl std::fmt::Debug for Validated {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Validated")
+            .field("evaluator", &"static function")
+            .finish()
+    }
+}
+
+impl FunctionExpr<Validated> {
     #[cfg_attr(
         feature = "trace",
         tracing::instrument(name = "Evaluate Function Expr", level = "trace", parent = None, ret)
@@ -454,27 +480,25 @@ impl FunctionExpr {
             .iter()
             .map(|a| a.evaluate(current, root))
             .collect();
-        for f in inventory::iter::<Function> {
-            if f.name == self.name {
-                return (f.evaluator)(args);
-            }
-        }
-        // This is unreachable because if the function is not present, or validly declared, then
-        // the JSON Path would not be parsed.
-        unreachable!()
+        (self.validated.evaluator)(args)
     }
+}
 
+impl FunctionExpr<NotValidated> {
     pub fn validate(
         name: String,
         args: Vec<FunctionExprArg>,
-    ) -> Result<Self, FunctionValidationError> {
+    ) -> Result<FunctionExpr<Validated>, FunctionValidationError> {
         for f in inventory::iter::<Function> {
             if f.name == name {
                 (f.validator)(args.as_slice())?;
-                return Ok(Self {
+                return Ok(FunctionExpr {
                     name,
                     args,
                     return_type: f.result_type,
+                    validated: Validated {
+                        evaluator: f.evaluator,
+                    },
                 });
             }
         }
@@ -482,7 +506,7 @@ impl FunctionExpr {
     }
 }
 
-impl std::fmt::Display for FunctionExpr {
+impl<V> std::fmt::Display for FunctionExpr<V> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{name}(", name = self.name)?;
         for (i, arg) in self.args.iter().enumerate() {
@@ -503,7 +527,7 @@ pub enum FunctionExprArg {
     SingularQuery(SingularQuery),
     FilterQuery(Query),
     LogicalExpr(LogicalOrExpr),
-    FunctionExpr(FunctionExpr),
+    FunctionExpr(FunctionExpr<Validated>),
 }
 
 impl std::fmt::Display for FunctionExprArg {
@@ -658,7 +682,7 @@ pub enum FunctionValidationError {
     IncorrectFunctionReturnType,
 }
 
-impl TestFilter for FunctionExpr {
+impl TestFilter for FunctionExpr<Validated> {
     #[cfg_attr(
         feature = "trace",
         tracing::instrument(name = "Test Function Expr", level = "trace", parent = None, ret)

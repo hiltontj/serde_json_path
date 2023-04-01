@@ -4,7 +4,7 @@ use nom::multi::separated_list1;
 use nom::sequence::{delimited, pair, preceded, separated_pair, tuple};
 use nom::{branch::alt, bytes::complete::tag, combinator::value};
 use serde_json_path_core::spec::functions::{
-    FunctionArgType, FunctionExpr, FunctionValidationError,
+    FunctionArgType, FunctionExpr, FunctionValidationError, Validated,
 };
 use serde_json_path_core::spec::selector::filter::{
     BasicExpr, Comparable, ComparisonExpr, ComparisonOperator, ExistExpr, Filter, Literal,
@@ -61,7 +61,7 @@ fn parse_not_exist_expr(input: &str) -> PResult<BasicExpr> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_func_expr_inner(input: &str) -> PResult<FunctionExpr> {
+fn parse_func_expr_inner(input: &str) -> PResult<FunctionExpr<Validated>> {
     map_res(parse_function_expr, |fe| match fe.return_type {
         FunctionArgType::Logical | FunctionArgType::Nodelist => Ok(fe),
         _ => Err(FunctionValidationError::IncorrectFunctionReturnType),

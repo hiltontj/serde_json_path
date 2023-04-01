@@ -340,4 +340,5 @@ pub use serde_json_path_core::spec::functions;
 ///
 /// [`inventory`]: https://docs.rs/inventory/latest/inventory/
 #[doc(inline)]
+#[cfg(feature = "functions")]
 pub use serde_json_path_macros::function;

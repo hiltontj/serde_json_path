@@ -1,13 +1,24 @@
-use proc_macro::TokenStream;
+use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use syn::{ItemFn, LitStr};
 
-use crate::{
-    args::FunctionMacroArgs,
-    extract::{extract_components, Components, FnArgument},
-};
+use crate::common::extract::FnArgument;
 
-pub(crate) fn expand(attrs: FunctionMacroArgs, input: ItemFn) -> TokenStream {
+use super::extract::{extract_components, Components};
+
+pub(crate) struct Expanded {
+    pub(crate) name_str: LitStr,
+    pub(crate) validator: TokenStream,
+    pub(crate) validator_name: Ident,
+    pub(crate) evaluator: TokenStream,
+    pub(crate) evaluator_name: Ident,
+    pub(crate) result: TokenStream,
+    pub(crate) core: TokenStream,
+}
+
+/// Expand the macro input to produce the common elements used in the `#[function]` and
+/// `#[register]` macros.
+pub(crate) fn expand(input: ItemFn, name_str: Option<LitStr>) -> Result<Expanded, TokenStream> {
     let ItemFn {
         attrs: _,
         vis: _,
@@ -26,18 +37,13 @@ pub(crate) fn expand(attrs: FunctionMacroArgs, input: ItemFn) -> TokenStream {
         inputs,
     } = match extract_components(sig) {
         Ok(fd) => fd,
-        Err(e) => return e.into_compile_error().into(),
+        Err(e) => return Err(e.into_compile_error()),
     };
-    // TODO - may just put the str in the components directly, if the ident is not used for anything
-    //            else
-    let name_str = attrs
-        .name
-        .unwrap_or_else(|| LitStr::new(name.to_string().as_str(), name.span()));
-
+    // Stringified name of the function:
+    let name_str = name_str.unwrap_or_else(|| LitStr::new(name.to_string().as_str(), name.span()));
+    // The number of arguments the function accepts:
     let args_len = args.len();
-    let inventory = quote! {
-        ::serde_json_path_macros::inventory
-    };
+    // Generate token streams for some needed types:
     let lazy = quote! {
         ::serde_json_path_macros::once_cell::sync::Lazy
     };
@@ -47,6 +53,7 @@ pub(crate) fn expand(attrs: FunctionMacroArgs, input: ItemFn) -> TokenStream {
     let res = quote! {
         std::result::Result
     };
+    // Generate code for checking each individual argument in a query at parse time:
     let arg_checks = args.iter().enumerate().map(|(idx, arg)| {
         let FnArgument { ident: _, ty } = arg;
         quote! {
@@ -65,7 +72,7 @@ pub(crate) fn expand(attrs: FunctionMacroArgs, input: ItemFn) -> TokenStream {
             }
         }
     });
-
+    // Generate the validator function used at parse time to validate a function declaration:
     let validator = quote! {
         static #validator_name: #core::Validator = #lazy::new(|| {
             std::boxed::Box::new(|a: &[#core::FunctionExprArg]| {
@@ -80,7 +87,7 @@ pub(crate) fn expand(attrs: FunctionMacroArgs, input: ItemFn) -> TokenStream {
             })
         });
     };
-
+    // Generate the code to declare each individual argument for evaluation, at query time:
     let arg_declarations = args.iter().map(|arg| {
         let FnArgument { ident, ty } = arg;
         // validation should ensure unwrap is okay here:
@@ -88,11 +95,12 @@ pub(crate) fn expand(attrs: FunctionMacroArgs, input: ItemFn) -> TokenStream {
             let #ident = #ty::try_from(v.pop_front().unwrap()).unwrap();
         }
     });
+    // Produce the argument name identifiers:
     let arg_names = args.iter().map(|arg| {
         let FnArgument { ident, ty: _ } = arg;
         ident
     });
-
+    // Generate the evaluator function used to evaluate a function at query time:
     let evaluator = quote! {
         fn #name #generics (#inputs) #ret #block
         static #evaluator_name: #core::Evaluator = #lazy::new(|| {
@@ -103,16 +111,13 @@ pub(crate) fn expand(attrs: FunctionMacroArgs, input: ItemFn) -> TokenStream {
         });
     };
 
-    TokenStream::from(quote! {
-        #validator
-        #evaluator
-        #inventory::submit! {
-            #core::Function::new(
-                #name_str,
-                #result::function_type(),
-                &#evaluator_name,
-                &#validator_name,
-            )
-        }
+    Ok(Expanded {
+        name_str,
+        validator,
+        validator_name,
+        evaluator,
+        evaluator_name,
+        result,
+        core,
     })
 }

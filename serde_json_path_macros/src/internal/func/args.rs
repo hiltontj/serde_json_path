@@ -1,7 +1,6 @@
-use syn::{
-    parse::{Parse, ParseStream},
-    LitStr, Token,
-};
+use syn::{parse::Parse, LitStr};
+
+use crate::common::args::StrArg;
 
 #[derive(Default)]
 pub(crate) struct FunctionMacroArgs {
@@ -27,23 +26,6 @@ impl Parse for FunctionMacroArgs {
             }
         }
         Ok(args)
-    }
-}
-
-struct StrArg<T> {
-    value: LitStr,
-    _p: std::marker::PhantomData<T>,
-}
-
-impl<T: Parse> Parse for StrArg<T> {
-    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
-        let _ = input.parse::<T>()?;
-        let _ = input.parse::<Token![=]>()?;
-        let value = input.parse()?;
-        Ok(Self {
-            value,
-            _p: std::marker::PhantomData,
-        })
     }
 }
 

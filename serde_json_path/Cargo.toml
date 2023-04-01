@@ -11,9 +11,9 @@ readme = "README.md"
 keywords = ["json", "jsonpath", "json_path", "serde", "serde_json"]
 
 [features]
-default = ["registry"]
+default = ["functions"]
 trace = ["dep:tracing", "serde_json_path_core/trace"]
-registry = []
+functions = ["serde_json_path_core/functions"]
 
 [dependencies]
 inventory = { version = "0.3.4" }

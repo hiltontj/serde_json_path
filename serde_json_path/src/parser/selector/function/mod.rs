@@ -9,12 +9,15 @@ use nom::{
     multi::fold_many1,
     sequence::{delimited, pair},
 };
-use serde_json_path_core::spec::functions::{FunctionExpr, FunctionExprArg};
+use serde_json_path_core::spec::functions::{
+    Function, FunctionExpr, FunctionExprArg, FunctionValidationError, Validated,
+};
 
-#[cfg(feature = "registry")]
 pub(crate) mod registry;
 
 use crate::parser::{parse_query, PResult};
+
+use self::registry::REGISTRY;
 
 use super::filter::{parse_literal, parse_logical_or_expr, parse_singular_path};
 
@@ -62,7 +65,7 @@ fn parse_function_argument(input: &str) -> PResult<FunctionExprArg> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub(crate) fn parse_function_expr(input: &str) -> PResult<FunctionExpr> {
+pub(crate) fn parse_function_expr(input: &str) -> PResult<FunctionExpr<Validated>> {
     cut(map_res(
         pair(
             parse_function_name,
@@ -75,6 +78,33 @@ pub(crate) fn parse_function_expr(input: &str) -> PResult<FunctionExpr> {
                 preceded(space0, char(')')),
             ),
         ),
-        |(name, args)| FunctionExpr::validate(name, args),
+        |(name, args)| {
+            #[cfg(feature = "functions")]
+            for f in inventory::iter::<Function> {
+                if f.name == name {
+                    (f.validator)(args.as_slice())?;
+                    return Ok(FunctionExpr {
+                        name,
+                        args,
+                        return_type: f.result_type,
+                        validated: Validated {
+                            evaluator: f.evaluator,
+                        },
+                    });
+                }
+            }
+            if let Some(f) = REGISTRY.get(name.as_str()) {
+                (f.validator)(args.as_slice())?;
+                return Ok(FunctionExpr {
+                    name,
+                    args,
+                    return_type: f.result_type,
+                    validated: Validated {
+                        evaluator: f.evaluator,
+                    },
+                });
+            }
+            Err(FunctionValidationError::Undefined { name })
+        },
     ))(input)
 }

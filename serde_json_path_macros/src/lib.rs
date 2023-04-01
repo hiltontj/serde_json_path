@@ -42,6 +42,7 @@
 #![forbid(unsafe_code)]
 
 pub use serde_json_path_macros_internal::function;
+pub use serde_json_path_macros_internal::register;
 
 #[doc(hidden)]
 pub use ::inventory;

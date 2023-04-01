@@ -12,8 +12,9 @@ keywords = ["json", "jsonpath", "json_path", "serde", "serde_json"]
 [lib]
 
 [features]
-default = []
+default = ["functions"]
 trace = ["dep:tracing"]
+functions = []
 
 [dependencies]
 inventory = { version = "0.3.4" }

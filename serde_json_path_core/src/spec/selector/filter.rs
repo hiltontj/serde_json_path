@@ -2,7 +2,7 @@
 use serde_json::{Number, Value};
 
 use crate::spec::{
-    functions::{FunctionExpr, JsonPathValue},
+    functions::{FunctionExpr, JsonPathValue, Validated},
     query::{Query, QueryKind, Queryable},
     segment::{QuerySegment, Segment},
 };
@@ -23,7 +23,7 @@ mod sealed {
     impl Sealed for BasicExpr {}
     impl Sealed for ExistExpr {}
     impl Sealed for ComparisonExpr {}
-    impl Sealed for FunctionExpr {}
+    impl<V> Sealed for FunctionExpr<V> {}
 }
 
 /// Trait for testing a filter type
@@ -136,9 +136,9 @@ pub enum BasicExpr {
     /// The inverse of an existence expression, i.e., preceded by `!`
     NotExist(ExistExpr),
     /// A function expression
-    FuncExpr(FunctionExpr),
+    FuncExpr(FunctionExpr<Validated>),
     /// The inverse of a function expression, i.e., preceded by `!`
-    NotFuncExpr(FunctionExpr),
+    NotFuncExpr(FunctionExpr<Validated>),
 }
 
 impl std::fmt::Display for BasicExpr {
@@ -351,7 +351,7 @@ pub enum Comparable {
     /// This will only produce a single node, i.e., JSON value, or nothing
     SingularQuery(SingularQuery),
     /// A function expression that can only produce a `ValueType`
-    FunctionExpr(FunctionExpr),
+    FunctionExpr(FunctionExpr<Validated>),
 }
 
 impl std::fmt::Display for Comparable {
