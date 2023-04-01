@@ -55,7 +55,7 @@ use serde_json_path::functions::{NodesType, ValueType};
 
 #[serde_json_path::function]
 fn first(nodes: NodesType) -> ValueType {
-    match nodes.into_inner().first() {
+    match nodes.first() {
         Some(v) => ValueType::Node(v),
         None => ValueType::Nothing,
     }
