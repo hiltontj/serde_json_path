@@ -8,7 +8,7 @@ use serde_json::Value;
 ///
 /// Each node within the list is a borrowed reference to the node in the original
 /// [`serde_json::Value`] that was queried.
-#[derive(Debug, Default, Eq, PartialEq, Serialize)]
+#[derive(Debug, Default, Eq, PartialEq, Serialize, Clone)]
 pub struct NodeList<'a>(pub(crate) Vec<&'a Value>);
 
 impl<'a> NodeList<'a> {

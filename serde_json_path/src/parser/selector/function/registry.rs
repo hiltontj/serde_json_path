@@ -40,7 +40,7 @@ fn length(value: ValueType) -> ValueType {
 
 #[serde_json_path_macros::register(target = COUNT_FUNC)]
 fn count(nodes: NodesType) -> ValueType {
-    nodes.into_inner().len().into()
+    nodes.len().into()
 }
 
 #[serde_json_path_macros::register(name = "match", target = MATCH_FUNC)]
@@ -67,11 +67,10 @@ fn search(value: ValueType, rgx: ValueType) -> LogicalType {
 
 #[serde_json_path_macros::register(target = VALUE_FUNC)]
 fn value(nodes: NodesType) -> ValueType {
-    let nl = nodes.into_inner();
-    if nl.len() > 1 {
+    if nodes.len() > 1 {
         ValueType::Nothing
     } else {
-        match nl.first() {
+        match nodes.first() {
             Some(v) => ValueType::Node(v),
             None => ValueType::Nothing,
         }

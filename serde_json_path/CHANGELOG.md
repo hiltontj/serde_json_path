@@ -26,6 +26,14 @@ were moved into `serde_json_path_core`.
 This split was done to accommodate the new `#[function]` attribute macro, which is defined within the
 `serde_json_path_macros`/`macros_internal` crates, and discussed below.
 
+This release ships with the standard built-in functions that are part of the base JSONPath specification:
+
+- `length`
+- `count`
+- `match`
+- `search`
+- `value`
+
 ### The `functions` module (**added**)
 
 This includes three new types: `ValueType`, `NodesType`, and `LogicalType` to support the JSONPath
@@ -58,6 +66,11 @@ Which will then allow you to use a `first` function in your JSONPath queries:
 ```
 $[? first(@.*) > 5 ]
 ```
+
+The `#[function]` macro is gated behind the `functions` feature, which is enabled by default.
+
+Functions defined using the `#[function]` macro will override any of the built-in functions that are part
+of the standard, e.g., `length`, `count`, etc.
 
 ### Changed the `Error` type (**breaking**)
 

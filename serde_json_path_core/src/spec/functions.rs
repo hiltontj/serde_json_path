@@ -7,7 +7,8 @@
 //! # The JSONPath Type System
 //!
 //! The type system used in JSONPath function extensions is comprised of three types: [`NodesType`],
-//! [`ValueType`], and [`LogicalType`].
+//! [`ValueType`], and [`LogicalType`]. All functions use some combination of these types as their
+//! arguments, and use one of these types as their return type.
 //!
 //! # Registered Functions
 //!
@@ -131,7 +132,10 @@
 //! $[?value(@..color) == "red"]
 //! ```
 //!
-use std::collections::VecDeque;
+use std::{
+    collections::VecDeque,
+    ops::{Deref, DerefMut},
+};
 
 use once_cell::sync::Lazy;
 use serde_json::Value;
@@ -183,7 +187,7 @@ inventory::collect!(Function);
 ///
 /// This is a thin wrapper around a [`NodeList`], and generally represents the result of a JSONPath
 /// query. It may also be produced by a function.
-#[derive(Debug)]
+#[derive(Debug, Default, PartialEq, Clone)]
 pub struct NodesType<'a>(NodeList<'a>);
 
 impl<'a> NodesType<'a> {
@@ -197,9 +201,34 @@ impl<'a> NodesType<'a> {
         FunctionArgType::Nodelist
     }
 
-    /// Extract the inner [`NodeList`]
-    pub fn into_inner(self) -> NodeList<'a> {
-        self.0
+    /// Extract all inner nodes as a vector
+    ///
+    /// Uses the [`NodeList::all`][NodeList::all] method.
+    pub fn all(self) -> Vec<&'a Value> {
+        self.0.all()
+    }
+}
+
+impl<'a> IntoIterator for NodesType<'a> {
+    type Item = &'a Value;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl<'a> Deref for NodesType<'a> {
+    type Target = NodeList<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<'a> DerefMut for NodesType<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
@@ -233,7 +262,7 @@ impl<'a> TryFrom<JsonPathValue<'a>> for NodesType<'a> {
 }
 
 /// JSONPath type representing `LogicalTrue` or `LogicalFalse`
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub enum LogicalType {
     /// True
     True,
@@ -296,7 +325,7 @@ impl From<bool> for LogicalType {
 }
 
 /// JSONPath type representing a JSON value or Nothing
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub enum ValueType<'a> {
     /// This may come from a literal value declared in a JSONPath query, or be produced by a
     /// function.

@@ -115,7 +115,7 @@ fn get_some_books() -> Value {
 
 #[serde_json_path::function]
 fn first(nodes: NodesType) -> ValueType {
-    match nodes.into_inner().first() {
+    match nodes.first() {
         Some(v) => ValueType::Node(v),
         None => ValueType::Nothing,
     }
@@ -124,7 +124,7 @@ fn first(nodes: NodesType) -> ValueType {
 #[serde_json_path::function]
 fn sort<'a>(nodes: NodesType<'a>, on: ValueType<'a>) -> NodesType<'a> {
     if let Some(Ok(path)) = on.as_value().and_then(Value::as_str).map(JsonPath::parse) {
-        let mut nl = nodes.into_inner().all();
+        let mut nl = nodes.all();
         nl.sort_by(|a, b| {
             if let (Some(a), Some(b)) = (
                 a.json_path(&path).exactly_one().ok(),

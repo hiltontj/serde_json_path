@@ -270,7 +270,7 @@ pub use serde_json_path_core::spec::functions;
 /// // returns a reference to that node, if it contains any nodes, or nothing otherwise:
 /// #[serde_json_path::function]
 /// fn first(nodes: NodesType) -> ValueType {
-///     match nodes.into_inner().first() {
+///     match nodes.first() {
 ///         Some(n) => ValueType::Node(n),
 ///         None => ValueType::Nothing,
 ///     }
