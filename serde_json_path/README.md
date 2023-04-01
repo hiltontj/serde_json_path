@@ -13,10 +13,6 @@
 * See the [IETF JSONPath Specification][jp_spec] for more details about JSONPath and examples of its usage.
 * Try it out in the [Sandbox](https://serdejsonpath.live)
 
-## Planned Development
-
-* [Improved Error Handling][error_issue]
-
 ## License
 
 This project is licensed under the [MIT license][license].
@@ -31,6 +27,5 @@ additional terms or conditions.
 [jsonpath]: https://datatracker.ietf.org/wg/jsonpath/about/
 [serde_json_value]: https://docs.rs/serde_json/latest/serde_json/enum.Value.html
 [license]: https://github.com/hiltontj/serde_json_path/blob/main/LICENSE-MIT
-[func_ext_issue]: https://github.com/hiltontj/serde_json_path/issues/1
-[error_issue]: https://github.com/hiltontj/serde_json_path/issues/4
-[jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-11.html
+[jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-12.html
+
