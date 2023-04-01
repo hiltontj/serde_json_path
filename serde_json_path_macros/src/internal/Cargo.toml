@@ -1,0 +1,19 @@
+[package]
+name = "serde_json_path_macros_internal"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["Trevor Hilton <trevor.hilton@gmail.com>"]
+description = "Internal macro implementation for the serde_json_path crate"
+repository = "https://github.com/hiltontj/serde_json_path"
+readme = "README.md"
+keywords = ["json", "jsonpath", "json_path", "serde", "serde_json"]
+
+[lib]
+proc-macro = true
+path = "mod.rs"
+
+[dependencies]
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = { version = "2.0", features = ["full"] }
