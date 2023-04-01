@@ -92,8 +92,10 @@ isolate cases where specific errors can be propagated up, and give better error 
 ## Other Changes
 
 - **added:** updated to latest version of CTS to ensure compliance [#33]
+- **added:** implement `Eq` for `JsonPath` [#34]
 
 [#33]: https://github.com/hiltontj/serde_json_path/pull/33
+[#34]: https://github.com/hiltontj/serde_json_path/pull/34
 
 # 0.5.3 (14 March 2023)
 
