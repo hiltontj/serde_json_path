@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 use crate::parser::Error;
 
-/// Error type for the `serde_json_path` crate
+/// Error type for JSONPath query string parsing errors
 #[derive(Debug, thiserror::Error)]
 #[error("{err}")]
 pub struct ParseError {
