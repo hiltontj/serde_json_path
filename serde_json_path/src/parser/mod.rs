@@ -16,14 +16,14 @@ pub(crate) mod segment;
 pub(crate) mod selector;
 pub(crate) mod utils;
 
-type PResult<'a, O> = IResult<&'a str, O, ParserError<&'a str>>;
+type PResult<'a, O> = IResult<&'a str, O, Error<&'a str>>;
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct ParserError<I> {
+pub(crate) struct Error<I> {
     pub(crate) errors: Vec<ParserErrorInner<I>>,
 }
 
-impl<I> ParserError<I>
+impl<I> Error<I>
 where
     I: Deref<Target = str>,
 {
@@ -35,7 +35,7 @@ where
     }
 }
 
-impl<I> std::fmt::Display for ParserError<I> {
+impl<I> std::fmt::Display for Error<I> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(e) = self.errors.first() {
             if let Some(ctx) = e.context {
@@ -48,7 +48,7 @@ impl<I> std::fmt::Display for ParserError<I> {
     }
 }
 
-impl<I: std::fmt::Debug + std::fmt::Display> std::error::Error for ParserError<I> {}
+impl<I: std::fmt::Debug + std::fmt::Display> std::error::Error for Error<I> {}
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct ParserErrorInner<I> {
@@ -65,7 +65,7 @@ pub(crate) enum ParserErrorKind {
     Nom(ErrorKind),
 }
 
-impl<I> ParseError<I> for ParserError<I> {
+impl<I> ParseError<I> for Error<I> {
     fn from_error_kind(input: I, kind: ErrorKind) -> Self {
         Self {
             errors: vec![ParserErrorInner {
@@ -86,7 +86,7 @@ impl<I> ParseError<I> for ParserError<I> {
     }
 }
 
-impl<I> ContextError<I> for ParserError<I> {
+impl<I> ContextError<I> for Error<I> {
     fn add_context(_input: I, ctx: &'static str, mut other: Self) -> Self {
         if let Some(e) = other.errors.first_mut() {
             e.context = Some(ctx);
@@ -95,7 +95,7 @@ impl<I> ContextError<I> for ParserError<I> {
     }
 }
 
-impl<I, E> FromExternalError<I, E> for ParserError<I>
+impl<I, E> FromExternalError<I, E> for Error<I>
 where
     E: std::error::Error + Display,
 {
@@ -114,7 +114,7 @@ pub(crate) trait FromInternalError<I, E> {
     fn from_internal_error(input: I, e: E) -> Self;
 }
 
-impl<I, E> FromInternalError<I, E> for ParserError<I>
+impl<I, E> FromInternalError<I, E> for Error<I>
 where
     E: std::error::Error + Display,
 {

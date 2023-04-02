@@ -1,15 +1,15 @@
 use std::ops::Deref;
 
-use crate::parser::ParserError;
+use crate::parser::Error;
 
 /// Error type for the `serde_json_path` crate
 #[derive(Debug, thiserror::Error)]
 #[error("{err}")]
-pub struct Error {
+pub struct ParseError {
     err: Box<ErrorImpl>,
 }
 
-impl Error {
+impl ParseError {
     /// Get the 1-indexed error position
     pub fn position(&self) -> usize {
         self.err.position
@@ -28,11 +28,11 @@ struct ErrorImpl {
     message: Box<str>,
 }
 
-impl<I> From<(I, ParserError<I>)> for Error
+impl<I> From<(I, Error<I>)> for ParseError
 where
     I: Deref<Target = str> + std::fmt::Debug,
 {
-    fn from((input, pe): (I, ParserError<I>)) -> Self {
+    fn from((input, pe): (I, Error<I>)) -> Self {
         #[cfg(feature = "trace")]
         tracing::trace!(input = %input.to_string(), parser_error = ?pe);
         let position = pe.calculate_position(input);
@@ -45,19 +45,19 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::Error;
+    use crate::ParseError;
     #[cfg(feature = "trace")]
     use test_log::test;
 
     #[test]
     fn test_send() {
         fn assert_send<T: Send>() {}
-        assert_send::<Error>();
+        assert_send::<ParseError>();
     }
 
     #[test]
     fn test_sync() {
         fn assert_sync<T: Sync>() {}
-        assert_sync::<Error>();
+        assert_sync::<ParseError>();
     }
 }

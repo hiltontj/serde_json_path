@@ -7,7 +7,7 @@ use serde_json_path_core::{
     spec::query::{Query, Queryable},
 };
 
-use crate::{parser::parse_query_main, Error};
+use crate::{parser::parse_query_main, ParseError};
 
 /// A parsed JSON Path query string
 ///
@@ -50,7 +50,7 @@ impl JsonPath {
     /// let path = JsonPath::parse("$.foo[1:10:2].baz").expect("valid JSON Path");
     /// # }
     /// ```
-    pub fn parse(path_str: &str) -> Result<Self, Error> {
+    pub fn parse(path_str: &str) -> Result<Self, ParseError> {
         let (_, path) = parse_query_main(path_str).map_err(|err| match err {
             nom::Err::Error(e) | nom::Err::Failure(e) => (path_str, e),
             nom::Err::Incomplete(_) => unreachable!("we do not use streaming parsers"),
@@ -64,7 +64,7 @@ impl JsonPath {
     /// ```rust
     /// # use serde_json::json;
     /// # use serde_json_path::JsonPath;
-    /// # fn main() -> Result<(), serde_json_path::Error> {
+    /// # fn main() -> Result<(), serde_json_path::ParseError> {
     /// let path = JsonPath::parse("$.foo[::2]")?;
     /// let value = json!({"foo": [1, 2, 3, 4]});
     /// let nodes = path.query(&value);
@@ -78,7 +78,7 @@ impl JsonPath {
 }
 
 impl FromStr for JsonPath {
-    type Err = Error;
+    type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         JsonPath::parse(s)
