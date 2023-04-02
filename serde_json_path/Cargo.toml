@@ -28,6 +28,5 @@ thiserror = "1.0"
 tracing = { version = "0.1", optional = true }
 
 [dev-dependencies]
-env_logger = "*"
 test-log = { version = "0.2.11", default-features = false, features=["trace"] }
 tracing-subscriber = { version = "0.3", default-features = false, features=["env-filter", "fmt"] }
