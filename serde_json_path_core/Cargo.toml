@@ -25,4 +25,5 @@ thiserror = "1.0"
 tracing = { version = "0.1", optional = true }
 
 [dev-dependencies]
-serde_json_path = { path = "../serde_json_path", version = "0.6.0" }
+serde_json_path = { path = "../serde_json_path" }
+
