@@ -9,7 +9,7 @@ use crate::{JsonPath, NodeList};
 /// use serde_json::json;
 /// use serde_json_path::{JsonPath, JsonPathExt};
 ///
-/// # fn main() -> Result<(), serde_json_path::Error> {
+/// # fn main() -> Result<(), serde_json_path::ParseError> {
 /// let value = json!({"foo": ["bar", "baz"]});
 /// let query = JsonPath::parse("$.foo[*]")?;
 /// let nodes = value.json_path(&query).all();

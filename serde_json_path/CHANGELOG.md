@@ -93,9 +93,11 @@ isolate cases where specific errors can be propagated up, and give better error 
 
 - **added:** updated to latest version of CTS to ensure compliance [#33]
 - **added:** implement `Eq` for `JsonPath` [#34]
+- **breaking:**: Changed the name of `Error` type to `ParseError` [#36]
 
 [#33]: https://github.com/hiltontj/serde_json_path/pull/33
 [#34]: https://github.com/hiltontj/serde_json_path/pull/34
+[#36]: https://github.com/hiltontj/serde_json_path/pull/36
 
 # 0.5.3 (14 March 2023)
 

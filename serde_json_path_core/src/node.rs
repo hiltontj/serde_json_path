@@ -21,7 +21,7 @@ impl<'a> NodeList<'a> {
     /// # use serde_json::json;
     /// # use serde_json_path::JsonPath;
     /// # use serde_json_path::AtMostOneError;
-    /// # fn main() -> Result<(), serde_json_path::Error> {
+    /// # fn main() -> Result<(), serde_json_path::ParseError> {
     /// let value = json!({"foo": ["bar", "baz"]});
     /// # {
     /// let path = JsonPath::parse("$.foo[0]")?;
@@ -55,7 +55,7 @@ impl<'a> NodeList<'a> {
     /// # use serde_json::json;
     /// # use serde_json_path::JsonPath;
     /// # use serde_json_path::ExactlyOneError;
-    /// # fn main() -> Result<(), serde_json_path::Error> {
+    /// # fn main() -> Result<(), serde_json_path::ParseError> {
     /// let value = json!({"foo": ["bar", "baz"]});
     /// # {
     /// let path = JsonPath::parse("$.foo[0]")?;
@@ -88,7 +88,7 @@ impl<'a> NodeList<'a> {
     /// ```rust
     /// # use serde_json::json;
     /// # use serde_json_path::JsonPath;
-    /// # fn main() -> Result<(), serde_json_path::Error> {
+    /// # fn main() -> Result<(), serde_json_path::ParseError> {
     /// let value = json!({"foo": ["bar", "baz"]});
     /// let path = JsonPath::parse("$.foo.*")?;
     /// let nodes = path.query(&value).all();
@@ -141,7 +141,7 @@ impl<'a> NodeList<'a> {
     /// ```rust
     /// # use serde_json::json;
     /// # use serde_json_path::JsonPath;
-    /// # fn main() -> Result<(), serde_json_path::Error> {
+    /// # fn main() -> Result<(), serde_json_path::ParseError> {
     /// let value = json!({"foo": ["bar", "baz"]});
     /// # {
     /// let path = JsonPath::parse("$.foo[0]")?;

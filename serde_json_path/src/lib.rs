@@ -29,7 +29,7 @@
 //! ```rust
 //! use serde_json_path::JsonPath;
 //!
-//! # fn main() -> Result<(), serde_json_path::Error> {
+//! # fn main() -> Result<(), serde_json_path::ParseError> {
 //! let path = JsonPath::parse("$.foo.bar")?;
 //! # Ok(())
 //! # }
@@ -89,7 +89,7 @@
 //! ```rust
 //! # use serde_json::json;
 //! # use serde_json_path::JsonPath;
-//! # fn main() -> Result<(), serde_json_path::Error> {
+//! # fn main() -> Result<(), serde_json_path::ParseError> {
 //! let value = json!({ "foo": { "bar": ["baz", "bop"] } });
 //! let path = JsonPath::parse("$.foo.bar[*]")?;
 //! let nodes = path.query(&value).all();
@@ -107,7 +107,7 @@
 //! ```rust
 //! # use serde_json::json;
 //! # use serde_json_path::JsonPath;
-//! # fn main() -> Result<(), serde_json_path::Error> {
+//! # fn main() -> Result<(), serde_json_path::ParseError> {
 //! let value = json!({ "foo": ["bar", "baz", "bop"] });
 //! let path = JsonPath::parse("$['foo'][1:]")?;
 //! let nodes = path.query(&value).all();
@@ -126,7 +126,7 @@
 //! ```rust
 //! # use serde_json::json;
 //! # use serde_json_path::JsonPath;
-//! # fn main() -> Result<(), serde_json_path::Error> {
+//! # fn main() -> Result<(), serde_json_path::ParseError> {
 //! let value = json!({ "foo": [1, 2, 3, 4, 5] });
 //! let path = JsonPath::parse("$.foo[?@ > 2 && @ < 5]")?;
 //! let nodes = path.query(&value).all();
@@ -141,7 +141,7 @@
 //! ```rust
 //! # use serde_json::json;
 //! # use serde_json_path::JsonPath;
-//! # fn main() -> Result<(), serde_json_path::Error> {
+//! # fn main() -> Result<(), serde_json_path::ParseError> {
 //! let value = json!([
 //!     { "title": "Great Expectations", "price": 10 },
 //!     { "title": "Tale of Two Cities", "price": 8 },
@@ -159,7 +159,7 @@
 //! ```rust
 //! # use serde_json::json;
 //! # use serde_json_path::JsonPath;
-//! # fn main() -> Result<(), serde_json_path::Error> {
+//! # fn main() -> Result<(), serde_json_path::ParseError> {
 //! let value = json!([
 //!     "a short string",
 //!     "a longer string",
@@ -177,7 +177,7 @@
 //! ```rust
 //! # use serde_json::json;
 //! # use serde_json_path::JsonPath;
-//! # fn main() -> Result<(), serde_json_path::Error> {
+//! # fn main() -> Result<(), serde_json_path::ParseError> {
 //! let value = json!({
 //!     "foo": {
 //!         "bar": {
@@ -241,7 +241,7 @@ mod parser;
 mod path;
 
 #[doc(inline)]
-pub use error::Error;
+pub use error::ParseError;
 #[doc(inline)]
 pub use ext::JsonPathExt;
 #[doc(inline)]
