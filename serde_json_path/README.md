@@ -4,7 +4,6 @@
 
 [![Build status](https://github.com/hiltontj/serde_json_path/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/hiltontj/serde_json_path/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/serde_json_path)](https://crates.io/crates/serde_json_path)
-[![Crates.io](https://img.shields.io/crates/d/serde_json_path)](https://crates.io/crates/serde_json_path)
 [![Documentation](https://docs.rs/serde_json_path/badge.svg)][docs]
 
 ## Learn More
