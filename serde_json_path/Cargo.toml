@@ -1,6 +1,7 @@
 [package]
 name = "serde_json_path"
-version = "0.5.3"
+# Remember to update the versions in other crates when changing this:
+version = "0.6.0"
 edition = "2021"
 license = "MIT"
 authors = ["Trevor Hilton <trevor.hilton@gmail.com>"]
