@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+# 0.6.0 (2 April 2023)
+
 ## Function Extensions ([#32])
 
 This release introduces the implementation of [Function Extensions][jpspec_base12_func_ext] in `serde_json_path`.
