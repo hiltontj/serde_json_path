@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+* **changed**: Updated links to JSONPath specification to latest version (base 14) [#43]
+
+[#43]: https://github.com/hiltontj/serde_json_path/pull/43 
+
 # 0.6.0 (2 April 2023)
 
 ## Function Extensions ([#32])
