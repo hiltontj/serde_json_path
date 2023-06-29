@@ -26,5 +26,5 @@ additional terms or conditions.
 [jsonpath]: https://datatracker.ietf.org/wg/jsonpath/about/
 [serde_json_value]: https://docs.rs/serde_json/latest/serde_json/enum.Value.html
 [license]: https://github.com/hiltontj/serde_json_path/blob/main/LICENSE-MIT
-[jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-12.html
+[jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-14.html
 
