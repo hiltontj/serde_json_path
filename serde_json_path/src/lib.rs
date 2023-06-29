@@ -193,8 +193,8 @@
 //! # }
 //! ```
 //!
-//! [jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-12.html
-//! [jp_selectors]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-12.html#name-selectors-2
+//! [jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-14.html
+//! [jp_selectors]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-14.html#name-selectors-2
 
 #![warn(
     clippy::all,

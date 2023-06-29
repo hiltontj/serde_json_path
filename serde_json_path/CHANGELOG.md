@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Function Extensions ([#32])
 
-This release introduces the implementation of [Function Extensions][jpspec_base12_func_ext] in `serde_json_path`.
+This release introduces the implementation of [Function Extensions][jpspec_func_ext] in `serde_json_path`.
 
 This release ships with support for the standard built-in functions that are part of the base JSONPath specification:
 
@@ -104,7 +104,7 @@ This split was done to accommodate the new `#[function]` attribute macro, which 
 `serde_json_path_macros`/`macros_internal` crates, and discussed below.
 
 [#32]: https://github.com/hiltontj/serde_json_path/pull/32
-[jpspec_base12_func_ext]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-12.html#name-function-extensions
+[jpspec_func_ext]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-14.html#name-function-extensions
 
 ## Other Changes
 
