@@ -5,7 +5,7 @@ use nom::sequence::terminated;
 use nom::{
     branch::alt,
     bytes::complete::take_while1,
-    character::complete::{alpha1, digit1, space0},
+    character::complete::{alpha1, digit1, multispace0},
     combinator::{map, recognize},
     multi::{fold_many0, separated_list1},
     sequence::{delimited, pair, preceded},
@@ -63,7 +63,10 @@ fn parse_dot_member_name_shorthand(input: &str) -> PResult<Segment> {
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_multi_selector(input: &str) -> PResult<Vec<Selector>> {
-    separated_list1(delimited(space0, char(','), space0), parse_selector)(input)
+    separated_list1(
+        delimited(multispace0, char(','), multispace0),
+        parse_selector,
+    )(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
@@ -71,11 +74,11 @@ fn parse_child_long_hand(input: &str) -> PResult<Segment> {
     context(
         "long-hand segment",
         preceded(
-            pair(char('['), space0),
+            pair(char('['), multispace0),
             terminated(
                 map(parse_multi_selector, Segment::LongHand),
                 pair(
-                    space0,
+                    multispace0,
                     cut_with(char(']'), |_| SegmentError::ExpectedClosingBrace),
                 ),
             ),
