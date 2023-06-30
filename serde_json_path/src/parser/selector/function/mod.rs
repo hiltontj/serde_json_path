@@ -4,7 +4,7 @@ use nom::multi::separated_list0;
 use nom::sequence::{preceded, terminated};
 use nom::{
     branch::alt,
-    character::complete::{satisfy, space0},
+    character::complete::{multispace0, satisfy},
     combinator::map,
     multi::fold_many1,
     sequence::{delimited, pair},
@@ -70,12 +70,12 @@ pub(crate) fn parse_function_expr(input: &str) -> PResult<FunctionExpr<Validated
         pair(
             parse_function_name,
             delimited(
-                terminated(char('('), space0),
+                terminated(char('('), multispace0),
                 separated_list0(
-                    delimited(space0, char(','), space0),
+                    delimited(multispace0, char(','), multispace0),
                     parse_function_argument,
                 ),
-                preceded(space0, char(')')),
+                preceded(multispace0, char(')')),
             ),
         ),
         |(name, args)| {

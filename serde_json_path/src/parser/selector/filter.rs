@@ -1,4 +1,4 @@
-use nom::character::complete::{char, space0};
+use nom::character::complete::{char, multispace0};
 use nom::combinator::{map, map_res};
 use nom::multi::separated_list1;
 use nom::sequence::{delimited, pair, preceded, separated_pair, tuple};
@@ -21,7 +21,7 @@ use crate::parser::{parse_query, PResult};
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub(crate) fn parse_filter(input: &str) -> PResult<Filter> {
     map(
-        preceded(pair(char('?'), space0), parse_logical_or_expr),
+        preceded(pair(char('?'), multispace0), parse_logical_or_expr),
         Filter,
     )(input)
 }
@@ -29,7 +29,10 @@ pub(crate) fn parse_filter(input: &str) -> PResult<Filter> {
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_logical_and(input: &str) -> PResult<LogicalAndExpr> {
     map(
-        separated_list1(tuple((space0, tag("&&"), space0)), parse_basic_expr),
+        separated_list1(
+            tuple((multispace0, tag("&&"), multispace0)),
+            parse_basic_expr,
+        ),
         LogicalAndExpr,
     )(input)
 }
@@ -37,7 +40,10 @@ fn parse_logical_and(input: &str) -> PResult<LogicalAndExpr> {
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 pub(crate) fn parse_logical_or_expr(input: &str) -> PResult<LogicalOrExpr> {
     map(
-        separated_list1(tuple((space0, tag("||"), space0)), parse_logical_and),
+        separated_list1(
+            tuple((multispace0, tag("||"), multispace0)),
+            parse_logical_and,
+        ),
         LogicalOrExpr,
     )(input)
 }
@@ -55,7 +61,7 @@ fn parse_exist_expr(input: &str) -> PResult<BasicExpr> {
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_not_exist_expr(input: &str) -> PResult<BasicExpr> {
     map(
-        preceded(pair(char('!'), space0), parse_exist_expr_inner),
+        preceded(pair(char('!'), multispace0), parse_exist_expr_inner),
         BasicExpr::NotExist,
     )(input)
 }
@@ -76,7 +82,7 @@ fn parse_func_expr(input: &str) -> PResult<BasicExpr> {
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_not_func_expr(input: &str) -> PResult<BasicExpr> {
     map(
-        preceded(pair(char('!'), space0), parse_func_expr_inner),
+        preceded(pair(char('!'), multispace0), parse_func_expr_inner),
         BasicExpr::NotFuncExpr,
     )(input)
 }
@@ -84,9 +90,9 @@ fn parse_not_func_expr(input: &str) -> PResult<BasicExpr> {
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_paren_expr_inner(input: &str) -> PResult<LogicalOrExpr> {
     delimited(
-        pair(char('('), space0),
+        pair(char('('), multispace0),
         parse_logical_or_expr,
-        pair(space0, char(')')),
+        pair(multispace0, char(')')),
     )(input)
 }
 
@@ -98,7 +104,7 @@ fn parse_paren_expr(input: &str) -> PResult<BasicExpr> {
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_not_parent_expr(input: &str) -> PResult<BasicExpr> {
     map(
-        preceded(pair(char('!'), space0), parse_paren_expr_inner),
+        preceded(pair(char('!'), multispace0), parse_paren_expr_inner),
         BasicExpr::NotParen,
     )(input)
 }
@@ -121,8 +127,8 @@ fn parse_comp_expr(input: &str) -> PResult<ComparisonExpr> {
     map(
         separated_pair(
             parse_comparable,
-            space0,
-            separated_pair(parse_comparison_operator, space0, parse_comparable),
+            multispace0,
+            separated_pair(parse_comparison_operator, multispace0, parse_comparable),
         ),
         |(left, (op, right))| ComparisonExpr { left, op, right },
     )(input)
