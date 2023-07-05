@@ -1,4 +1,4 @@
-# Steps to Perform, in the Event of a Release
+# Steps to Perform in the Event of a Release
 
 - [ ] Ensure local `main` is up-to-date with `origin/main`
 - [ ] Run `cargo update`
