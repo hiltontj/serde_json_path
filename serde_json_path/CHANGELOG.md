@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
-* **changed**: Updated links to JSONPath specification to latest version (base 14) [#43]
+# 0.6.1 (5 July 2023)
+
+* **documentation**: Updated links to JSONPath specification to latest version (base 14) [#43]
 * **fixed**: Support newline characters in query strings where previously they were not being supported [#44]
 
 [#43]: https://github.com/hiltontj/serde_json_path/pull/43
