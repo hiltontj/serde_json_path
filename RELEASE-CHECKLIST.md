@@ -14,3 +14,4 @@
 - [ ] For each crate, in sub-crate to super-crate order, publish the crates from the workspace that had their versions bumped:
   - [ ] Run `cargo publish -p <crate name> —dry-run`, to check that all is good
   - [ ] Run `cargo publish -p <crate name>`, to do the actual release
+- [ ] Create a new release tag in Github using the naming convention `vX.Y.Z` and copy the relevant section from the changelog as the release documentation.
