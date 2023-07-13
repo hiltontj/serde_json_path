@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+* **fixed**: Fixed an issue in the evaluation of `SingularQuery`s that was producing false positive query results [#50]
+
+[#50]: https://github.com/hiltontj/serde_json_path/pull/50
+
 # 0.6.1 (5 July 2023)
 
 * **documentation**: Updated links to JSONPath specification to latest version (base 14) [#43]
