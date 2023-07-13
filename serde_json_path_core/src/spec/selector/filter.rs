@@ -503,23 +503,18 @@ impl SingularQuery {
         for segment in &self.segments {
             match segment {
                 SingularQuerySegment::Name(name) => {
-                    if let Some(v) = target.as_object() {
-                        if let Some(t) = v.get(name.as_str()) {
-                            target = t;
-                        } else {
-                            return None;
-                        }
+                    if let Some(t) = target.as_object().and_then(|o| o.get(name.as_str())) {
+                        target = t;
                     } else {
                         return None;
                     }
                 }
                 SingularQuerySegment::Index(index) => {
-                    if let Some(l) = target.as_array() {
-                        if let Some(t) = usize::try_from(index.0).ok().and_then(|i| l.get(i)) {
-                            target = t;
-                        } else {
-                            return None;
-                        }
+                    if let Some(t) = target
+                        .as_array()
+                        .and_then(|l| usize::try_from(index.0).ok().and_then(|i| l.get(i)))
+                    {
+                        target = t;
                     } else {
                         return None;
                     }
