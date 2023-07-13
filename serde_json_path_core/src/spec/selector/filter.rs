@@ -366,6 +366,7 @@ impl std::fmt::Display for Comparable {
 
 impl Comparable {
     #[doc(hidden)]
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Comparable::as_value", level = "trace", parent = None, ret))]
     pub fn as_value<'a, 'b: 'a>(
         &'a self,
         current: &'b Value,
@@ -493,6 +494,7 @@ pub struct SingularQuery {
 
 impl SingularQuery {
     /// Evaluate the singular query
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "SingularQuery::eval_query", level = "trace", parent = None, ret))]
     pub fn eval_query<'b>(&self, current: &'b Value, root: &'b Value) -> Option<&'b Value> {
         let mut target = match self.kind {
             SingularQueryKind::Absolute => root,
@@ -507,6 +509,8 @@ impl SingularQuery {
                         } else {
                             return None;
                         }
+                    } else {
+                        return None;
                     }
                 }
                 SingularQuerySegment::Index(index) => {
@@ -516,6 +520,8 @@ impl SingularQuery {
                         } else {
                             return None;
                         }
+                    } else {
+                        return None;
                     }
                 }
             }
