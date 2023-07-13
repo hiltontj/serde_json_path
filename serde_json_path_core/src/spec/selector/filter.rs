@@ -366,6 +366,7 @@ impl std::fmt::Display for Comparable {
 
 impl Comparable {
     #[doc(hidden)]
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "Comparable::as_value", level = "trace", parent = None, ret))]
     pub fn as_value<'a, 'b: 'a>(
         &'a self,
         current: &'b Value,
@@ -493,6 +494,7 @@ pub struct SingularQuery {
 
 impl SingularQuery {
     /// Evaluate the singular query
+    #[cfg_attr(feature = "trace", tracing::instrument(name = "SingularQuery::eval_query", level = "trace", parent = None, ret))]
     pub fn eval_query<'b>(&self, current: &'b Value, root: &'b Value) -> Option<&'b Value> {
         let mut target = match self.kind {
             SingularQueryKind::Absolute => root,
@@ -501,21 +503,20 @@ impl SingularQuery {
         for segment in &self.segments {
             match segment {
                 SingularQuerySegment::Name(name) => {
-                    if let Some(v) = target.as_object() {
-                        if let Some(t) = v.get(name.as_str()) {
-                            target = t;
-                        } else {
-                            return None;
-                        }
+                    if let Some(t) = target.as_object().and_then(|o| o.get(name.as_str())) {
+                        target = t;
+                    } else {
+                        return None;
                     }
                 }
                 SingularQuerySegment::Index(index) => {
-                    if let Some(l) = target.as_array() {
-                        if let Some(t) = usize::try_from(index.0).ok().and_then(|i| l.get(i)) {
-                            target = t;
-                        } else {
-                            return None;
-                        }
+                    if let Some(t) = target
+                        .as_array()
+                        .and_then(|l| usize::try_from(index.0).ok().and_then(|i| l.get(i)))
+                    {
+                        target = t;
+                    } else {
+                        return None;
                     }
                 }
             }
