@@ -8,8 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # Unreleased
 
 - **documentation**: Add line describing Descendant Operator ([#53])
+- **documentation**: Improve example in Filter section of main docs ([#54])
 
 [#53]: https://github.com/hiltontj/serde_json_path/pull/53
+[#54]: https://github.com/hiltontj/serde_json_path/pull/54
 
 # 0.6.2 (13 July 2023)
 
