@@ -102,16 +102,89 @@
 //!
 //! Extract slices from JSON arrays using optional `start`, `end`, and `step` values. Reverse
 //! indices can be used for `start` and `end`, and a negative `step` can be used to traverse
-//! the array in reverse order.
-//!
+//! the array in reverse order. Consider the following JSON object, and subsequent examples:
 //! ```rust
 //! # use serde_json::json;
 //! # use serde_json_path::JsonPath;
 //! # fn main() -> Result<(), serde_json_path::ParseError> {
-//! let value = json!({ "foo": ["bar", "baz", "bop"] });
-//! let path = JsonPath::parse("$['foo'][1:]")?;
+//! let value = json!({ "foo": [1, 2, 3, 4, 5] });
+//! # Ok(())
+//! # }
+//! ```
+//! `start`, `end`, and `step` are all optional:
+//! ```rust
+//! # use serde_json::json;
+//! # use serde_json_path::JsonPath;
+//! # fn main() -> Result<(), serde_json_path::ParseError> {
+//! # let value = json!({ "foo": [1, 2, 3, 4, 5] });
+//! let path = JsonPath::parse("$.foo[:]")?;
 //! let nodes = path.query(&value).all();
-//! assert_eq!(nodes, vec!["baz", "bop"]);
+//! assert_eq!(nodes, vec![1, 2, 3, 4, 5]);
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! Omitting `end` will go to end of slice:
+//! ```rust
+//! # use serde_json::json;
+//! # use serde_json_path::JsonPath;
+//! # fn main() -> Result<(), serde_json_path::ParseError> {
+//! # let value = json!({ "foo": [1, 2, 3, 4, 5] });
+//! let path = JsonPath::parse("$.foo[2:]")?;
+//! let nodes = path.query(&value).all();
+//! assert_eq!(nodes, vec![3, 4, 5]);
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! Omitting `start` will start from beginning of slice:
+//! ```rust
+//! # use serde_json::json;
+//! # use serde_json_path::JsonPath;
+//! # fn main() -> Result<(), serde_json_path::ParseError> {
+//! # let value = json!({ "foo": [1, 2, 3, 4, 5] });
+//! let path = JsonPath::parse("$.foo[:2]")?;
+//! let nodes = path.query(&value).all();
+//! assert_eq!(nodes, vec![1, 2]);
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! You can specify the `step` size:
+//! ```rust
+//! # use serde_json::json;
+//! # use serde_json_path::JsonPath;
+//! # fn main() -> Result<(), serde_json_path::ParseError> {
+//! # let value = json!({ "foo": [1, 2, 3, 4, 5] });
+//! let path = JsonPath::parse("$.foo[::2]")?;
+//! let nodes = path.query(&value).all();
+//! assert_eq!(nodes, vec![1, 3, 5]);
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! Or use a negative `step` to go in reverse:
+//! ```rust
+//! # use serde_json::json;
+//! # use serde_json_path::JsonPath;
+//! # fn main() -> Result<(), serde_json_path::ParseError> {
+//! # let value = json!({ "foo": [1, 2, 3, 4, 5] });
+//! let path = JsonPath::parse("$.foo[::-1]")?;
+//! let nodes = path.query(&value).all();
+//! assert_eq!(nodes, vec![5, 4, 3, 2, 1]);
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! Finally, reverse indices can be used for `start` or `end`:
+//! ```rust
+//! # use serde_json::json;
+//! # use serde_json_path::JsonPath;
+//! # fn main() -> Result<(), serde_json_path::ParseError> {
+//! # let value = json!({ "foo": [1, 2, 3, 4, 5] });
+//! let path = JsonPath::parse("$.foo[-2:]")?;
+//! let nodes = path.query(&value).all();
+//! assert_eq!(nodes, vec![4, 5]);
 //! # Ok(())
 //! # }
 //! ```
