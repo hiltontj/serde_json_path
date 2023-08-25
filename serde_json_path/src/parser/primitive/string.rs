@@ -256,7 +256,7 @@ mod tests {
             Ok(("", String::from("te\"st")))
         );
         assert_eq!(
-            parse_string_literal(r#"'te\'st'"#),
+            parse_string_literal(r"'te\'st'"),
             Ok(("", String::from("te'st")))
         );
     }
