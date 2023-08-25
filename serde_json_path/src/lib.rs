@@ -142,14 +142,18 @@
 //! # use serde_json::json;
 //! # use serde_json_path::JsonPath;
 //! # fn main() -> Result<(), serde_json_path::ParseError> {
-//! let value = json!([
-//!     { "title": "Great Expectations", "price": 10 },
-//!     { "title": "Tale of Two Cities", "price": 8 },
-//!     { "title": "David Copperfield", "price": 17 }
-//! ]);
-//! let path = JsonPath::parse("$[?@.price > $[0].price].title")?;
+//! let value = json!({
+//!     "threshold": 40,
+//!     "readings": [
+//!         { "val": 35, "msg": "foo" },
+//!         { "val": 40, "msg": "bar" },
+//!         { "val": 42, "msg": "biz" },
+//!         { "val": 48, "msg": "bop" },
+//!     ]
+//! });
+//! let path = JsonPath::parse("$.readings[? @.val > $.threshold ].msg")?;
 //! let nodes = path.query(&value).all();
-//! assert_eq!(nodes, vec!["David Copperfield"]);
+//! assert_eq!(nodes, vec!["biz", "bop"]);
 //! # Ok(())
 //! # }
 //! ```
