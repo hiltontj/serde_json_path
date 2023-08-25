@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+- **documentation**: Add line describing Descendant Operator ([#53])
+
+[#53]: https://github.com/hiltontj/serde_json_path/pull/53
+
 # 0.6.2 (13 July 2023)
 
 * **fixed**: Fixed an issue in the evaluation of `SingularQuery`s that was producing false positive query results when relative singular queries, e.g., `@.bar`, were being used as comparables in a filter, e.g., `$.foo[?(@.bar == 'baz')]` ([#50])
