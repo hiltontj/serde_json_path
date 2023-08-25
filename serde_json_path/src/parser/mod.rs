@@ -151,7 +151,7 @@ fn parse_current_query(input: &str) -> PResult<Query> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
- fn parse_query(input: &str) -> PResult<Query> {
+fn parse_query(input: &str) -> PResult<Query> {
     alt((parse_root_query, parse_current_query))(input)
 }
 
