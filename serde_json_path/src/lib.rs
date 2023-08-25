@@ -172,7 +172,9 @@
 //! # }
 //! ```
 //!
-//! #### Recursive descent (`..`)
+//! #### Descendant Operator (`..`)
+//!
+//! JSONPath query segments following a descendant operator (`..`) will visit the input node and each of its [descendants][ietf-descendants-def].
 //!
 //! ```rust
 //! # use serde_json::json;
@@ -193,8 +195,9 @@
 //! # }
 //! ```
 //!
-//! [jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-14.html
-//! [jp_selectors]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-14.html#name-selectors-2
+//! [jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-17.html
+//! [jp_selectors]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-17.html#name-selectors-2
+//! [ietf-descendants-def]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-17.html#section-1.1-6.28.1
 
 #![warn(
     clippy::all,
