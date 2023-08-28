@@ -71,9 +71,7 @@
 //! # }
 //! ```
 //! 
-//! See also the methods [`first`][NodeList::first], [`last`][NodeList::last], and
-//! [`get`][NodeList::get]. Keep in mind, that for simple queries, the
-//! [`serde_json::Value::pointer`] method may suffice.
+//! Keep in mind, that for simple queries, the [`serde_json::Value::pointer`] method may suffice.
 //!
 //! ## Querying for multiple nodes
 //!
