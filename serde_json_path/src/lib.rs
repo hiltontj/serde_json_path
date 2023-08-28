@@ -43,8 +43,6 @@
 //!
 //! For queries that are expected to return a single node, use either the
 //! [`exactly_one`][NodeList::exactly_one] or the [`at_most_one`][NodeList::at_most_one] method.
-//! For more lenient single node access, use the [`first`][NodeList::first],
-//! [`last`][NodeList::last], or [`get`][NodeList::get] methods.
 //!
 //! ```rust
 //! use serde_json::json;
@@ -72,8 +70,10 @@
 //! # Ok(())
 //! # }
 //! ```
-//!
-//! Keep in mind, that for simple queries, the [`serde_json::Value::pointer`] method may suffice.
+//! 
+//! See also the methods [`first`][NodeList::first], [`last`][NodeList::last], and
+//! [`get`][NodeList::get]. Keep in mind, that for simple queries, the
+//! [`serde_json::Value::pointer`] method may suffice.
 //!
 //! ## Querying for multiple nodes
 //!
