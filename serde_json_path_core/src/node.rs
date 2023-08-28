@@ -118,17 +118,58 @@ impl<'a> NodeList<'a> {
     }
 
     /// Returns the first node in the [`NodeList`], or `None` if it is empty
+    ///
+    /// # Usage
+    /// ```rust
+    /// # use serde_json::json;
+    /// # use serde_json_path::JsonPath;
+    /// # fn main() -> Result<(), serde_json_path::ParseError> {
+    /// let value = json!({"foo": ["bar", "baz"]});
+    /// let path = JsonPath::parse("$.foo.*")?;
+    /// let node = path.query(&value).first();
+    /// assert_eq!(node, Some(&json!("bar")));
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn first(&self) -> Option<&'a Value> {
         self.0.first().copied()
     }
 
     /// Returns the last node in the [`NodeList`], or `None` if it is empty
+    ///
+    /// # Usage
+    /// ```rust
+    /// # use serde_json::json;
+    /// # use serde_json_path::JsonPath;
+    /// # fn main() -> Result<(), serde_json_path::ParseError> {
+    /// let value = json!({"foo": ["bar", "baz"]});
+    /// let path = JsonPath::parse("$.foo.*")?;
+    /// let node = path.query(&value).last();
+    /// assert_eq!(node, Some(&json!("baz")));
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn last(&self) -> Option<&'a Value> {
         self.0.last().copied()
     }
 
     /// Returns the node at the given index in the [`NodeList`], or `None` if the given index is
     /// out of bounds.
+    ///
+    /// # Usage
+    /// ```rust
+    /// # use serde_json::json;
+    /// # use serde_json_path::JsonPath;
+    /// # fn main() -> Result<(), serde_json_path::ParseError> {
+    /// let value = json!({"foo": ["bar", "biz", "bop"]});
+    /// let path = JsonPath::parse("$.foo.*")?;
+    /// let node = path.query(&value).get(1);
+    /// assert_eq!(node, Some(&json!("biz")));
+    /// let node = path.query(&value).get(4);
+    /// assert!(node.is_none());
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn get(&self, index: usize) -> Option<&'a Value> {
         self.0.get(index).copied()
     }

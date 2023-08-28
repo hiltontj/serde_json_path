@@ -70,7 +70,7 @@
 //! # Ok(())
 //! # }
 //! ```
-//! 
+//!
 //! Keep in mind, that for simple queries, the [`serde_json::Value::pointer`] method may suffice.
 //!
 //! ## Querying for multiple nodes
