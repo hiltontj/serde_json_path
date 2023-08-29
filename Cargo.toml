@@ -5,6 +5,7 @@ members = [
     "serde_json_path_macros",
     "serde_json_path_macros/src/internal"
 ]
+resolver = "2"
 
 [profile.dev]
 incremental = false

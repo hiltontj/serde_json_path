@@ -163,10 +163,9 @@ impl<'a> NodeList<'a> {
     /// # fn main() -> Result<(), serde_json_path::ParseError> {
     /// let value = json!({"foo": ["bar", "biz", "bop"]});
     /// let path = JsonPath::parse("$.foo.*")?;
-    /// let node = path.query(&value).get(1);
-    /// assert_eq!(node, Some(&json!("biz")));
-    /// let node = path.query(&value).get(4);
-    /// assert!(node.is_none());
+    /// let nodes = path.query(&value);
+    /// assert_eq!(nodes.get(1), Some(&json!("biz")));
+    /// assert!(nodes.get(4).is_none());
     /// # Ok(())
     /// # }
     /// ```
