@@ -1,7 +1,9 @@
 //! This crate allows you to use JSONPath queries to extract nodelists from a [`serde_json::Value`].
 //!
-//! The crate intends to adhere to the [IETF JSONPath specification][jp_spec]. Check out the
+//! The crate intends to adhere to the [IETF JSONPath specification][ietf-spec]. Check out the
 //! specification to read more about JSONPath, and to find many examples of its usage.
+//!
+//! [ietf-spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-20.html
 //!
 //! Please note that the specification has not yet been published as an RFC; therefore, this crate
 //! may evolve as JSONPath becomes standardized.
@@ -43,8 +45,6 @@
 //!
 //! For queries that are expected to return a single node, use either the
 //! [`exactly_one`][NodeList::exactly_one] or the [`at_most_one`][NodeList::at_most_one] method.
-//! For more lenient single node access, use the [`first`][NodeList::first],
-//! [`last`][NodeList::last], or [`get`][NodeList::get] methods.
 //!
 //! ```rust
 //! use serde_json::json;
@@ -78,8 +78,10 @@
 //! ## Querying for multiple nodes
 //!
 //! For queries that are expected to return zero or many nodes, use the [`all`][NodeList::all]
-//! method. There are several [selectors][jp_selectors] in JSONPath whose combination can produce
+//! method. There are several [selectors][ietf-selectors] in JSONPath whose combination can produce
 //! useful and powerful queries.
+//!
+//! [ietf-selectors]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-20.html#name-selectors-2
 //!
 //! #### Wildcards (`*`)
 //!
@@ -191,10 +193,12 @@
 //!
 //! #### Filter expressions (`?`)
 //!
-//! Filter selectors allow you to perform comparisons and check for existence of nodes. You can
-//! combine these checks using the boolean `&&` and `||` operators and group using parentheses.
-//! The current node (`@`) operator allows you to apply the filtering logic based on the current
-//! node being filtered:
+//! [Filter selectors][ietf-filter-selectors] allow you to use logical expressions to evaluate which
+//! members in a JSON object or array will be selected. You can use the boolean `&&` and `||`
+//! operators as well as parentheses to group logical expressions in your filters. The current node
+//! (`@`) operator allows you to utilize the node being filtered in your filter logic:
+//!
+//! [ietf-filter-selectors]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-20.html#name-filter-selector
 //!
 //! ```rust
 //! # use serde_json::json;
@@ -253,6 +257,8 @@
 //!
 //! JSONPath query segments following a descendant operator (`..`) will visit the input node and each of its [descendants][ietf-descendants-def].
 //!
+//! [ietf-descendants-def]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-20.html#section-1.1-6.28.1
+//!
 //! ```rust
 //! # use serde_json::json;
 //! # use serde_json_path::JsonPath;
@@ -271,10 +277,6 @@
 //! # Ok(())
 //! # }
 //! ```
-//!
-//! [jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-17.html
-//! [jp_selectors]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-17.html#name-selectors-2
-//! [ietf-descendants-def]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-17.html#section-1.1-6.28.1
 
 #![warn(
     clippy::all,
