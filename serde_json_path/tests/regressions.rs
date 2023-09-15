@@ -11,3 +11,12 @@ fn issue_49() {
     let path = JsonPath::parse("$[?(@.a == 2)]").expect("parses JSONPath");
     assert!(path.query(&value).is_empty());
 }
+
+// This test is meant for issue #60, which can be found here:
+// https://github.com/hiltontj/serde_json_path/issues/60
+#[test]
+fn issue_60() {
+    let value = json!([{"foo": "bar"}, {"foo": "biz"}]);
+    let path = JsonPath::parse("$[? match(@.foo, '|')]").expect("parses JSONPath");
+    assert!(path.query(&value).is_empty());
+}
