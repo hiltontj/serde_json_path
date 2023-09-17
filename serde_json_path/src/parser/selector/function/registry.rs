@@ -46,7 +46,7 @@ fn count(nodes: NodesType) -> ValueType {
 #[serde_json_path_macros::register(name = "match", target = MATCH_FUNC)]
 fn match_func(value: ValueType, rgx: ValueType) -> LogicalType {
     match (value.as_value(), rgx.as_value()) {
-        (Some(Value::String(s)), Some(Value::String(r))) => Regex::new(format!("^{r}$").as_str())
+        (Some(Value::String(s)), Some(Value::String(r))) => Regex::new(format!("^({r})$").as_str())
             .map(|r| r.is_match(s))
             .map(Into::into)
             .unwrap_or_default(),
