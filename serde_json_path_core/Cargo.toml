@@ -1,6 +1,6 @@
 [package]
 name = "serde_json_path_core"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 license = "MIT"
 authors = ["Trevor Hilton <trevor.hilton@gmail.com>"]
