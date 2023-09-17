@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+# 0.6.3 (17 September 2023)
+
 - **documentation**: Add line describing Descendant Operator ([#53])
 - **documentation**: Improve example in Filter Selector section of main docs ([#54])
 - **documentation**: Improve examples in Slice Slector section of main docs ([#55])
