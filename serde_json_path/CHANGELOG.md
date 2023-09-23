@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+- **added**: `is_empty` and `is_more_than_one` methods to `ExactlyOneError` ([#65])
+
+[#65]: https://github.com/hiltontj/serde_json_path/pull/65
+
 # 0.6.3 (17 September 2023)
 
 - **documentation**: Add line describing Descendant Operator ([#53])
