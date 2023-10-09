@@ -233,7 +233,15 @@ impl ExactlyOneError {
 
     /// Check that it is the `MoreThanOne` variant
     pub fn is_more_than_one(&self) -> bool {
-        matches!(self, Self::MoreThanOne(_))
+        self.as_more_than_one().is_some()
+    }
+
+    /// Extract the number of nodes, if it was more than one, or `None` otherwise
+    pub fn as_more_than_one(&self) -> Option<usize> {
+        match self {
+            ExactlyOneError::Empty => None,
+            ExactlyOneError::MoreThanOne(u) => Some(*u),
+        }
     }
 }
 
