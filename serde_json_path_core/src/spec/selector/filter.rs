@@ -214,12 +214,31 @@ pub struct ComparisonExpr {
 
 fn check_equal_to(left: &JsonPathValue, right: &JsonPathValue) -> bool {
     match (left, right) {
-        (JsonPathValue::Node(v1), JsonPathValue::Node(v2)) => v1 == v2,
-        (JsonPathValue::Node(v1), JsonPathValue::Value(v2)) => *v1 == v2,
-        (JsonPathValue::Value(v1), JsonPathValue::Node(v2)) => v1 == *v2,
-        (JsonPathValue::Value(v1), JsonPathValue::Value(v2)) => v1 == v2,
+        (JsonPathValue::Node(v1), JsonPathValue::Node(v2)) => value_equal_to(v1, v2),
+        (JsonPathValue::Node(v1), JsonPathValue::Value(v2)) => value_equal_to(v1, v2),
+        (JsonPathValue::Value(v1), JsonPathValue::Node(v2)) => value_equal_to(v1, v2),
+        (JsonPathValue::Value(v1), JsonPathValue::Value(v2)) => value_equal_to(v1, v2),
         (JsonPathValue::Nothing, JsonPathValue::Nothing) => true,
         _ => false,
+    }
+}
+
+fn value_equal_to(left: &Value, right: &Value) -> bool {
+    match (left, right) {
+        (Value::Number(l), Value::Number(r)) => number_equal_to(l, r),
+        _ => left == right,
+    }
+}
+
+fn number_equal_to(left: &Number, right: &Number) -> bool {
+    if let (Some(l), Some(r)) = (left.as_f64(), right.as_f64()) {
+        l == r
+    } else if let (Some(l), Some(r)) = (left.as_i64(), right.as_i64()) {
+        l == r
+    } else if let (Some(l), Some(r)) = (left.as_u64(), right.as_u64()) {
+        l == r
+    } else {
+        false
     }
 }
 

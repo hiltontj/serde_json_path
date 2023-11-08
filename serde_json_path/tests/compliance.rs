@@ -60,7 +60,7 @@ fn compliace_test_suite() {
     }
 }
 
-const TEST_CASE_N: usize = 303;
+const TEST_CASE_N: usize = 131;
 
 #[test]
 #[ignore = "this is only for testing individual CTS test cases as needed"]
