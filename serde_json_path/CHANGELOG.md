@@ -8,8 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # Unreleased
 
 - **added**: `is_empty`, `is_more_than_one`, and `as_more_than_one` methods to `ExactlyOneError` ([#65])
+- **fixed**: allow whitespace before dot-name selectors ([#67])
+- **fixed**: ensure that the check `== -0` in filters works as expected ([#67]) 
 
 [#65]: https://github.com/hiltontj/serde_json_path/pull/65
+[#67]: https://github.com/hiltontj/serde_json_path/pull/67
 
 # 0.6.3 (17 September 2023)
 

@@ -55,5 +55,9 @@ mod tests {
             parse_number("1.0001"),
             Ok(("", Number::from_f64(1.0001).unwrap()))
         );
+        assert_eq!(
+            parse_number("-0"),
+            Ok(("", Number::from_f64(-0.0).unwrap()))
+        );
     }
 }

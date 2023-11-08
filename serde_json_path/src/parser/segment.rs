@@ -95,11 +95,14 @@ fn parse_dot_wildcard_shorthand(input: &str) -> PResult<Segment> {
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
 fn parse_child_segment(input: &str) -> PResult<Segment> {
-    alt((
-        parse_dot_wildcard_shorthand,
-        parse_dot_member_name_shorthand,
-        parse_child_long_hand,
-    ))(input)
+    preceded(
+        multispace0,
+        alt((
+            parse_dot_wildcard_shorthand,
+            parse_dot_member_name_shorthand,
+            parse_child_long_hand,
+        )),
+    )(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
