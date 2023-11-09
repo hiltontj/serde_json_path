@@ -7,5 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
-Initial Release
+# 0.1.1 (9 November 2023)
+
+- bump version for `serde_json_path_core` update
+
+_Previous versions not tracked here._
 
