@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+# 0.1.3 (9 November 2023)
+
 - **added**: `is_empty`, `is_more_than_one`, and `as_more_than_one` methods to `ExactlyOneError` ([#65])
 - **fixed**: ensure that the check `== -0` in filters works as expected ([#67]) 
 
