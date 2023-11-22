@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+- **internal**: address new clippy lints in Rust 1.74 ([#70])
+
+[#70]: https://github.com/hiltontj/serde_json_path/pull/70
+
 # 0.6.4 (9 November 2023)
 
 - **added**: `is_empty`, `is_more_than_one`, and `as_more_than_one` methods to `ExactlyOneError` ([#65])
