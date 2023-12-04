@@ -50,9 +50,6 @@ mod tests {
         assert_eq!(parse_int("0"), Ok(("", 0)));
         assert_eq!(parse_int("10"), Ok(("", 10)));
         assert_eq!(parse_int("-10"), Ok(("", -10)));
-        // TODO - I don't know if this following test demonstrates the actual behaviour we want
-        // i.e., do we want this to fail instead? or do we rely on higher level sequenced parsers
-        // to fail, e.g., if a delimiter was expected after.
         assert_eq!(parse_int("010"), Ok(("10", 0)));
     }
 }

@@ -43,8 +43,6 @@ fn extract_type_path(ty: &Type) -> Option<&Path> {
 }
 
 fn extract_json_path_type(p: &Path) -> Result<TokenStream> {
-    // TODO - support full type path to ensure that correct type is being used?
-    //      - i.e., instead of just looking at last path segment
     let p_seg = p
         .segments
         .last()
