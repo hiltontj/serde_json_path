@@ -42,7 +42,7 @@ impl<'a> NodeList<'a> {
         } else if self.0.len() > 1 {
             Err(AtMostOneError(self.0.len()))
         } else {
-            Ok(self.0.get(0).copied())
+            Ok(self.0.first().copied())
         }
     }
 
@@ -76,7 +76,7 @@ impl<'a> NodeList<'a> {
         } else if self.0.len() > 1 {
             Err(ExactlyOneError::MoreThanOne(self.0.len()))
         } else {
-            Ok(self.0.get(0).unwrap())
+            Ok(self.0.first().unwrap())
         }
     }
 
@@ -204,7 +204,7 @@ impl<'a> NodeList<'a> {
         if self.0.is_empty() || self.0.len() > 1 {
             None
         } else {
-            self.0.get(0).copied()
+            self.0.first().copied()
         }
     }
 }
