@@ -70,9 +70,7 @@ impl Queryable for Slice {
             if step == 0 {
                 return vec![];
             }
-            let len = if let Ok(l) = isize::try_from(list.len()) {
-                l
-            } else {
+            let Ok(len) = isize::try_from(list.len()) else {
                 return vec![];
             };
             if step > 0 {
@@ -92,8 +90,15 @@ impl Queryable for Slice {
                     i += step;
                 }
             } else {
-                let start_default = self.start.unwrap_or(len - 1); // TODO - not checked sub
-                let end_default = self.end.unwrap_or(-len - 1); // TODO - not checked sub
+                let Some(start_default) = self.start.or_else(|| len.checked_sub(1)) else {
+                    return vec![];
+                };
+                let Some(end_default) = self
+                    .end
+                    .or_else(|| len.checked_mul(-1).and_then(|l| l.checked_sub(1)))
+                else {
+                    return vec![];
+                };
                 let start = normalize_slice_index(start_default, len)
                     .unwrap_or(0)
                     .max(-1);

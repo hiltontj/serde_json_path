@@ -236,7 +236,6 @@ mod tests {
 
     #[test]
     fn comp_expr() {
-        // TODO - test more
         let (_, cxp) = parse_comp_expr("true != false").unwrap();
         assert!(matches!(cxp.left, Comparable::Literal(Literal::Bool(true))));
         assert!(matches!(cxp.op, ComparisonOperator::NotEqualTo));

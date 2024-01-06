@@ -17,7 +17,11 @@ use super::selector::{parse_selector, parse_wildcard_selector};
 use super::utils::cut_with;
 use super::PResult;
 
-// TODO - I have no idea if this is correct, supposed to be %x80-10FFFF
+// The specification requires that a non-ASCII character is in the range
+// %x80-10FFFF. In Rust, the `char` type can not hold characters higher
+// than %x10FFFF, so we only need to check the lower bound in this function.
+//
+// See: https://doc.rust-lang.org/std/primitive.char.html#validity
 fn is_non_ascii_unicode(chr: char) -> bool {
     chr >= '\u{0080}'
 }

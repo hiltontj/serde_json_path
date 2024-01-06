@@ -8,8 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # Unreleased
 
 - **internal**: address new clippy lints in Rust 1.74 and update some tracing instrumentation ([#70])
+- **internal**: code clean-up ([#72])
 
 [#70]: https://github.com/hiltontj/serde_json_path/pull/70
+[#72]: https://github.com/hiltontj/serde_json_path/pull/72
 
 # 0.1.3 (9 November 2023)
 
