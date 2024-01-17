@@ -3,7 +3,7 @@ use serde_json::{Number, Value};
 
 use crate::spec::{
     functions::{FunctionExpr, JsonPathValue, Validated},
-    query::{Query, QueryKind, Queryable},
+    query::{Query, QueryKind, QueryResult, Queryable, TraversedPath},
     segment::{QuerySegment, Segment},
 };
 
@@ -55,8 +55,13 @@ impl std::fmt::Display for Filter {
 
 impl Queryable for Filter {
     #[cfg_attr(feature = "trace", tracing::instrument(name = "Query Filter", level = "trace", parent = None, ret))]
-    fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
-        if let Some(list) = current.as_array() {
+    fn query<'b>(
+        &self,
+        current: &'b Value,
+        root: &'b Value,
+        traversed_path: TraversedPath,
+    ) -> QueryResult<'b> {
+        let value = if let Some(list) = current.as_array() {
             list.iter()
                 .filter(|v| self.0.test_filter(v, root))
                 .collect()
@@ -67,7 +72,12 @@ impl Queryable for Filter {
                 .collect()
         } else {
             vec![]
-        }
+        };
+
+        value
+            .into_iter()
+            .map(|v| (traversed_path.to_vec(), v))
+            .collect()
     }
 }
 
@@ -197,7 +207,7 @@ impl std::fmt::Display for ExistExpr {
 impl TestFilter for ExistExpr {
     #[cfg_attr(feature = "trace", tracing::instrument(name = "Test Exists Expr", level = "trace", parent = None, ret))]
     fn test_filter<'b>(&self, current: &'b Value, root: &'b Value) -> bool {
-        !self.0.query(current, root).is_empty()
+        !self.0.query(current, root, vec![]).is_empty()
     }
 }
 
@@ -393,8 +403,8 @@ impl Comparable {
     ) -> JsonPathValue<'a> {
         match self {
             Comparable::Literal(lit) => lit.into(),
-            Comparable::SingularQuery(sp) => match sp.eval_query(current, root) {
-                Some(v) => JsonPathValue::Node(v),
+            Comparable::SingularQuery(sp) => match sp.eval_query(current, root, vec![]) {
+                Some(v) => JsonPathValue::Node(v.1),
                 None => JsonPathValue::Nothing,
             },
             Comparable::FunctionExpr(expr) => expr.evaluate(current, root),
@@ -514,26 +524,38 @@ pub struct SingularQuery {
 impl SingularQuery {
     /// Evaluate the singular query
     #[cfg_attr(feature = "trace", tracing::instrument(name = "SingularQuery::eval_query", level = "trace", parent = None, ret))]
-    pub fn eval_query<'b>(&self, current: &'b Value, root: &'b Value) -> Option<&'b Value> {
+    pub fn eval_query<'b>(
+        &self,
+        current: &'b Value,
+        root: &'b Value,
+        traversed_path: TraversedPath,
+    ) -> Option<(Vec<String>, &'b Value)> {
         let mut target = match self.kind {
-            SingularQueryKind::Absolute => root,
-            SingularQueryKind::Relative => current,
+            SingularQueryKind::Absolute => (traversed_path.to_vec(), root),
+            SingularQueryKind::Relative => (traversed_path.to_vec(), current),
         };
         for segment in &self.segments {
             match segment {
                 SingularQuerySegment::Name(name) => {
-                    if let Some(t) = target.as_object().and_then(|o| o.get(name.as_str())) {
-                        target = t;
+                    if let Some(t) = target.1.as_object().and_then(|o| o.get(name.as_str())) {
+                        target = (
+                            [traversed_path.as_slice(), &[name.as_str().to_owned()]].concat(),
+                            t,
+                        );
                     } else {
                         return None;
                     }
                 }
                 SingularQuerySegment::Index(index) => {
-                    if let Some(t) = target
-                        .as_array()
-                        .and_then(|l| usize::try_from(index.0).ok().and_then(|i| l.get(i)))
-                    {
-                        target = t;
+                    if let Some((index, t)) = target.1.as_array().and_then(|l| {
+                        usize::try_from(index.0)
+                            .ok()
+                            .and_then(|i| l.get(i).map(|v| (i, v)))
+                    }) {
+                        target = (
+                            [traversed_path.as_slice(), &[index.to_string()]].concat(),
+                            t,
+                        );
                     } else {
                         return None;
                     }
@@ -559,8 +581,13 @@ impl TryFrom<Query> for SingularQuery {
 }
 
 impl Queryable for SingularQuery {
-    fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
-        match self.eval_query(current, root) {
+    fn query<'b>(
+        &self,
+        current: &'b Value,
+        root: &'b Value,
+        traversed_path: TraversedPath,
+    ) -> QueryResult<'b> {
+        match self.eval_query(current, root, traversed_path) {
             Some(v) => vec![v],
             None => vec![],
         }

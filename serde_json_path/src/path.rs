@@ -4,7 +4,7 @@ use serde::{de::Visitor, Deserialize, Serialize};
 use serde_json::Value;
 use serde_json_path_core::{
     node::NodeList,
-    spec::query::{Query, Queryable},
+    spec::query::{Query, QueryResult, Queryable},
 };
 
 use crate::{parser::parse_query_main, ParseError};
@@ -73,7 +73,33 @@ impl JsonPath {
     /// # }
     /// ```
     pub fn query<'b>(&self, value: &'b Value) -> NodeList<'b> {
-        self.0.query(value, value).into()
+        self.0
+            .query(value, value, vec![])
+            .into_iter()
+            .map(|(_path, value)| value)
+            .collect::<Vec<_>>()
+            .into()
+    }
+
+    /// Query a [`serde_json_path_core::spec::query::QueryResult`] with each
+    /// match having a path as [`Vec<String>`] and value as
+    /// [`serde_json::Value`]
+    ///
+    /// # Example
+    /// ```rust
+    /// # use serde_json::json;
+    /// # use serde_json_path::JsonPath;
+    /// # fn main() -> Result<(), serde_json_path::ParseError> {
+    /// let path = JsonPath::parse("$.foo[::2]")?;
+    /// let value = json!({"foo": [1, 2, 3, 4]});
+    /// let result = path.query_path_and_value(&value);
+    /// assert_eq!(result[1].0, vec!["foo", "2"]);
+    /// assert_eq!(result[1].1, 3);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn query_path_and_value<'b>(&self, value: &'b Value) -> QueryResult<'b> {
+        self.0.query(value, value, vec![])
     }
 }
 

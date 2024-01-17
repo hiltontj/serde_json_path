@@ -581,11 +581,17 @@ impl FunctionExprArg {
     fn evaluate<'a, 'b: 'a>(&'a self, current: &'b Value, root: &'b Value) -> JsonPathValue<'a> {
         match self {
             FunctionExprArg::Literal(lit) => lit.into(),
-            FunctionExprArg::SingularQuery(q) => match q.eval_query(current, root) {
-                Some(n) => JsonPathValue::Node(n),
+            FunctionExprArg::SingularQuery(q) => match q.eval_query(current, root, vec![]) {
+                Some(n) => JsonPathValue::Node(n.1),
                 None => JsonPathValue::Nothing,
             },
-            FunctionExprArg::FilterQuery(q) => JsonPathValue::Nodes(q.query(current, root).into()),
+            FunctionExprArg::FilterQuery(q) => JsonPathValue::Nodes(
+                q.query(current, root, vec![])
+                    .into_iter()
+                    .map(|(_, nodes)| nodes)
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
             FunctionExprArg::LogicalExpr(l) => match l.test_filter(current, root) {
                 true => JsonPathValue::Logical(LogicalType::True),
                 false => JsonPathValue::Logical(LogicalType::False),

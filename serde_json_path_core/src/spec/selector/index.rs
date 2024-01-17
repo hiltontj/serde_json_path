@@ -1,7 +1,7 @@
 //! Index selectors in JSONPath
 use serde_json::Value;
 
-use crate::spec::query::Queryable;
+use crate::spec::query::{QueryResult, Queryable, TraversedPath};
 
 /// For selecting array elements by their index
 ///
@@ -17,8 +17,13 @@ impl std::fmt::Display for Index {
 
 impl Queryable for Index {
     #[cfg_attr(feature = "trace", tracing::instrument(name = "Query Index", level = "trace", parent = None, ret))]
-    fn query<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {
-        if let Some(list) = current.as_array() {
+    fn query<'b>(
+        &self,
+        current: &'b Value,
+        _root: &'b Value,
+        traversed_path: TraversedPath,
+    ) -> QueryResult<'b> {
+        let values = if let Some(list) = current.as_array() {
             if self.0 < 0 {
                 self.0
                     .checked_abs()
@@ -36,7 +41,17 @@ impl Queryable for Index {
             }
         } else {
             vec![]
-        }
+        };
+
+        values
+            .into_iter()
+            .map(|v| {
+                (
+                    [traversed_path.as_slice(), &[self.0.to_string()]].concat(),
+                    v,
+                )
+            })
+            .collect()
     }
 }
 

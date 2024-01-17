@@ -1,7 +1,7 @@
 //! Slice selectors for selecting array slices in JSONPath
 use serde_json::Value;
 
-use crate::spec::query::Queryable;
+use crate::spec::query::{QueryResult, Queryable, TraversedPath};
 
 /// A slice selector
 #[derive(Debug, PartialEq, Eq, Default, Clone, Copy)]
@@ -63,7 +63,12 @@ impl Slice {
 
 impl Queryable for Slice {
     #[cfg_attr(feature = "trace", tracing::instrument(name = "Query Slice", level = "trace", parent = None, ret))]
-    fn query<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {
+    fn query<'b>(
+        &self,
+        current: &'b Value,
+        _root: &'b Value,
+        traversed_path: TraversedPath,
+    ) -> QueryResult<'b> {
         if let Some(list) = current.as_array() {
             let mut query = Vec::new();
             let step = self.step.unwrap_or(1);
@@ -85,7 +90,7 @@ impl Queryable for Slice {
                 let mut i = lower;
                 while i < upper {
                     if let Some(v) = usize::try_from(i).ok().and_then(|i| list.get(i)) {
-                        query.push(v);
+                        query.push(([traversed_path.as_slice(), &[i.to_string()]].concat(), v));
                     }
                     i += step;
                 }
@@ -108,7 +113,7 @@ impl Queryable for Slice {
                 let mut i = upper;
                 while lower < i {
                     if let Some(v) = usize::try_from(i).ok().and_then(|i| list.get(i)) {
-                        query.push(v);
+                        query.push(([traversed_path.as_slice(), &[i.to_string()]].concat(), v));
                     }
                     i += step;
                 }

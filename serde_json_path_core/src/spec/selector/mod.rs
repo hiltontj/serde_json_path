@@ -8,7 +8,7 @@ use serde_json::Value;
 
 use self::{filter::Filter, index::Index, name::Name, slice::Slice};
 
-use super::query::Queryable;
+use super::query::{QueryResult, Queryable, TraversedPath};
 
 /// A JSONPath selector
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -49,24 +49,36 @@ impl std::fmt::Display for Selector {
 
 impl Queryable for Selector {
     #[cfg_attr(feature = "trace", tracing::instrument(name = "Query Selector", level = "trace", parent = None, ret))]
-    fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
+    fn query<'b>(
+        &self,
+        current: &'b Value,
+        root: &'b Value,
+        traversed_path: TraversedPath,
+    ) -> QueryResult<'b> {
         let mut query = Vec::new();
         match self {
-            Selector::Name(name) => query.append(&mut name.query(current, root)),
+            Selector::Name(name) => query.append(&mut name.query(current, root, traversed_path)),
             Selector::Wildcard => {
                 if let Some(list) = current.as_array() {
-                    for v in list {
-                        query.push(v);
+                    for (index, v) in list.iter().enumerate() {
+                        query.push((
+                            [traversed_path.as_slice(), &[index.to_string()]].concat(),
+                            v,
+                        ));
                     }
                 } else if let Some(obj) = current.as_object() {
-                    for (_, v) in obj {
-                        query.push(v);
+                    for (key, v) in obj {
+                        query.push(([traversed_path.as_slice(), &[key.clone()]].concat(), v));
                     }
                 }
             }
-            Selector::Index(index) => query.append(&mut index.query(current, root)),
-            Selector::ArraySlice(slice) => query.append(&mut slice.query(current, root)),
-            Selector::Filter(filter) => query.append(&mut filter.query(current, root)),
+            Selector::Index(index) => query.append(&mut index.query(current, root, traversed_path)),
+            Selector::ArraySlice(slice) => {
+                query.append(&mut slice.query(current, root, traversed_path))
+            }
+            Selector::Filter(filter) => {
+                query.append(&mut filter.query(current, root, traversed_path))
+            }
         }
         query
     }

@@ -1,7 +1,10 @@
 //! Types representing segments in JSONPath
 use serde_json::Value;
 
-use super::{query::Queryable, selector::Selector};
+use super::{
+    query::{QueryResult, Queryable, TraversedPath},
+    selector::Selector,
+};
 
 /// A segment of a JSONPath query
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -48,25 +51,35 @@ pub enum QuerySegmentKind {
 
 impl Queryable for QuerySegment {
     #[cfg_attr(feature = "trace", tracing::instrument(name = "Query Path Segment", level = "trace", parent = None, ret))]
-    fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
-        let mut query = self.segment.query(current, root);
+    fn query<'b>(
+        &self,
+        current: &'b Value,
+        root: &'b Value,
+        traversed_path: TraversedPath,
+    ) -> QueryResult<'b> {
+        let mut query = self.segment.query(current, root, traversed_path.clone());
         if matches!(self.kind, QuerySegmentKind::Descendant) {
-            query.append(&mut descend(self, current, root));
+            query.append(&mut descend(self, current, root, traversed_path));
         }
         query
     }
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(name = "Descend", level = "trace", parent = None, ret))]
-fn descend<'b>(segment: &QuerySegment, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
+fn descend<'b>(
+    segment: &QuerySegment,
+    current: &'b Value,
+    root: &'b Value,
+    traversed_path: TraversedPath,
+) -> QueryResult<'b> {
     let mut query = Vec::new();
     if let Some(list) = current.as_array() {
         for v in list {
-            query.append(&mut segment.query(v, root));
+            query.append(&mut segment.query(v, root, traversed_path.clone()));
         }
     } else if let Some(obj) = current.as_object() {
         for (_, v) in obj {
-            query.append(&mut segment.query(v, root));
+            query.append(&mut segment.query(v, root, traversed_path.clone()));
         }
     }
     query
@@ -145,29 +158,37 @@ impl std::fmt::Display for Segment {
 
 impl Queryable for Segment {
     #[cfg_attr(feature = "trace", tracing::instrument(name = "Query Segment", level = "trace", parent = None, ret))]
-    fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
+    fn query<'b>(
+        &self,
+        current: &'b Value,
+        root: &'b Value,
+        traversed_path: TraversedPath,
+    ) -> QueryResult<'b> {
         let mut query = Vec::new();
         match self {
             Segment::LongHand(selectors) => {
                 for selector in selectors {
-                    query.append(&mut selector.query(current, root));
+                    query.append(&mut selector.query(current, root, traversed_path.clone()));
                 }
             }
             Segment::DotName(key) => {
                 if let Some(obj) = current.as_object() {
                     if let Some(v) = obj.get(key) {
-                        query.push(v);
+                        query.push(([traversed_path.as_slice(), &[key.clone()]].concat(), v));
                     }
                 }
             }
             Segment::Wildcard => {
                 if let Some(list) = current.as_array() {
-                    for v in list {
-                        query.push(v);
+                    for (index, v) in list.iter().enumerate() {
+                        query.push((
+                            [traversed_path.as_slice(), &[index.to_string()]].concat(),
+                            v,
+                        ));
                     }
                 } else if let Some(obj) = current.as_object() {
-                    for (_, v) in obj {
-                        query.push(v);
+                    for (key, v) in obj {
+                        query.push(([traversed_path.as_slice(), &[key.clone()]].concat(), v));
                     }
                 }
             }

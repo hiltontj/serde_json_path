@@ -29,10 +29,21 @@ mod sealed {
     impl Sealed for SingularQuery {}
 }
 
+/// Traversed path up to current node
+pub type TraversedPath = Vec<String>;
+
+/// A query result with each match having a path and value
+pub type QueryResult<'a> = Vec<(Vec<String>, &'a Value)>;
+
 /// A type that is query-able
 pub trait Queryable: sealed::Sealed {
     /// Query `self` using a current node, and the root node
-    fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value>;
+    fn query<'b>(
+        &self,
+        current: &'b Value,
+        root: &'b Value,
+        traversed_path: TraversedPath,
+    ) -> QueryResult<'b>;
 }
 
 /// Represents a JSONPath expression
@@ -83,15 +94,20 @@ pub enum QueryKind {
 
 impl Queryable for Query {
     #[cfg_attr(feature = "trace", tracing::instrument(name = "Main Query", level = "trace", parent = None, ret))]
-    fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
+    fn query<'b>(
+        &self,
+        current: &'b Value,
+        root: &'b Value,
+        traversed_path: TraversedPath,
+    ) -> QueryResult<'b> {
         let mut query = match self.kind {
-            QueryKind::Root => vec![root],
-            QueryKind::Current => vec![current],
+            QueryKind::Root => vec![(traversed_path.to_vec(), root)],
+            QueryKind::Current => vec![(traversed_path.to_vec(), current)],
         };
         for segment in &self.segments {
             let mut new_query = Vec::new();
-            for q in &query {
-                new_query.append(&mut segment.query(q, root));
+            for (traversed_path, q) in &query {
+                new_query.append(&mut segment.query(q, root, traversed_path.clone()));
             }
             query = new_query;
         }
