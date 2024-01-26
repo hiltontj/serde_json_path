@@ -55,6 +55,15 @@ impl Queryable for QuerySegment {
         }
         query
     }
+
+    fn query_paths<'b>(
+        &self,
+        current: &'b Value,
+        _root: &'b Value,
+        parent: super::path::NormalizedPath<'b>,
+    ) -> Vec<super::path::NormalizedPath<'b>> {
+        todo!()
+    }
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(name = "Descend", level = "trace", parent = None, ret))]
@@ -173,5 +182,14 @@ impl Queryable for Segment {
             }
         }
         query
+    }
+
+    fn query_paths<'b>(
+        &self,
+        current: &'b Value,
+        _root: &'b Value,
+        parent: super::path::NormalizedPath<'b>,
+    ) -> Vec<super::path::NormalizedPath<'b>> {
+        todo!()
     }
 }

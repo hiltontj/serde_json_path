@@ -118,6 +118,15 @@ impl Queryable for Slice {
             vec![]
         }
     }
+
+    fn query_paths<'b>(
+        &self,
+        current: &'b Value,
+        _root: &'b Value,
+        parent: crate::spec::path::NormalizedPath<'b>,
+    ) -> Vec<crate::spec::path::NormalizedPath<'b>> {
+        todo!()
+    }
 }
 
 fn normalize_slice_index(index: isize, len: isize) -> Option<isize> {

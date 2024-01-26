@@ -1,7 +1,7 @@
 //! Types representing queries in JSONPath
 use serde_json::Value;
 
-use super::segment::QuerySegment;
+use super::{path::NormalizedPath, segment::QuerySegment};
 
 mod sealed {
     use crate::spec::{
@@ -33,6 +33,12 @@ mod sealed {
 pub trait Queryable: sealed::Sealed {
     /// Query `self` using a current node, and the root node
     fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value>;
+    fn query_paths<'b>(
+        &self,
+        current: &'b Value,
+        _root: &'b Value,
+        parent: NormalizedPath<'b>,
+    ) -> Vec<NormalizedPath<'b>>;
 }
 
 /// Represents a JSONPath expression
@@ -96,5 +102,14 @@ impl Queryable for Query {
             query = new_query;
         }
         query
+    }
+
+    fn query_paths<'b>(
+        &self,
+        current: &'b Value,
+        _root: &'b Value,
+        parent: NormalizedPath<'b>,
+    ) -> Vec<NormalizedPath<'b>> {
+        todo!()
     }
 }

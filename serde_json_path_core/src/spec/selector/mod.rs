@@ -8,7 +8,10 @@ use serde_json::Value;
 
 use self::{filter::Filter, index::Index, name::Name, slice::Slice};
 
-use super::query::Queryable;
+use super::{
+    path::{NormalizedPath, PathElement},
+    query::Queryable,
+};
 
 /// A JSONPath selector
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -69,5 +72,41 @@ impl Queryable for Selector {
             Selector::Filter(filter) => query.append(&mut filter.query(current, root)),
         }
         query
+    }
+
+    fn query_paths<'b>(
+        &self,
+        current: &'b Value,
+        root: &'b Value,
+        parent: NormalizedPath<'b>,
+    ) -> Vec<NormalizedPath<'b>> {
+        match self {
+            Selector::Name(name) => name.query_paths(current, root, parent),
+            Selector::Wildcard => {
+                if let Some(list) = current.as_array() {
+                    list.iter()
+                        .enumerate()
+                        .map(|(i, _)| {
+                            let mut new_path = parent.clone();
+                            new_path.push(PathElement::from(i));
+                            new_path
+                        })
+                        .collect()
+                } else if let Some(obj) = current.as_object() {
+                    obj.keys()
+                        .map(|k| {
+                            let mut new_path = parent.clone();
+                            new_path.push(PathElement::from(k));
+                            new_path
+                        })
+                        .collect()
+                } else {
+                    vec![]
+                }
+            }
+            Selector::Index(index) => index.query_paths(current, root, parent),
+            Selector::ArraySlice(slice) => slice.query_paths(current, root, parent),
+            Selector::Filter(filter) => filter.query_paths(current, root, parent),
+        }
     }
 }

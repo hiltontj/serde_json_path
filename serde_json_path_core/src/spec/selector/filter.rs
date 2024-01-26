@@ -69,6 +69,15 @@ impl Queryable for Filter {
             vec![]
         }
     }
+
+    fn query_paths<'b>(
+        &self,
+        current: &'b Value,
+        _root: &'b Value,
+        parent: crate::spec::path::NormalizedPath<'b>,
+    ) -> Vec<crate::spec::path::NormalizedPath<'b>> {
+        todo!()
+    }
 }
 
 /// The top level boolean expression type
@@ -564,6 +573,15 @@ impl Queryable for SingularQuery {
             Some(v) => vec![v],
             None => vec![],
         }
+    }
+
+    fn query_paths<'b>(
+        &self,
+        current: &'b Value,
+        _root: &'b Value,
+        parent: crate::spec::path::NormalizedPath<'b>,
+    ) -> Vec<crate::spec::path::NormalizedPath<'b>> {
+        todo!()
     }
 }
 
