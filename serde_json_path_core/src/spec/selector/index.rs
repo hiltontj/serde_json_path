@@ -44,21 +44,22 @@ impl Queryable for Index {
         current: &'b Value,
         _root: &'b Value,
         mut parent: NormalizedPath<'b>,
-    ) -> Vec<NormalizedPath<'b>> {
-        if let Some(index) = current.as_array().and_then(|list| {
+    ) -> Vec<(NormalizedPath<'b>, &'b Value)> {
+        if let Some((index, value)) = current.as_array().and_then(|list| {
             if self.0 < 0 {
                 self.0
                     .checked_abs()
                     .and_then(|i| usize::try_from(i).ok())
                     .and_then(|i| list.len().checked_sub(i))
+                    .and_then(|i| list.get(i).map(|v| (i, v)))
             } else {
                 usize::try_from(self.0)
                     .ok()
-                    .and_then(|i| (list.len() >= i).then_some(i))
+                    .and_then(|i| list.get(i).map(|v| (i, v)))
             }
         }) {
-            parent.push(index.into());
-            vec![parent]
+            parent.push(index);
+            vec![(parent, value)]
         } else {
             vec![]
         }

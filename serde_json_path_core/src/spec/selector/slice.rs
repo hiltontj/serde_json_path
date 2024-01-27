@@ -1,7 +1,7 @@
 //! Slice selectors for selecting array slices in JSONPath
 use serde_json::Value;
 
-use crate::spec::query::Queryable;
+use crate::spec::{path::NormalizedPath, query::Queryable};
 
 /// A slice selector
 #[derive(Debug, PartialEq, Eq, Default, Clone, Copy)]
@@ -59,6 +59,34 @@ impl Slice {
         self.step = Some(step);
         self
     }
+
+    #[inline]
+    fn bounds_on_forward_slice(&self, len: isize) -> (isize, isize) {
+        let start_default = self.start.unwrap_or(0);
+        let end_default = self.end.unwrap_or(len);
+        let start = normalize_slice_index(start_default, len)
+            .unwrap_or(0)
+            .max(0);
+        let end = normalize_slice_index(end_default, len).unwrap_or(0).max(0);
+        let lower = start.min(len);
+        let upper = end.min(len);
+        (lower, upper)
+    }
+
+    #[inline]
+    fn bounds_on_reverse_slice(&self, len: isize) -> Option<(isize, isize)> {
+        let start_default = self.start.or_else(|| len.checked_sub(1))?;
+        let end_default = self
+            .end
+            .or_else(|| len.checked_mul(-1).and_then(|l| l.checked_sub(1)))?;
+        let start = normalize_slice_index(start_default, len)
+            .unwrap_or(0)
+            .max(-1);
+        let end = normalize_slice_index(end_default, len).unwrap_or(0).max(-1);
+        let lower = end.min(len.checked_sub(1).unwrap_or(len));
+        let upper = start.min(len.checked_sub(1).unwrap_or(len));
+        Some((lower, upper))
+    }
 }
 
 impl Queryable for Slice {
@@ -74,14 +102,7 @@ impl Queryable for Slice {
                 return vec![];
             };
             if step > 0 {
-                let start_default = self.start.unwrap_or(0);
-                let end_default = self.end.unwrap_or(len);
-                let start = normalize_slice_index(start_default, len)
-                    .unwrap_or(0)
-                    .max(0);
-                let end = normalize_slice_index(end_default, len).unwrap_or(0).max(0);
-                let lower = start.min(len);
-                let upper = end.min(len);
+                let (lower, upper) = self.bounds_on_forward_slice(len);
                 let mut i = lower;
                 while i < upper {
                     if let Some(v) = usize::try_from(i).ok().and_then(|i| list.get(i)) {
@@ -90,21 +111,9 @@ impl Queryable for Slice {
                     i += step;
                 }
             } else {
-                let Some(start_default) = self.start.or_else(|| len.checked_sub(1)) else {
+                let Some((lower, upper)) = self.bounds_on_reverse_slice(len) else {
                     return vec![];
                 };
-                let Some(end_default) = self
-                    .end
-                    .or_else(|| len.checked_mul(-1).and_then(|l| l.checked_sub(1)))
-                else {
-                    return vec![];
-                };
-                let start = normalize_slice_index(start_default, len)
-                    .unwrap_or(0)
-                    .max(-1);
-                let end = normalize_slice_index(end_default, len).unwrap_or(0).max(-1);
-                let lower = end.min(len.checked_sub(1).unwrap_or(len));
-                let upper = start.min(len.checked_sub(1).unwrap_or(len));
                 let mut i = upper;
                 while lower < i {
                     if let Some(v) = usize::try_from(i).ok().and_then(|i| list.get(i)) {
@@ -123,9 +132,48 @@ impl Queryable for Slice {
         &self,
         current: &'b Value,
         _root: &'b Value,
-        parent: crate::spec::path::NormalizedPath<'b>,
-    ) -> Vec<crate::spec::path::NormalizedPath<'b>> {
-        todo!()
+        parent: NormalizedPath<'b>,
+    ) -> Vec<(NormalizedPath<'b>, &'b Value)> {
+        if let Some(list) = current.as_array() {
+            let mut result = Vec::new();
+            let step = self.step.unwrap_or(1);
+            if step == 0 {
+                return vec![];
+            }
+            let Ok(len) = isize::try_from(list.len()) else {
+                return vec![];
+            };
+            if step > 0 {
+                let (lower, upper) = self.bounds_on_forward_slice(len);
+                let mut i = lower;
+                while i < upper {
+                    if let Some((i, v)) = usize::try_from(i)
+                        .ok()
+                        .and_then(|i| list.get(i).map(|v| (i, v)))
+                    {
+                        result.push((parent.clone_and_push(i), v));
+                    }
+                    i += step;
+                }
+            } else {
+                let Some((lower, upper)) = self.bounds_on_reverse_slice(len) else {
+                    return vec![];
+                };
+                let mut i = upper;
+                while lower < i {
+                    if let Some((i, v)) = usize::try_from(i)
+                        .ok()
+                        .and_then(|i| list.get(i).map(|v| (i, v)))
+                    {
+                        result.push((parent.clone_and_push(i), v));
+                    }
+                    i += step;
+                }
+            }
+            result
+        } else {
+            vec![]
+        }
     }
 }
 

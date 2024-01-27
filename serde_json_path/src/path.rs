@@ -4,7 +4,10 @@ use serde::{de::Visitor, Deserialize, Serialize};
 use serde_json::Value;
 use serde_json_path_core::{
     node::NodeList,
-    spec::query::{Query, Queryable},
+    spec::{
+        path::NormalizedPath,
+        query::{Query, Queryable},
+    },
 };
 
 use crate::{parser::parse_query_main, ParseError};
@@ -74,6 +77,10 @@ impl JsonPath {
     /// ```
     pub fn query<'b>(&self, value: &'b Value) -> NodeList<'b> {
         self.0.query(value, value).into()
+    }
+
+    pub fn query_paths<'b>(&self, value: &'b Value) -> Vec<(NormalizedPath<'b>, &'b Value)> {
+        self.0.query_paths_init(value, value)
     }
 }
 
@@ -152,5 +159,17 @@ mod tests {
             .and_then(from_value::<JsonPath>)
             .expect("round trip");
         assert_eq!(p1, p2);
+    }
+
+    #[test]
+    fn norm_paths() {
+        let j = json!({"foo": {
+            "bar": [1, 2, 3]
+        }});
+        let p = JsonPath::parse("$.foo.bar.*").unwrap();
+        let r = p.query_paths(&j);
+        for (np, _) in r {
+            println!("{pointer}", pointer = np.as_json_pointer());
+        }
     }
 }

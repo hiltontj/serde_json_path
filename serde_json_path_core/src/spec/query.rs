@@ -36,9 +36,16 @@ pub trait Queryable: sealed::Sealed {
     fn query_paths<'b>(
         &self,
         current: &'b Value,
-        _root: &'b Value,
+        root: &'b Value,
         parent: NormalizedPath<'b>,
-    ) -> Vec<NormalizedPath<'b>>;
+    ) -> Vec<(NormalizedPath<'b>, &'b Value)>;
+    fn query_paths_init<'b>(
+        &self,
+        current: &'b Value,
+        root: &'b Value,
+    ) -> Vec<(NormalizedPath<'b>, &'b Value)> {
+        self.query_paths(current, root, Default::default())
+    }
 }
 
 /// Represents a JSONPath expression
@@ -107,9 +114,20 @@ impl Queryable for Query {
     fn query_paths<'b>(
         &self,
         current: &'b Value,
-        _root: &'b Value,
-        parent: NormalizedPath<'b>,
-    ) -> Vec<NormalizedPath<'b>> {
-        todo!()
+        root: &'b Value,
+        _parent: NormalizedPath<'b>,
+    ) -> Vec<(NormalizedPath<'b>, &'b Value)> {
+        let mut result: Vec<(NormalizedPath<'b>, &Value)> = match self.kind {
+            QueryKind::Root => vec![(Default::default(), root)],
+            QueryKind::Current => vec![(Default::default(), current)],
+        };
+        for s in &self.segments {
+            let mut r = vec![];
+            for (ref np, v) in result {
+                r.append(&mut s.query_paths(v, root, np.clone()));
+            }
+            result = r;
+        }
+        result
     }
 }

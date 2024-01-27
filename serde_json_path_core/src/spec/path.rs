@@ -1,9 +1,17 @@
-use std::ops::{Deref, DerefMut};
-
-#[derive(Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct NormalizedPath<'a>(Vec<PathElement<'a>>);
 
 impl<'a> NormalizedPath<'a> {
+    pub(crate) fn push<T: Into<PathElement<'a>>>(&mut self, elem: T) {
+        self.0.push(elem.into())
+    }
+
+    pub(crate) fn clone_and_push<T: Into<PathElement<'a>>>(&self, elem: T) -> Self {
+        let mut new_path = self.clone();
+        new_path.push(elem.into());
+        new_path
+    }
+
     pub fn as_json_pointer(&self) -> String {
         self.0
             .iter()
@@ -16,21 +24,7 @@ impl<'a> NormalizedPath<'a> {
     }
 }
 
-impl<'a> Deref for NormalizedPath<'a> {
-    type Target = Vec<PathElement<'a>>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<'a> DerefMut for NormalizedPath<'a> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum PathElement<'a> {
     Name(&'a str),
     Index(usize),

@@ -35,10 +35,10 @@ impl Queryable for Name {
         current: &'b Value,
         _root: &'b Value,
         mut parent: NormalizedPath<'b>,
-    ) -> Vec<NormalizedPath<'b>> {
-        if let Some((s, _)) = current.as_object().and_then(|o| o.get_key_value(&self.0)) {
-            parent.push(s.into());
-            vec![parent]
+    ) -> Vec<(NormalizedPath<'b>, &'b Value)> {
+        if let Some((s, v)) = current.as_object().and_then(|o| o.get_key_value(&self.0)) {
+            parent.push(s);
+            vec![(parent, v)]
         } else {
             vec![]
         }

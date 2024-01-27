@@ -3,6 +3,7 @@ use serde_json::{Number, Value};
 
 use crate::spec::{
     functions::{FunctionExpr, JsonPathValue, Validated},
+    path::NormalizedPath,
     query::{Query, QueryKind, Queryable},
     segment::{QuerySegment, Segment},
 };
@@ -73,10 +74,23 @@ impl Queryable for Filter {
     fn query_paths<'b>(
         &self,
         current: &'b Value,
-        _root: &'b Value,
-        parent: crate::spec::path::NormalizedPath<'b>,
-    ) -> Vec<crate::spec::path::NormalizedPath<'b>> {
-        todo!()
+        root: &'b Value,
+        parent: NormalizedPath<'b>,
+    ) -> Vec<(NormalizedPath<'b>, &'b Value)> {
+        if let Some(list) = current.as_array() {
+            list.iter()
+                .enumerate()
+                .filter(|(_, v)| self.0.test_filter(v, root))
+                .map(|(i, v)| (parent.clone_and_push(i), v))
+                .collect()
+        } else if let Some(obj) = current.as_object() {
+            obj.iter()
+                .filter(|(_, v)| self.0.test_filter(v, root))
+                .map(|(k, v)| (parent.clone_and_push(k), v))
+                .collect()
+        } else {
+            vec![]
+        }
     }
 }
 
@@ -564,24 +578,6 @@ impl TryFrom<Query> for SingularQuery {
             .map(TryFrom::try_from)
             .collect::<Result<Vec<SingularQuerySegment>, Self::Error>>()?;
         Ok(Self { kind, segments })
-    }
-}
-
-impl Queryable for SingularQuery {
-    fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
-        match self.eval_query(current, root) {
-            Some(v) => vec![v],
-            None => vec![],
-        }
-    }
-
-    fn query_paths<'b>(
-        &self,
-        current: &'b Value,
-        _root: &'b Value,
-        parent: crate::spec::path::NormalizedPath<'b>,
-    ) -> Vec<crate::spec::path::NormalizedPath<'b>> {
-        todo!()
     }
 }
 

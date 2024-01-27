@@ -79,25 +79,25 @@ impl Queryable for Selector {
         current: &'b Value,
         root: &'b Value,
         parent: NormalizedPath<'b>,
-    ) -> Vec<NormalizedPath<'b>> {
+    ) -> Vec<(NormalizedPath<'b>, &'b Value)> {
         match self {
             Selector::Name(name) => name.query_paths(current, root, parent),
             Selector::Wildcard => {
                 if let Some(list) = current.as_array() {
                     list.iter()
                         .enumerate()
-                        .map(|(i, _)| {
+                        .map(|(i, v)| {
                             let mut new_path = parent.clone();
                             new_path.push(PathElement::from(i));
-                            new_path
+                            (new_path, v)
                         })
                         .collect()
                 } else if let Some(obj) = current.as_object() {
-                    obj.keys()
-                        .map(|k| {
+                    obj.iter()
+                        .map(|(k, v)| {
                             let mut new_path = parent.clone();
                             new_path.push(PathElement::from(k));
-                            new_path
+                            (new_path, v)
                         })
                         .collect()
                 } else {
