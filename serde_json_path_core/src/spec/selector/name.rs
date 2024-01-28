@@ -30,7 +30,7 @@ impl Queryable for Name {
         }
     }
 
-    fn query_paths<'b>(
+    fn query_located<'b>(
         &self,
         current: &'b Value,
         _root: &'b Value,

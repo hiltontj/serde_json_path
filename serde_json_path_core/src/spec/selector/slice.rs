@@ -128,7 +128,7 @@ impl Queryable for Slice {
         }
     }
 
-    fn query_paths<'b>(
+    fn query_located<'b>(
         &self,
         current: &'b Value,
         _root: &'b Value,

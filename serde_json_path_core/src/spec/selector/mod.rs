@@ -74,14 +74,14 @@ impl Queryable for Selector {
         query
     }
 
-    fn query_paths<'b>(
+    fn query_located<'b>(
         &self,
         current: &'b Value,
         root: &'b Value,
         parent: NormalizedPath<'b>,
     ) -> Vec<(NormalizedPath<'b>, &'b Value)> {
         match self {
-            Selector::Name(name) => name.query_paths(current, root, parent),
+            Selector::Name(name) => name.query_located(current, root, parent),
             Selector::Wildcard => {
                 if let Some(list) = current.as_array() {
                     list.iter()
@@ -104,9 +104,9 @@ impl Queryable for Selector {
                     vec![]
                 }
             }
-            Selector::Index(index) => index.query_paths(current, root, parent),
-            Selector::ArraySlice(slice) => slice.query_paths(current, root, parent),
-            Selector::Filter(filter) => filter.query_paths(current, root, parent),
+            Selector::Index(index) => index.query_located(current, root, parent),
+            Selector::ArraySlice(slice) => slice.query_located(current, root, parent),
+            Selector::Filter(filter) => filter.query_located(current, root, parent),
         }
     }
 }

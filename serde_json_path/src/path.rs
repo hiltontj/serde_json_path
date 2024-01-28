@@ -3,7 +3,7 @@ use std::str::FromStr;
 use serde::{de::Visitor, Deserialize, Serialize};
 use serde_json::Value;
 use serde_json_path_core::{
-    node::NodeList,
+    node::{LocatedNodeList, NodeList},
     spec::{
         path::NormalizedPath,
         query::{Query, Queryable},
@@ -79,8 +79,10 @@ impl JsonPath {
         self.0.query(value, value).into()
     }
 
-    pub fn query_paths<'b>(&self, value: &'b Value) -> Vec<(NormalizedPath<'b>, &'b Value)> {
-        self.0.query_paths_init(value, value)
+    pub fn query_located<'b>(&self, value: &'b Value) -> LocatedNodeList<'b> {
+        self.0
+            .query_located(value, value, Default::default())
+            .into()
     }
 }
 
@@ -167,7 +169,7 @@ mod tests {
             "bar": [1, 2, 3]
         }});
         let p = JsonPath::parse("$.foo.bar.*").unwrap();
-        let r = p.query_paths(&j);
+        let r = p.query_located(&j);
         for (np, _) in r {
             println!("{pointer}", pointer = np.as_json_pointer());
         }

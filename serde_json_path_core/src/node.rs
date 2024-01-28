@@ -1,8 +1,10 @@
 //! Types representing nodes within a JSON object
-use std::slice::Iter;
+use std::{cmp::Ordering, slice::Iter};
 
 use serde::Serialize;
 use serde_json::Value;
+
+use crate::spec::path::NormalizedPath;
 
 /// A list of nodes resulting from a JSONPath query
 ///
@@ -253,6 +255,77 @@ impl<'a> From<Vec<&'a Value>> for NodeList<'a> {
 
 impl<'a> IntoIterator for NodeList<'a> {
     type Item = &'a Value;
+
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+#[derive(Debug, Default, Eq, PartialEq, Serialize, Clone)]
+pub struct LocatedNodeList<'a>(Vec<(NormalizedPath<'a>, &'a Value)>);
+
+impl<'a> LocatedNodeList<'a> {
+    pub fn at_most_one(
+        mut self,
+    ) -> Result<Option<(NormalizedPath<'a>, &'a Value)>, AtMostOneError> {
+        if self.0.is_empty() {
+            Ok(None)
+        } else if self.0.len() > 1 {
+            Err(AtMostOneError(self.0.len()))
+        } else {
+            Ok(Some(self.0.pop().unwrap()))
+        }
+    }
+
+    pub fn exactly_one(mut self) -> Result<(NormalizedPath<'a>, &'a Value), ExactlyOneError> {
+        if self.0.is_empty() {
+            Err(ExactlyOneError::Empty)
+        } else if self.0.len() > 1 {
+            Err(ExactlyOneError::MoreThanOne(self.0.len()))
+        } else {
+            Ok(self.0.pop().unwrap())
+        }
+    }
+
+    pub fn all(self) -> Vec<(NormalizedPath<'a>, &'a Value)> {
+        self.0
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn iter(&self) -> Iter<'_, (NormalizedPath<'a>, &'a Value)> {
+        self.0.iter()
+    }
+
+    pub fn dedup(mut self) -> Self {
+        self.0
+            // This unwrap is safe, since the paths corresponding to
+            // a query against a Value will always be ordered.
+            //
+            // TODO - the below From impl may in theory allow someone
+            // to violate this, so may need to remedy that...
+            .sort_unstable_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+        self.0.dedup();
+        self
+    }
+}
+
+impl<'a> From<Vec<(NormalizedPath<'a>, &'a Value)>> for LocatedNodeList<'a> {
+    fn from(v: Vec<(NormalizedPath<'a>, &'a Value)>) -> Self {
+        Self(v)
+    }
+}
+
+impl<'a> IntoIterator for LocatedNodeList<'a> {
+    type Item = (NormalizedPath<'a>, &'a Value);
 
     type IntoIter = std::vec::IntoIter<Self::Item>;
 

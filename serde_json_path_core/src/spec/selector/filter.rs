@@ -71,7 +71,7 @@ impl Queryable for Filter {
         }
     }
 
-    fn query_paths<'b>(
+    fn query_located<'b>(
         &self,
         current: &'b Value,
         root: &'b Value,

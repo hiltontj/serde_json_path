@@ -1,4 +1,8 @@
-#[derive(Debug, Clone, Default)]
+use std::{cmp::Ordering, fmt::Display, slice::Iter};
+
+use serde::Serialize;
+
+#[derive(Debug, Default, Eq, PartialEq, Clone, PartialOrd)]
 pub struct NormalizedPath<'a>(Vec<PathElement<'a>>);
 
 impl<'a> NormalizedPath<'a> {
@@ -22,9 +26,43 @@ impl<'a> NormalizedPath<'a> {
                 acc
             })
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn iter(&self) -> Iter<'_, PathElement<'a>> {
+        self.0.iter()
+    }
 }
 
-#[derive(Debug, Clone, Copy)]
+impl<'a> Display for NormalizedPath<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "$")?;
+        for elem in &self.0 {
+            match elem {
+                PathElement::Name(name) => write!(f, "['{name}']")?,
+                PathElement::Index(index) => write!(f, "[{index}]")?,
+            }
+        }
+        Ok(())
+    }
+}
+
+impl<'a> Serialize for NormalizedPath<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.to_string().as_str())
+    }
+}
+
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum PathElement<'a> {
     Name(&'a str),
     Index(usize),
@@ -39,6 +77,25 @@ impl<'a> PathElement<'a> {
     }
 }
 
+impl<'a> PartialOrd for PathElement<'a> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (self, other) {
+            (PathElement::Name(a), PathElement::Name(b)) => a.partial_cmp(b),
+            (PathElement::Index(a), PathElement::Index(b)) => a.partial_cmp(b),
+            _ => None,
+        }
+    }
+}
+
+impl<'a> Display for PathElement<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PathElement::Name(n) => write!(f, "{n}"),
+            PathElement::Index(i) => write!(f, "{i}"),
+        }
+    }
+}
+
 impl<'a> From<&'a String> for PathElement<'a> {
     fn from(s: &'a String) -> Self {
         Self::Name(s.as_str())
@@ -48,6 +105,18 @@ impl<'a> From<&'a String> for PathElement<'a> {
 impl<'a> From<usize> for PathElement<'a> {
     fn from(index: usize) -> Self {
         Self::Index(index)
+    }
+}
+
+impl<'a> Serialize for PathElement<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            PathElement::Name(s) => serializer.serialize_str(s),
+            PathElement::Index(i) => serializer.serialize_u64(*i as u64),
+        }
     }
 }
 

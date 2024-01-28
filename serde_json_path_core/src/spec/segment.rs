@@ -56,18 +56,18 @@ impl Queryable for QuerySegment {
         query
     }
 
-    fn query_paths<'b>(
+    fn query_located<'b>(
         &self,
         current: &'b Value,
         root: &'b Value,
         parent: NormalizedPath<'b>,
     ) -> Vec<(NormalizedPath<'b>, &'b Value)> {
         if matches!(self.kind, QuerySegmentKind::Descendant) {
-            let mut result = self.segment.query_paths(current, root, parent.clone());
+            let mut result = self.segment.query_located(current, root, parent.clone());
             result.append(&mut descend_paths(self, current, root, parent));
             result
         } else {
-            self.segment.query_paths(current, root, parent)
+            self.segment.query_located(current, root, parent)
         }
     }
 }
@@ -96,11 +96,11 @@ fn descend_paths<'b>(
     let mut result = Vec::new();
     if let Some(list) = current.as_array() {
         for (i, v) in list.iter().enumerate() {
-            result.append(&mut segment.query_paths(v, root, parent.clone_and_push(i)));
+            result.append(&mut segment.query_located(v, root, parent.clone_and_push(i)));
         }
     } else if let Some(obj) = current.as_object() {
         for (k, v) in obj {
-            result.append(&mut segment.query_paths(v, root, parent.clone_and_push(k)));
+            result.append(&mut segment.query_located(v, root, parent.clone_and_push(k)));
         }
     }
     result
@@ -209,7 +209,7 @@ impl Queryable for Segment {
         query
     }
 
-    fn query_paths<'b>(
+    fn query_located<'b>(
         &self,
         current: &'b Value,
         root: &'b Value,
@@ -219,7 +219,7 @@ impl Queryable for Segment {
         match self {
             Segment::LongHand(selectors) => {
                 for s in selectors {
-                    result.append(&mut s.query_paths(current, root, parent.clone()));
+                    result.append(&mut s.query_located(current, root, parent.clone()));
                 }
             }
             Segment::DotName(name) => {
