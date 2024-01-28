@@ -1,5 +1,5 @@
 //! Types representing nodes within a JSON object
-use std::{cmp::Ordering, slice::Iter};
+use std::{iter::FusedIterator, slice::Iter};
 
 use serde::Serialize;
 use serde_json::Value;
@@ -211,42 +211,6 @@ impl<'a> NodeList<'a> {
     }
 }
 
-/// Error produced when expecting no more than one node from a query
-#[derive(Debug, thiserror::Error)]
-#[error("nodelist expected to contain at most one entry, but instead contains {0} entries")]
-pub struct AtMostOneError(pub usize);
-
-/// Error produced when expecting exactly one node from a query
-#[derive(Debug, thiserror::Error)]
-pub enum ExactlyOneError {
-    /// The query resulted in an empty [`NodeList`]
-    #[error("nodelist expected to contain one entry, but is empty")]
-    Empty,
-    /// The query resulted in a [`NodeList`] containing more than one node
-    #[error("nodelist expected to contain one entry, but instead contains {0} entries")]
-    MoreThanOne(usize),
-}
-
-impl ExactlyOneError {
-    /// Check that it is the `Empty` variant
-    pub fn is_empty(&self) -> bool {
-        matches!(self, Self::Empty)
-    }
-
-    /// Check that it is the `MoreThanOne` variant
-    pub fn is_more_than_one(&self) -> bool {
-        self.as_more_than_one().is_some()
-    }
-
-    /// Extract the number of nodes, if it was more than one, or `None` otherwise
-    pub fn as_more_than_one(&self) -> Option<usize> {
-        match self {
-            ExactlyOneError::Empty => None,
-            ExactlyOneError::MoreThanOne(u) => Some(*u),
-        }
-    }
-}
-
 impl<'a> From<Vec<&'a Value>> for NodeList<'a> {
     fn from(nodes: Vec<&'a Value>) -> Self {
         Self(nodes)
@@ -305,16 +269,27 @@ impl<'a> LocatedNodeList<'a> {
         self.0.iter()
     }
 
+    pub fn locations(&self) -> Locations<'_> {
+        Locations { inner: self.iter() }
+    }
+
+    pub fn nodes(&self) -> Nodes<'_> {
+        Nodes { inner: self.iter() }
+    }
+
     pub fn dedup(mut self) -> Self {
+        self.dedup_in_place();
+        self
+    }
+
+    pub fn dedup_in_place(&mut self) {
+        // This unwrap should be safe, since the paths corresponding to
+        // a query against a Value will always be ordered.
+        //
+        // TODO - the below From impl may allow someone to violate this
         self.0
-            // This unwrap is safe, since the paths corresponding to
-            // a query against a Value will always be ordered.
-            //
-            // TODO - the below From impl may in theory allow someone
-            // to violate this, so may need to remedy that...
             .sort_unstable_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
         self.0.dedup();
-        self
     }
 }
 
@@ -331,6 +306,94 @@ impl<'a> IntoIterator for LocatedNodeList<'a> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
+    }
+}
+
+pub struct Locations<'a> {
+    inner: Iter<'a, (NormalizedPath<'a>, &'a Value)>,
+}
+
+impl<'a> Iterator for Locations<'a> {
+    type Item = &'a NormalizedPath<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next().map(|(np, _)| np)
+    }
+}
+
+impl<'a> DoubleEndedIterator for Locations<'a> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.inner.next_back().map(|(np, _)| np)
+    }
+}
+
+impl<'a> ExactSizeIterator for Locations<'a> {
+    fn len(&self) -> usize {
+        self.inner.len()
+    }
+}
+
+impl<'a> FusedIterator for Locations<'a> {}
+
+pub struct Nodes<'a> {
+    inner: Iter<'a, (NormalizedPath<'a>, &'a Value)>,
+}
+
+impl<'a> Iterator for Nodes<'a> {
+    type Item = &'a Value;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next().map(|(_, n)| *n)
+    }
+}
+
+impl<'a> DoubleEndedIterator for Nodes<'a> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.inner.next_back().map(|(_, n)| *n)
+    }
+}
+
+impl<'a> ExactSizeIterator for Nodes<'a> {
+    fn len(&self) -> usize {
+        self.inner.len()
+    }
+}
+
+impl<'a> FusedIterator for Nodes<'a> {}
+
+/// Error produced when expecting no more than one node from a query
+#[derive(Debug, thiserror::Error)]
+#[error("nodelist expected to contain at most one entry, but instead contains {0} entries")]
+pub struct AtMostOneError(pub usize);
+
+/// Error produced when expecting exactly one node from a query
+#[derive(Debug, thiserror::Error)]
+pub enum ExactlyOneError {
+    /// The query resulted in an empty [`NodeList`]
+    #[error("nodelist expected to contain one entry, but is empty")]
+    Empty,
+    /// The query resulted in a [`NodeList`] containing more than one node
+    #[error("nodelist expected to contain one entry, but instead contains {0} entries")]
+    MoreThanOne(usize),
+}
+
+impl ExactlyOneError {
+    /// Check that it is the `Empty` variant
+    pub fn is_empty(&self) -> bool {
+        matches!(self, Self::Empty)
+    }
+
+    /// Check that it is the `MoreThanOne` variant
+    pub fn is_more_than_one(&self) -> bool {
+        self.as_more_than_one().is_some()
+    }
+
+    /// Extract the number of nodes, if it was more than one, or `None` otherwise
+    pub fn as_more_than_one(&self) -> Option<usize> {
+        match self {
+            ExactlyOneError::Empty => None,
+            ExactlyOneError::MoreThanOne(u) => Some(*u),
+        }
     }
 }
 
