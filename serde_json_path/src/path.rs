@@ -83,16 +83,16 @@ impl JsonPath {
     /// # use serde_json::{json, Value};
     /// # use serde_json_path::{JsonPath,NormalizedPath};
     /// # fn main() -> Result<(), serde_json_path::ParseError> {
-    /// let value = json!({"foo": [1, 2, 3, 4]});
-    /// let path = JsonPath::parse("$.foo[2:]")?;
+    /// let value = json!({"foo": {"bar": 1, "baz": 2}});
+    /// let path = JsonPath::parse("$.foo.*")?;
     /// let query = path.query_located(&value);
     /// let nodes: Vec<&Value> = query.nodes().collect();
-    /// assert_eq!(nodes, vec![3, 4]);
+    /// assert_eq!(nodes, vec![1, 2]);
     /// let locs: Vec<String> = query
     ///     .locations()
     ///     .map(|loc| loc.to_string())
     ///     .collect();
-    /// assert_eq!(locs, ["$['foo'][2]", "$['foo'][3]"]);
+    /// assert_eq!(locs, ["$['foo']['bar']", "$['foo']['baz']"]);
     /// # Ok(())
     /// # }
     /// ```
