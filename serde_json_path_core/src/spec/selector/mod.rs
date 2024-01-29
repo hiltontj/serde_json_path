@@ -6,12 +6,11 @@ pub mod slice;
 
 use serde_json::Value;
 
+use crate::{node::LocatedNode, path::NormalizedPath};
+
 use self::{filter::Filter, index::Index, name::Name, slice::Slice};
 
-use super::{
-    path::{NormalizedPath, PathElement},
-    query::Queryable,
-};
+use super::query::Queryable;
 
 /// A JSONPath selector
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -79,25 +78,23 @@ impl Queryable for Selector {
         current: &'b Value,
         root: &'b Value,
         parent: NormalizedPath<'b>,
-    ) -> Vec<(NormalizedPath<'b>, &'b Value)> {
+    ) -> Vec<LocatedNode<'b>> {
         match self {
             Selector::Name(name) => name.query_located(current, root, parent),
             Selector::Wildcard => {
                 if let Some(list) = current.as_array() {
                     list.iter()
                         .enumerate()
-                        .map(|(i, v)| {
-                            let mut new_path = parent.clone();
-                            new_path.push(PathElement::from(i));
-                            (new_path, v)
+                        .map(|(i, node)| LocatedNode {
+                            loc: parent.clone_and_push(i),
+                            node,
                         })
                         .collect()
                 } else if let Some(obj) = current.as_object() {
                     obj.iter()
-                        .map(|(k, v)| {
-                            let mut new_path = parent.clone();
-                            new_path.push(PathElement::from(k));
-                            (new_path, v)
+                        .map(|(k, node)| LocatedNode {
+                            loc: parent.clone_and_push(k),
+                            node,
                         })
                         .collect()
                 } else {

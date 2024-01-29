@@ -41,4 +41,5 @@
 #![forbid(unsafe_code)]
 
 pub mod node;
+pub mod path;
 pub mod spec;

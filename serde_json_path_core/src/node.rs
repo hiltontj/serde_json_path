@@ -4,7 +4,7 @@ use std::{iter::FusedIterator, slice::Iter};
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::spec::path::NormalizedPath;
+use crate::path::NormalizedPath;
 
 /// A list of nodes resulting from a JSONPath query
 ///
@@ -227,13 +227,51 @@ impl<'a> IntoIterator for NodeList<'a> {
     }
 }
 
+#[derive(Debug, Eq, PartialEq, Serialize, Clone)]
+pub struct LocatedNode<'a> {
+    pub(crate) loc: NormalizedPath<'a>,
+    pub(crate) node: &'a Value,
+}
+
+impl<'a> LocatedNode<'a> {
+    pub fn location(&self) -> &NormalizedPath<'a> {
+        &self.loc
+    }
+
+    pub fn node(&self) -> &'a Value {
+        self.node
+    }
+}
+
+/// A list of nodes resulting from a JSONPath query, along with their locations
+///
+/// As with [`NodeList`], each node is a borrowed reference to the node in the original
+/// [`serde_json::Value`] that was queried. Each node in the list is paired with its location
+/// represented by a [`NormalizedPath`].
 #[derive(Debug, Default, Eq, PartialEq, Serialize, Clone)]
-pub struct LocatedNodeList<'a>(Vec<(NormalizedPath<'a>, &'a Value)>);
+pub struct LocatedNodeList<'a>(Vec<LocatedNode<'a>>);
 
 impl<'a> LocatedNodeList<'a> {
-    pub fn at_most_one(
-        mut self,
-    ) -> Result<Option<(NormalizedPath<'a>, &'a Value)>, AtMostOneError> {
+    /// Extract _at most_ one entry from a [`LocatedNodeList`]
+    ///
+    /// This is intended for queries that are expected to optionally yield a single node.
+    ///
+    /// # Usage
+    /// ```rust
+    /// # use serde_json::json;
+    /// # use serde_json_path::JsonPath;
+    /// # use serde_json_path::AtMostOneError;
+    /// # fn main() -> Result<(), serde_json_path::ParseError> {
+    /// let value = json!({"foo": ["bar", "baz"]});
+    /// # {
+    /// let path = JsonPath::parse("$.foo[0]")?;
+    /// let node = path.query_located(&value).at_most_one().unwrap();
+    /// assert_eq!("$['foo'][0]", node.unwrap().location().to_string());
+    /// # }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn at_most_one(mut self) -> Result<Option<LocatedNode<'a>>, AtMostOneError> {
         if self.0.is_empty() {
             Ok(None)
         } else if self.0.len() > 1 {
@@ -243,7 +281,7 @@ impl<'a> LocatedNodeList<'a> {
         }
     }
 
-    pub fn exactly_one(mut self) -> Result<(NormalizedPath<'a>, &'a Value), ExactlyOneError> {
+    pub fn exactly_one(mut self) -> Result<LocatedNode<'a>, ExactlyOneError> {
         if self.0.is_empty() {
             Err(ExactlyOneError::Empty)
         } else if self.0.len() > 1 {
@@ -253,7 +291,7 @@ impl<'a> LocatedNodeList<'a> {
         }
     }
 
-    pub fn all(self) -> Vec<(NormalizedPath<'a>, &'a Value)> {
+    pub fn all(self) -> Vec<LocatedNode<'a>> {
         self.0
     }
 
@@ -265,7 +303,7 @@ impl<'a> LocatedNodeList<'a> {
         self.0.is_empty()
     }
 
-    pub fn iter(&self) -> Iter<'_, (NormalizedPath<'a>, &'a Value)> {
+    pub fn iter(&self) -> Iter<'_, LocatedNode<'a>> {
         self.0.iter()
     }
 
@@ -285,22 +323,20 @@ impl<'a> LocatedNodeList<'a> {
     pub fn dedup_in_place(&mut self) {
         // This unwrap should be safe, since the paths corresponding to
         // a query against a Value will always be ordered.
-        //
-        // TODO - the below From impl may allow someone to violate this
         self.0
-            .sort_unstable_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+            .sort_unstable_by(|a, b| a.loc.partial_cmp(&b.loc).unwrap());
         self.0.dedup();
     }
 }
 
-impl<'a> From<Vec<(NormalizedPath<'a>, &'a Value)>> for LocatedNodeList<'a> {
-    fn from(v: Vec<(NormalizedPath<'a>, &'a Value)>) -> Self {
+impl<'a> From<Vec<LocatedNode<'a>>> for LocatedNodeList<'a> {
+    fn from(v: Vec<LocatedNode<'a>>) -> Self {
         Self(v)
     }
 }
 
 impl<'a> IntoIterator for LocatedNodeList<'a> {
-    type Item = (NormalizedPath<'a>, &'a Value);
+    type Item = LocatedNode<'a>;
 
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
@@ -309,21 +345,22 @@ impl<'a> IntoIterator for LocatedNodeList<'a> {
     }
 }
 
+#[derive(Debug)]
 pub struct Locations<'a> {
-    inner: Iter<'a, (NormalizedPath<'a>, &'a Value)>,
+    inner: Iter<'a, LocatedNode<'a>>,
 }
 
 impl<'a> Iterator for Locations<'a> {
     type Item = &'a NormalizedPath<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|(np, _)| np)
+        self.inner.next().map(|l| l.location())
     }
 }
 
 impl<'a> DoubleEndedIterator for Locations<'a> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        self.inner.next_back().map(|(np, _)| np)
+        self.inner.next_back().map(|l| l.location())
     }
 }
 
@@ -335,21 +372,22 @@ impl<'a> ExactSizeIterator for Locations<'a> {
 
 impl<'a> FusedIterator for Locations<'a> {}
 
+#[derive(Debug)]
 pub struct Nodes<'a> {
-    inner: Iter<'a, (NormalizedPath<'a>, &'a Value)>,
+    inner: Iter<'a, LocatedNode<'a>>,
 }
 
 impl<'a> Iterator for Nodes<'a> {
     type Item = &'a Value;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|(_, n)| *n)
+        self.inner.next().map(|l| l.node())
     }
 }
 
 impl<'a> DoubleEndedIterator for Nodes<'a> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        self.inner.next_back().map(|(_, n)| *n)
+        self.inner.next_back().map(|l| l.node())
     }
 }
 

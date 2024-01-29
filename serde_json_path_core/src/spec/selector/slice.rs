@@ -1,7 +1,7 @@
 //! Slice selectors for selecting array slices in JSONPath
 use serde_json::Value;
 
-use crate::spec::{path::NormalizedPath, query::Queryable};
+use crate::{node::LocatedNode, path::NormalizedPath, spec::query::Queryable};
 
 /// A slice selector
 #[derive(Debug, PartialEq, Eq, Default, Clone, Copy)]
@@ -133,7 +133,7 @@ impl Queryable for Slice {
         current: &'b Value,
         _root: &'b Value,
         parent: NormalizedPath<'b>,
-    ) -> Vec<(NormalizedPath<'b>, &'b Value)> {
+    ) -> Vec<LocatedNode<'b>> {
         if let Some(list) = current.as_array() {
             let mut result = Vec::new();
             let step = self.step.unwrap_or(1);
@@ -147,11 +147,14 @@ impl Queryable for Slice {
                 let (lower, upper) = self.bounds_on_forward_slice(len);
                 let mut i = lower;
                 while i < upper {
-                    if let Some((i, v)) = usize::try_from(i)
+                    if let Some((i, node)) = usize::try_from(i)
                         .ok()
                         .and_then(|i| list.get(i).map(|v| (i, v)))
                     {
-                        result.push((parent.clone_and_push(i), v));
+                        result.push(LocatedNode {
+                            loc: parent.clone_and_push(i),
+                            node,
+                        });
                     }
                     i += step;
                 }
@@ -161,11 +164,14 @@ impl Queryable for Slice {
                 };
                 let mut i = upper;
                 while lower < i {
-                    if let Some((i, v)) = usize::try_from(i)
+                    if let Some((i, node)) = usize::try_from(i)
                         .ok()
                         .and_then(|i| list.get(i).map(|v| (i, v)))
                     {
-                        result.push((parent.clone_and_push(i), v));
+                        result.push(LocatedNode {
+                            loc: parent.clone_and_push(i),
+                            node,
+                        });
                     }
                     i += step;
                 }

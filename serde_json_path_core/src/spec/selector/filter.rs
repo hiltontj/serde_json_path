@@ -1,11 +1,14 @@
 //! Types representing filter selectors in JSONPath
 use serde_json::{Number, Value};
 
-use crate::spec::{
-    functions::{FunctionExpr, JsonPathValue, Validated},
+use crate::{
+    node::LocatedNode,
     path::NormalizedPath,
-    query::{Query, QueryKind, Queryable},
-    segment::{QuerySegment, Segment},
+    spec::{
+        functions::{FunctionExpr, JsonPathValue, Validated},
+        query::{Query, QueryKind, Queryable},
+        segment::{QuerySegment, Segment},
+    },
 };
 
 use super::{index::Index, name::Name, Selector};
@@ -76,17 +79,23 @@ impl Queryable for Filter {
         current: &'b Value,
         root: &'b Value,
         parent: NormalizedPath<'b>,
-    ) -> Vec<(NormalizedPath<'b>, &'b Value)> {
+    ) -> Vec<LocatedNode<'b>> {
         if let Some(list) = current.as_array() {
             list.iter()
                 .enumerate()
                 .filter(|(_, v)| self.0.test_filter(v, root))
-                .map(|(i, v)| (parent.clone_and_push(i), v))
+                .map(|(i, v)| LocatedNode {
+                    loc: parent.clone_and_push(i),
+                    node: v,
+                })
                 .collect()
         } else if let Some(obj) = current.as_object() {
             obj.iter()
                 .filter(|(_, v)| self.0.test_filter(v, root))
-                .map(|(k, v)| (parent.clone_and_push(k), v))
+                .map(|(k, v)| LocatedNode {
+                    loc: parent.clone_and_push(k),
+                    node: v,
+                })
                 .collect()
         } else {
             vec![]

@@ -1,7 +1,7 @@
 //! Index selectors in JSONPath
 use serde_json::Value;
 
-use crate::spec::{path::NormalizedPath, query::Queryable};
+use crate::{node::LocatedNode, path::NormalizedPath, spec::query::Queryable};
 
 /// For selecting array elements by their index
 ///
@@ -44,8 +44,8 @@ impl Queryable for Index {
         current: &'b Value,
         _root: &'b Value,
         mut parent: NormalizedPath<'b>,
-    ) -> Vec<(NormalizedPath<'b>, &'b Value)> {
-        if let Some((index, value)) = current.as_array().and_then(|list| {
+    ) -> Vec<LocatedNode<'b>> {
+        if let Some((index, node)) = current.as_array().and_then(|list| {
             if self.0 < 0 {
                 self.0
                     .checked_abs()
@@ -59,7 +59,7 @@ impl Queryable for Index {
             }
         }) {
             parent.push(index);
-            vec![(parent, value)]
+            vec![LocatedNode { loc: parent, node }]
         } else {
             vec![]
         }

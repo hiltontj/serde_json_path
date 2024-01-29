@@ -4,10 +4,7 @@ use serde::{de::Visitor, Deserialize, Serialize};
 use serde_json::Value;
 use serde_json_path_core::{
     node::{LocatedNodeList, NodeList},
-    spec::{
-        path::NormalizedPath,
-        query::{Query, Queryable},
-    },
+    spec::query::{Query, Queryable},
 };
 
 use crate::{parser::parse_query_main, ParseError};
@@ -68,8 +65,8 @@ impl JsonPath {
     /// # use serde_json::json;
     /// # use serde_json_path::JsonPath;
     /// # fn main() -> Result<(), serde_json_path::ParseError> {
-    /// let path = JsonPath::parse("$.foo[::2]")?;
     /// let value = json!({"foo": [1, 2, 3, 4]});
+    /// let path = JsonPath::parse("$.foo[::2]")?;
     /// let nodes = path.query(&value);
     /// assert_eq!(nodes.all(), vec![1, 3]);
     /// # Ok(())
@@ -79,6 +76,26 @@ impl JsonPath {
         self.0.query(value, value).into()
     }
 
+    /// Query a [`serde_json::Value`] using this [`JsonPath`] to produce a [`LocatedNodeList`]
+    ///
+    /// # Example
+    /// ```rust
+    /// # use serde_json::{json, Value};
+    /// # use serde_json_path::{JsonPath,NormalizedPath};
+    /// # fn main() -> Result<(), serde_json_path::ParseError> {
+    /// let value = json!({"foo": [1, 2, 3, 4]});
+    /// let path = JsonPath::parse("$.foo[2:]")?;
+    /// let query = path.query_located(&value);
+    /// let nodes: Vec<&Value> = query.nodes().collect();
+    /// assert_eq!(nodes, vec![3, 4]);
+    /// let locs: Vec<String> = query
+    ///     .locations()
+    ///     .map(|loc| loc.to_string())
+    ///     .collect();
+    /// assert_eq!(locs, ["$['foo'][2]", "$['foo'][3]"]);
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn query_located<'b>(&self, value: &'b Value) -> LocatedNodeList<'b> {
         self.0
             .query_located(value, value, Default::default())
@@ -170,8 +187,8 @@ mod tests {
         }});
         let p = JsonPath::parse("$.foo.bar.*").unwrap();
         let r = p.query_located(&j);
-        for (np, _) in r {
-            println!("{pointer}", pointer = np.as_json_pointer());
+        for ln in r {
+            println!("{pointer}", pointer = ln.location().as_json_pointer());
         }
     }
 }

@@ -1,7 +1,9 @@
 //! Types representing segments in JSONPath
 use serde_json::Value;
 
-use super::{path::NormalizedPath, query::Queryable, selector::Selector};
+use crate::{node::LocatedNode, path::NormalizedPath};
+
+use super::{query::Queryable, selector::Selector};
 
 /// A segment of a JSONPath query
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -61,7 +63,7 @@ impl Queryable for QuerySegment {
         current: &'b Value,
         root: &'b Value,
         parent: NormalizedPath<'b>,
-    ) -> Vec<(NormalizedPath<'b>, &'b Value)> {
+    ) -> Vec<LocatedNode<'b>> {
         if matches!(self.kind, QuerySegmentKind::Descendant) {
             let mut result = self.segment.query_located(current, root, parent.clone());
             result.append(&mut descend_paths(self, current, root, parent));
@@ -92,7 +94,7 @@ fn descend_paths<'b>(
     current: &'b Value,
     root: &'b Value,
     parent: NormalizedPath<'b>,
-) -> Vec<(NormalizedPath<'b>, &'b Value)> {
+) -> Vec<LocatedNode<'b>> {
     let mut result = Vec::new();
     if let Some(list) = current.as_array() {
         for (i, v) in list.iter().enumerate() {
@@ -214,7 +216,7 @@ impl Queryable for Segment {
         current: &'b Value,
         root: &'b Value,
         mut parent: NormalizedPath<'b>,
-    ) -> Vec<(NormalizedPath<'b>, &'b Value)> {
+    ) -> Vec<LocatedNode<'b>> {
         let mut result = vec![];
         match self {
             Segment::LongHand(selectors) => {
@@ -225,17 +227,26 @@ impl Queryable for Segment {
             Segment::DotName(name) => {
                 if let Some((k, v)) = current.as_object().and_then(|o| o.get_key_value(name)) {
                     parent.push(k);
-                    result.push((parent, v));
+                    result.push(LocatedNode {
+                        loc: parent,
+                        node: v,
+                    });
                 }
             }
             Segment::Wildcard => {
                 if let Some(list) = current.as_array() {
                     for (i, v) in list.iter().enumerate() {
-                        result.push((parent.clone_and_push(i), v));
+                        result.push(LocatedNode {
+                            loc: parent.clone_and_push(i),
+                            node: v,
+                        });
                     }
                 } else if let Some(obj) = current.as_object() {
                     for (k, v) in obj {
-                        result.push((parent.clone_and_push(k), v));
+                        result.push(LocatedNode {
+                            loc: parent.clone_and_push(k),
+                            node: v,
+                        });
                     }
                 }
             }

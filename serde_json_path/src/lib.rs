@@ -329,7 +329,11 @@ pub use ext::JsonPathExt;
 #[doc(inline)]
 pub use path::JsonPath;
 #[doc(inline)]
-pub use serde_json_path_core::node::{AtMostOneError, ExactlyOneError, NodeList};
+pub use serde_json_path_core::node::{
+    AtMostOneError, ExactlyOneError, LocatedNode, LocatedNodeList, NodeList,
+};
+#[doc(inline)]
+pub use serde_json_path_core::path::NormalizedPath;
 
 pub use serde_json_path_core::spec::functions;
 
