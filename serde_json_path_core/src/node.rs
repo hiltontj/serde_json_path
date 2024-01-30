@@ -82,7 +82,7 @@ impl<'a> NodeList<'a> {
         }
     }
 
-    /// Extract all nodes yielded by the query.
+    /// Extract all nodes yielded by the query
     ///
     /// This is intended for queries that are expected to yield zero or more nodes.
     ///
@@ -107,7 +107,7 @@ impl<'a> NodeList<'a> {
         self.0.len()
     }
 
-    /// Check if a [NodeList] is empty
+    /// Check if a [`NodeList`] is empty
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
@@ -227,6 +227,7 @@ impl<'a> IntoIterator for NodeList<'a> {
     }
 }
 
+/// A node within a JSON value, along with its location
 #[derive(Debug, Eq, PartialEq, Serialize, Clone)]
 pub struct LocatedNode<'a> {
     pub(crate) loc: NormalizedPath<'a>,
@@ -234,20 +235,19 @@ pub struct LocatedNode<'a> {
 }
 
 impl<'a> LocatedNode<'a> {
+    /// Get the location of the node as a [`NormalizedPath`]
     pub fn location(&self) -> &NormalizedPath<'a> {
         &self.loc
     }
 
+    /// Get the node itself
     pub fn node(&self) -> &'a Value {
         self.node
     }
 }
 
-/// A list of nodes resulting from a JSONPath query, along with their locations
-///
-/// As with [`NodeList`], each node is a borrowed reference to the node in the original
-/// [`serde_json::Value`] that was queried. Each node in the list is paired with its location
-/// represented by a [`NormalizedPath`].
+// This is documented in the serde_json_path crate, for linking purposes
+#[allow(missing_docs)]
 #[derive(Debug, Default, Eq, PartialEq, Serialize, Clone)]
 pub struct LocatedNodeList<'a>(Vec<LocatedNode<'a>>);
 
@@ -261,12 +261,15 @@ impl<'a> LocatedNodeList<'a> {
     /// # use serde_json::json;
     /// # use serde_json_path::JsonPath;
     /// # use serde_json_path::AtMostOneError;
-    /// # fn main() -> Result<(), serde_json_path::ParseError> {
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let value = json!({"foo": ["bar", "baz"]});
     /// # {
     /// let path = JsonPath::parse("$.foo[0]")?;
-    /// let node = path.query_located(&value).at_most_one().unwrap();
-    /// assert_eq!("$['foo'][0]", node.unwrap().location().to_string());
+    /// let Some(node) = path.query_located(&value).at_most_one()? else {
+    ///     /* ... */
+    /// #    unreachable!("query should not be empty");
+    /// };
+    /// assert_eq!("$['foo'][0]", node.location().to_string());
     /// # }
     /// # Ok(())
     /// # }
@@ -281,6 +284,25 @@ impl<'a> LocatedNodeList<'a> {
         }
     }
 
+    /// Extract _exactly_ one entry from a [`LocatedNodeList`]
+    ///
+    /// This is intended for queries that are expected to yield a single node.
+    ///
+    /// # Usage
+    /// ```rust
+    /// # use serde_json::json;
+    /// # use serde_json_path::JsonPath;
+    /// # use serde_json_path::ExactlyOneError;
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let value = json!({"foo": ["bar", "baz"]});
+    /// # {
+    /// let path = JsonPath::parse("$.foo[? @ == 'bar']")?;
+    /// let node = path.query_located(&value).exactly_one()?;
+    /// assert_eq!("$['foo'][0]", node.location().to_string());
+    /// # }
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn exactly_one(mut self) -> Result<LocatedNode<'a>, ExactlyOneError> {
         if self.0.is_empty() {
             Err(ExactlyOneError::Empty)
@@ -291,35 +313,117 @@ impl<'a> LocatedNodeList<'a> {
         }
     }
 
+    /// Extract all located nodes yielded by the query
+    ///
+    /// This is intended for queries that are expected to yield zero or more nodes.
+    ///
+    /// # Usage
+    /// ```rust
+    /// # use serde_json::json;
+    /// # use serde_json_path::JsonPath;
+    /// # fn main() -> Result<(), serde_json_path::ParseError> {
+    /// let value = json!({"foo": ["bar", "baz"]});
+    /// let path = JsonPath::parse("$.foo.*")?;
+    /// let nodes = path.query_located(&value).all();
+    /// assert_eq!(nodes[0].location().to_string(), "$['foo'][0]");
+    /// assert_eq!(nodes[0].node(), "bar");
+    /// assert_eq!(nodes[1].location().to_string(), "$['foo'][1]");
+    /// assert_eq!(nodes[1].node(), "baz");
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn all(self) -> Vec<LocatedNode<'a>> {
         self.0
     }
 
+    /// Get the length of a [`LocatedNodeList`]
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
+    /// Check if a [`LocatedNodeList`] is empty
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 
+    /// Get an iterator over a [`LocatedNodeList`]
+    ///
+    /// Note that [`LocatedNodeList`] also implements [`IntoIterator`].
+    ///
+    /// To iterate over just locations, see [`locations`][LocatedNodeList::locations]. To iterate
+    /// over just nodes, see [`nodes`][LocatedNodeList::nodes].
     pub fn iter(&self) -> Iter<'_, LocatedNode<'a>> {
         self.0.iter()
     }
 
+    /// Get an iterator over the locations of nodes within a [`LocatedNodeList`]
+    ///
+    /// # Usage
+    /// ```rust
+    /// # use serde_json::json;
+    /// # use serde_json_path::JsonPath;
+    /// # fn main() -> Result<(), serde_json_path::ParseError> {
+    /// let value = json!({"foo": ["bar", "baz"]});
+    /// let path = JsonPath::parse("$.foo.*")?;
+    /// let locations: Vec<String> = path
+    ///     .query_located(&value)
+    ///     .locations()
+    ///     .map(|loc| loc.to_string())
+    ///     .collect();
+    /// assert_eq!(locations, ["$['foo'][0]", "$['foo'][1]"]);
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn locations(&self) -> Locations<'_> {
         Locations { inner: self.iter() }
     }
 
+    /// Get an iterator over the nodes within a [`LocatedNodeList`]
     pub fn nodes(&self) -> Nodes<'_> {
         Nodes { inner: self.iter() }
     }
 
+    /// Deduplicate a [`LocatedNodeList`] and return the result
+    ///
+    /// See also, [`dedup_in_place`][LocatedNodeList::dedup_in_place].
+    ///
+    /// # Usage
+    /// ```rust
+    /// # use serde_json::json;
+    /// # use serde_json_path::JsonPath;
+    /// # fn main() -> Result<(), serde_json_path::ParseError> {
+    /// let value = json!({"foo": ["bar", "baz"]});
+    /// let path = JsonPath::parse("$.foo[0, 0, 1, 1]")?;
+    /// let nodes = path.query_located(&value);
+    /// assert_eq!(4, nodes.len());
+    /// let nodes = path.query_located(&value).dedup();
+    /// assert_eq!(2, nodes.len());
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn dedup(mut self) -> Self {
         self.dedup_in_place();
         self
     }
 
+    /// Deduplicate a [`LocatedNodeList`] _in-place_
+    ///
+    /// See also, [`dedup`][LocatedNodeList::dedup].
+    ///
+    /// # Usage
+    /// ```rust
+    /// # use serde_json::json;
+    /// # use serde_json_path::JsonPath;
+    /// # fn main() -> Result<(), serde_json_path::ParseError> {
+    /// let value = json!({"foo": ["bar", "baz"]});
+    /// let path = JsonPath::parse("$.foo[0, 0, 1, 1]")?;
+    /// let mut nodes = path.query_located(&value);
+    /// assert_eq!(4, nodes.len());
+    /// nodes.dedup_in_place();
+    /// assert_eq!(2, nodes.len());
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn dedup_in_place(&mut self) {
         // This unwrap should be safe, since the paths corresponding to
         // a query against a Value will always be ordered.
@@ -345,6 +449,9 @@ impl<'a> IntoIterator for LocatedNodeList<'a> {
     }
 }
 
+/// An iterator over the locations in a [`LocatedNodeList`]
+///
+/// Produced by the [`LocatedNodeList::locations`] method.
 #[derive(Debug)]
 pub struct Locations<'a> {
     inner: Iter<'a, LocatedNode<'a>>,
@@ -372,6 +479,9 @@ impl<'a> ExactSizeIterator for Locations<'a> {
 
 impl<'a> FusedIterator for Locations<'a> {}
 
+/// An iterator over the nodes in a [`LocatedNodeList`]
+///
+/// Produced by the [`LocatedNodeList::nodes`] method.
 #[derive(Debug)]
 pub struct Nodes<'a> {
     inner: Iter<'a, LocatedNode<'a>>,

@@ -1,3 +1,6 @@
+//! Types for representing [Normalized Paths][norm-paths] from the JSONPath specification
+//!
+//! [norm-paths]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-21.html#name-normalized-paths
 use std::{cmp::Ordering, fmt::Display, slice::Iter};
 
 use serde::Serialize;

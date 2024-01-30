@@ -328,9 +328,20 @@ pub use error::ParseError;
 pub use ext::JsonPathExt;
 #[doc(inline)]
 pub use path::JsonPath;
+/// A list of nodes resulting from a JSONPath query, along with their locations
+///
+/// This is produced by the [`JsonPath::query_located`] method.
+///
+/// As with [`NodeList`], each node is a borrowed reference to the node in the original
+/// [`serde_json::Value`] that was queried; however, each node in the list is paired with its
+/// location represented by a [`NormalizedPath`].
+///
+/// In addition to the locations, [`LocatedNodeList`] provides useful functionality over [`NodeList`]
+/// such as de-duplication of query results (see [`dedup`][LocatedNodeList::dedup]).
+pub use serde_json_path_core::node::LocatedNodeList;
 #[doc(inline)]
 pub use serde_json_path_core::node::{
-    AtMostOneError, ExactlyOneError, LocatedNode, LocatedNodeList, NodeList,
+    AtMostOneError, ExactlyOneError, LocatedNode, Locations, NodeList, Nodes,
 };
 #[doc(inline)]
 pub use serde_json_path_core::path::NormalizedPath;
