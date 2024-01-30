@@ -32,7 +32,6 @@ impl<'a> NormalizedPath<'a> {
     /// # use serde_json_path::JsonPath;
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let mut value = json!({"foo": ["bar", "baz"]});
-    /// # {
     /// let path = JsonPath::parse("$.foo[? @ == 'bar']")?;
     /// let pointer= path
     ///     .query_located(&value)
@@ -41,7 +40,6 @@ impl<'a> NormalizedPath<'a> {
     ///     .as_json_pointer();
     /// *value.pointer_mut(&pointer).unwrap() = "bop".into();
     /// assert_eq!(value, json!({"foo": ["bop", "baz"]}));
-    /// # }
     /// # Ok(())
     /// # }
     /// ```
@@ -78,6 +76,23 @@ impl<'a> NormalizedPath<'a> {
 }
 
 impl<'a> Display for NormalizedPath<'a> {
+    /// Format the [`NormalizedPath`] as a JSONPath string using the canonical bracket notation
+    /// as per the [JSONPath Specification][norm-paths]
+    ///
+    /// # Example
+    /// ```rust
+    /// # use serde_json::json;
+    /// # use serde_json_path::JsonPath;
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let value = json!({"foo": ["bar", "baz"]});
+    /// let path = JsonPath::parse("$.foo[0]")?;
+    /// let location = path.query_located(&value).exactly_one()?.to_location();
+    /// assert_eq!(location.to_string(), "$['foo'][0]");
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// [norm-paths]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-21.html#name-normalized-paths
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "$")?;
         for elem in &self.0 {

@@ -240,9 +240,20 @@ impl<'a> LocatedNode<'a> {
         &self.loc
     }
 
+    /// Take the location of the node as a [`NormalizedPath`]
+    pub fn to_location(self) -> NormalizedPath<'a> {
+        self.loc
+    }
+
     /// Get the node itself
     pub fn node(&self) -> &'a Value {
         self.node
+    }
+}
+
+impl<'a> From<LocatedNode<'a>> for NormalizedPath<'a> {
+    fn from(node: LocatedNode<'a>) -> Self {
+        node.to_location()
     }
 }
 

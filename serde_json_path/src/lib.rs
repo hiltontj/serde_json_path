@@ -14,12 +14,16 @@
 //!
 //! * The [`JsonPath`] struct, which represents a parsed JSONPath query.
 //! * The [`NodeList`] struct, which represents the result of a JSONPath query performed on a
-//!   [`serde_json::Value`].
+//!   [`serde_json::Value`] using the [`JsonPath::query`] method.
 //!
-//! In addition, the [`JsonPathExt`] trait is provided, which extends the [`serde_json::Value`]
+//! In addition to these, there is also the [`LocatedNodeList`], produced by the [`JsonPath::query_located`]
+//! method, which, in addition to the nodes themselves, provides the location of each node in a query result
+//! as a [`NormalizedPath`].
+//!
+//! The [`JsonPathExt`] trait is also provided, which extends the [`serde_json::Value`]
 //! type with the [`json_path`][JsonPathExt::json_path] method for performing JSONPath queries.
 //!
-//! Finally, the [`#[function]`][function] attribute macro allows you to extend your JSONPath
+//! Finally, the [`#[function]`][function] attribute macro can be used to extend JSONPath
 //! queries to use custom functions.
 //!
 //! # Usage
