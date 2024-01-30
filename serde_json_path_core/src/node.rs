@@ -246,8 +246,14 @@ impl<'a> LocatedNode<'a> {
     }
 }
 
-// This is documented in the serde_json_path crate, for linking purposes
-#[allow(missing_docs)]
+/// A list of nodes resulting from a JSONPath query, along with their locations
+///
+/// As with [`NodeList`], each node is a borrowed reference to the node in the original
+/// [`serde_json::Value`] that was queried; however, each node in the list is paired with its
+/// location, which is represented by a [`NormalizedPath`].
+///
+/// In addition to the locations, [`LocatedNodeList`] provides useful functionality over [`NodeList`]
+/// such as de-duplication of query results (see [`dedup`][LocatedNodeList::dedup]).
 #[derive(Debug, Default, Eq, PartialEq, Serialize, Clone)]
 pub struct LocatedNodeList<'a>(Vec<LocatedNode<'a>>);
 
@@ -260,7 +266,6 @@ impl<'a> LocatedNodeList<'a> {
     /// ```rust
     /// # use serde_json::json;
     /// # use serde_json_path::JsonPath;
-    /// # use serde_json_path::AtMostOneError;
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let value = json!({"foo": ["bar", "baz"]});
     /// # {
@@ -292,7 +297,6 @@ impl<'a> LocatedNodeList<'a> {
     /// ```rust
     /// # use serde_json::json;
     /// # use serde_json_path::JsonPath;
-    /// # use serde_json_path::ExactlyOneError;
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let value = json!({"foo": ["bar", "baz"]});
     /// # {

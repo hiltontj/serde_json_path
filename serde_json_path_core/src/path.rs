@@ -5,6 +5,8 @@ use std::{cmp::Ordering, fmt::Display, slice::Iter};
 
 use serde::Serialize;
 
+// Documented in the serde_json_path crate, for linking purposes
+#[allow(missing_docs)]
 #[derive(Debug, Default, Eq, PartialEq, Clone, PartialOrd)]
 pub struct NormalizedPath<'a>(Vec<PathElement<'a>>);
 
@@ -19,25 +21,57 @@ impl<'a> NormalizedPath<'a> {
         new_path
     }
 
+    /// Get the [`NormalizedPath`] as a [JSON Pointer][json-pointer] string
+    ///
+    /// This can be used with the [`serde_json::Value::pointer`] or
+    /// [`serde_json::Value::pointer_mut`] methods.
+    ///
+    /// # Example
+    /// ```rust
+    /// # use serde_json::json;
+    /// # use serde_json_path::JsonPath;
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let mut value = json!({"foo": ["bar", "baz"]});
+    /// # {
+    /// let path = JsonPath::parse("$.foo[? @ == 'bar']")?;
+    /// let pointer= path
+    ///     .query_located(&value)
+    ///     .exactly_one()?
+    ///     .location()
+    ///     .as_json_pointer();
+    /// *value.pointer_mut(&pointer).unwrap() = "bop".into();
+    /// assert_eq!(value, json!({"foo": ["bop", "baz"]}));
+    /// # }
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// [json-pointer]: https://datatracker.ietf.org/doc/html/rfc6901
     pub fn as_json_pointer(&self) -> String {
         self.0
             .iter()
             .map(PathElement::as_json_pointer)
             .fold(String::from(""), |mut acc, s| {
                 acc.push('/');
-                acc.push_str(&s.replace('~', "~0").replace('/', "~1"));
+                acc.push_str(&s);
                 acc
             })
     }
 
+    /// Check if the [`NormalizedPath`] is empty
+    ///
+    /// This would also represent the normalized path of the root node in a JSON object, i.e.,
+    /// `$`.
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 
+    /// Get the length of the [`NormalizedPath`]
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
+    /// Get an iterator over the [`PathElement`]s of the [`NormalizedPath`]
     pub fn iter(&self) -> Iter<'_, PathElement<'a>> {
         self.0.iter()
     }
@@ -65,17 +99,20 @@ impl<'a> Serialize for NormalizedPath<'a> {
     }
 }
 
+/// An element within a [`NormalizedPath`]
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum PathElement<'a> {
+    /// A key within a JSON object
     Name(&'a str),
+    /// An index of a JSON Array
     Index(usize),
 }
 
 impl<'a> PathElement<'a> {
     fn as_json_pointer(&self) -> String {
         match self {
-            PathElement::Name(ref s) => format!("{s}"),
-            PathElement::Index(i) => format!("{i}"),
+            PathElement::Name(s) => s.replace('~', "~0").replace('/', "~1"),
+            PathElement::Index(i) => i.to_string(),
         }
     }
 }

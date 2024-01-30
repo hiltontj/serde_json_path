@@ -35,6 +35,8 @@ mod sealed {
 pub trait Queryable: sealed::Sealed {
     /// Query `self` using a current node, and the root node
     fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value>;
+    /// Query `self` using a current node, the root node, and the normalized path of the current
+    /// node's parent
     fn query_located<'b>(
         &self,
         current: &'b Value,

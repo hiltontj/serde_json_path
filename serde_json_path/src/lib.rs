@@ -334,7 +334,7 @@ pub use path::JsonPath;
 ///
 /// As with [`NodeList`], each node is a borrowed reference to the node in the original
 /// [`serde_json::Value`] that was queried; however, each node in the list is paired with its
-/// location represented by a [`NormalizedPath`].
+/// location, which is represented by a [`NormalizedPath`].
 ///
 /// In addition to the locations, [`LocatedNodeList`] provides useful functionality over [`NodeList`]
 /// such as de-duplication of query results (see [`dedup`][LocatedNodeList::dedup]).
@@ -343,8 +343,15 @@ pub use serde_json_path_core::node::LocatedNodeList;
 pub use serde_json_path_core::node::{
     AtMostOneError, ExactlyOneError, LocatedNode, Locations, NodeList, Nodes,
 };
-#[doc(inline)]
+/// Represents a [Normalized Path][norm-path] from the JSONPath specification
+///
+/// A [`NormalizedPath`] is used to represent the location of a node within a query result
+/// produced by the [`JsonPath::query_located`] method.
+///
+/// [norm-path]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-21.html#name-normalized-paths
 pub use serde_json_path_core::path::NormalizedPath;
+#[doc(inline)]
+pub use serde_json_path_core::path::PathElement;
 
 pub use serde_json_path_core::spec::functions;
 
