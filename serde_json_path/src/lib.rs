@@ -10,17 +10,16 @@
 //!
 //! # Features
 //!
-//! This crate provides two key abstractions:
+//! This crate provides three key abstractions:
 //!
 //! * The [`JsonPath`] struct, which represents a parsed JSONPath query.
 //! * The [`NodeList`] struct, which represents the result of a JSONPath query performed on a
 //!   [`serde_json::Value`] using the [`JsonPath::query`] method.
+//! * The [`LocatedNodeList`] struct, which is similar to [`NodeList`], but includes the location
+//!   of each node in the query string as a [`NormalizedPath`], and is produced by the
+//!   [`JsonPath::query_located`] method.
 //!
-//! In addition to these, there is also the [`LocatedNodeList`], produced by the [`JsonPath::query_located`]
-//! method, which, in addition to the nodes themselves, provides the location of each node in a query result
-//! as a [`NormalizedPath`].
-//!
-//! The [`JsonPathExt`] trait is also provided, which extends the [`serde_json::Value`]
+//! In addition, the [`JsonPathExt`] trait is provided, which extends the [`serde_json::Value`]
 //! type with the [`json_path`][JsonPathExt::json_path] method for performing JSONPath queries.
 //!
 //! Finally, the [`#[function]`][function] attribute macro can be used to extend JSONPath
@@ -41,9 +40,11 @@
 //! # }
 //! ```
 //!
-//! You can then use the parsed JSONPath to query a [`serde_json::Value`]. Every JSONPath query
-//! produces a [`NodeList`], which provides several accessor methods that you can use depending on
-//! the nature of your query and its expected output.
+//! You then have two options to query a [`serde_json::Value`] using the parsed JSONPath:
+//! [`JsonPath::query`] or [`JsonPath::query_located`]. The former will produce a [`NodeList`],
+//! while the latter will produce a [`LocatedNodeList`]. The two options provide similar
+//! functionality, but it is recommended to use the former unless you have need of node locations
+//! in the query results.
 //!
 //! ## Querying for single nodes
 //!
@@ -278,6 +279,37 @@
 //! let path = JsonPath::parse("$.foo..baz")?;
 //! let nodes = path.query(&value).all();
 //! assert_eq!(nodes, vec![2, 1]);
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! ## `NormalizedPath` support
+//!
+//! Should you need to know the locations of the nodes produced by your queries, you can make use
+//! of the [`JsonPath::query_located`] method to perform the query. The resulting
+//! [`LocatedNodeList`] contains both the nodes produced by the query, as well as their locations
+//! represented by their [`NormalizedPath`].
+//!
+//! ```rust
+//! # use serde_json::json;
+//! # use serde_json_path::JsonPath;
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! let value = json!({
+//!     "foo": {
+//!         "bar": {
+//!             "baz": 1
+//!         },
+//!         "baz": 2
+//!     },
+//!     "baz": 3,
+//! });
+//! let path = JsonPath::parse("$..[? @.baz == 1]")?;
+//! let location = path
+//!     .query_located(&value)
+//!     .exactly_one()?
+//!     .location()
+//!     .to_string();
+//! assert_eq!(location, "$['foo']['bar']");
 //! # Ok(())
 //! # }
 //! ```

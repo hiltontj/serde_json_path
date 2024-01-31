@@ -257,14 +257,7 @@ impl<'a> From<LocatedNode<'a>> for NormalizedPath<'a> {
     }
 }
 
-/// A list of nodes resulting from a JSONPath query, along with their locations
-///
-/// As with [`NodeList`], each node is a borrowed reference to the node in the original
-/// [`serde_json::Value`] that was queried; however, each node in the list is paired with its
-/// location, which is represented by a [`NormalizedPath`].
-///
-/// In addition to the locations, [`LocatedNodeList`] provides useful functionality over [`NodeList`]
-/// such as de-duplication of query results (see [`dedup`][LocatedNodeList::dedup]).
+#[allow(missing_docs)]
 #[derive(Debug, Default, Eq, PartialEq, Serialize, Clone)]
 pub struct LocatedNodeList<'a>(Vec<LocatedNode<'a>>);
 
@@ -445,6 +438,67 @@ impl<'a> LocatedNodeList<'a> {
         self.0
             .sort_unstable_by(|a, b| a.loc.partial_cmp(&b.loc).unwrap());
         self.0.dedup();
+    }
+
+    /// Return the first entry in the [`LocatedNodeList`], or `None` if it is empty
+    ///
+    /// # Usage
+    /// ```rust
+    /// # use serde_json::json;
+    /// # use serde_json_path::JsonPath;
+    /// # use serde_json_path::LocatedNode;
+    /// # fn main() -> Result<(), serde_json_path::ParseError> {
+    /// let value = json!({"foo": ["bar", "baz"]});
+    /// let path = JsonPath::parse("$.foo.*")?;
+    /// let nodes = path.query_located(&value);
+    /// let first = nodes.first().map(LocatedNode::node);
+    /// assert_eq!(first, Some(&json!("bar")));
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn first(&self) -> Option<&LocatedNode<'a>> {
+        self.0.first()
+    }
+
+    /// Return the last entry in the [`LocatedNodeList`], or `None` if it is empty
+    ///
+    /// # Usage
+    /// ```rust
+    /// # use serde_json::json;
+    /// # use serde_json_path::JsonPath;
+    /// # use serde_json_path::LocatedNode;
+    /// # fn main() -> Result<(), serde_json_path::ParseError> {
+    /// let value = json!({"foo": ["bar", "baz"]});
+    /// let path = JsonPath::parse("$.foo.*")?;
+    /// let nodes = path.query_located(&value);
+    /// let last = nodes.last().map(LocatedNode::node);
+    /// assert_eq!(last, Some(&json!("baz")));
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn last(&self) -> Option<&LocatedNode<'a>> {
+        self.0.last()
+    }
+
+    /// Returns the node at the given index in the [`LocatedNodeList`], or `None` if the
+    /// given index is out of bounds.
+    ///
+    /// # Usage
+    /// ```rust
+    /// # use serde_json::json;
+    /// # use serde_json_path::JsonPath;
+    /// # use serde_json_path::LocatedNode;
+    /// # fn main() -> Result<(), serde_json_path::ParseError> {
+    /// let value = json!({"foo": ["bar", "biz", "bop"]});
+    /// let path = JsonPath::parse("$.foo.*")?;
+    /// let nodes = path.query_located(&value);
+    /// assert_eq!(nodes.get(1).map(LocatedNode::node), Some(&json!("biz")));
+    /// assert!(nodes.get(4).is_none());
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn get(&self, index: usize) -> Option<&LocatedNode<'a>> {
+        self.0.get(index)
     }
 }
 
