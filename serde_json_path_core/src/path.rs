@@ -71,7 +71,7 @@ impl<'a> NormalizedPath<'a> {
 
     /// Get an iterator over the [`PathElement`]s of the [`NormalizedPath`]
     ///
-    /// Node that [`NormalizedPath`] also implements [`IntoIterator`]
+    /// Note that [`NormalizedPath`] also implements [`IntoIterator`]
     ///
     /// # Example
     /// ```rust
