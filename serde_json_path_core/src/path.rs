@@ -58,8 +58,8 @@ impl<'a> NormalizedPath<'a> {
 
     /// Check if the [`NormalizedPath`] is empty
     ///
-    /// This would also represent the normalized path of the root node in a JSON object, i.e.,
-    /// `$`.
+    /// An empty normalized path represents the location of the root node of the JSON object,
+    /// i.e., `$`.
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
@@ -70,8 +70,37 @@ impl<'a> NormalizedPath<'a> {
     }
 
     /// Get an iterator over the [`PathElement`]s of the [`NormalizedPath`]
+    ///
+    /// Node that [`NormalizedPath`] also implements [`IntoIterator`]
+    ///
+    /// # Example
+    /// ```rust
+    /// # use serde_json::json;
+    /// # use serde_json_path::JsonPath;
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let mut value = json!({"foo": {"bar": 1, "baz": 2, "bop": 3}});
+    /// let path = JsonPath::parse("$.foo[? @ == 2]")?;
+    /// let location = path.query_located(&value).exactly_one()?.to_location();
+    /// let elements: Vec<String> = location
+    ///     .iter()
+    ///     .map(|ele| ele.to_string())
+    ///     .collect();
+    /// assert_eq!(elements, ["foo", "baz"]);
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn iter(&self) -> Iter<'_, PathElement<'a>> {
         self.0.iter()
+    }
+}
+
+impl<'a> IntoIterator for NormalizedPath<'a> {
+    type Item = PathElement<'a>;
+
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
