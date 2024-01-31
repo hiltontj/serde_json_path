@@ -179,16 +179,4 @@ mod tests {
             .expect("round trip");
         assert_eq!(p1, p2);
     }
-
-    #[test]
-    fn norm_paths() {
-        let j = json!({"foo": {
-            "bar": [1, 2, 3]
-        }});
-        let p = JsonPath::parse("$.foo.bar.*").unwrap();
-        let r = p.query_located(&j);
-        for ln in r {
-            println!("{pointer}", pointer = ln.location().as_json_pointer());
-        }
-    }
 }
