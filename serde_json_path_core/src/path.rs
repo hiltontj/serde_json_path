@@ -272,7 +272,7 @@ impl<'a> PartialEq<str> for PathElement<'a> {
     }
 }
 
-impl<'a, 'b> PartialEq<&str> for PathElement<'a> {
+impl<'a> PartialEq<&str> for PathElement<'a> {
     fn eq(&self, other: &&str) -> bool {
         match self {
             PathElement::Name(s) => s.eq(other),
