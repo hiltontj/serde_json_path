@@ -225,6 +225,32 @@ impl<'a> PathElement<'a> {
             PathElement::Index(i) => i.to_string(),
         }
     }
+
+    /// Get the underlying name if the [`PathElement`] is `Name`, or `None` otherwise
+    pub fn as_name(&self) -> Option<&str> {
+        match self {
+            PathElement::Name(n) => Some(n),
+            PathElement::Index(_) => None,
+        }
+    }
+
+    /// Get the underlying index if the [`PathElement`] is `Index`, or `None` otherwise
+    pub fn as_index(&self) -> Option<usize> {
+        match self {
+            PathElement::Name(_) => None,
+            PathElement::Index(i) => Some(*i),
+        }
+    }
+
+    /// Test if the [`PathElement`] is `Name`
+    pub fn is_name(&self) -> bool {
+        self.as_name().is_some()
+    }
+
+    /// Test if the [`PathElement`] is `Index`
+    pub fn is_index(&self) -> bool {
+        self.as_index().is_some()
+    }
 }
 
 impl<'a> PartialOrd for PathElement<'a> {
