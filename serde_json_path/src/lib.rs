@@ -283,7 +283,7 @@
 //! # }
 //! ```
 //!
-//! ## `NormalizedPath` support
+//! ## Node locations and `NormalizedPath`
 //!
 //! Should you need to know the locations of the nodes produced by your queries, you can make use
 //! of the [`JsonPath::query_located`] method to perform the query. The resulting

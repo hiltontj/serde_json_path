@@ -1,7 +1,11 @@
 //! Types for representing [Normalized Paths][norm-paths] from the JSONPath specification
 //!
 //! [norm-paths]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-21.html#name-normalized-paths
-use std::{cmp::Ordering, fmt::Display, slice::Iter};
+use std::{
+    cmp::Ordering,
+    fmt::Display,
+    slice::{Iter, SliceIndex},
+};
 
 use serde::Serialize;
 
@@ -92,6 +96,68 @@ impl<'a> NormalizedPath<'a> {
     pub fn iter(&self) -> Iter<'_, PathElement<'a>> {
         self.0.iter()
     }
+
+    /// Get the [`PathElement`] at `index`, or `None` if the index is out of bounds
+    ///
+    /// # Example
+    /// ```rust
+    /// # use serde_json::json;
+    /// # use serde_json_path::JsonPath;
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let value = json!({"foo": {"bar": {"baz": "bop"}}});
+    /// let path = JsonPath::parse("$..baz")?;
+    /// let location = path.query_located(&value).exactly_one()?.to_location();
+    /// assert_eq!(location.to_string(), "$['foo']['bar']['baz']");
+    /// assert!(location.get(0).is_some_and(|p| p == "foo"));
+    /// assert!(location.get(1..).is_some_and(|p| p == ["bar", "baz"]));
+    /// assert!(location.get(3).is_none());
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn get<I>(&self, index: I) -> Option<&I::Output>
+    where
+        I: SliceIndex<[PathElement<'a>]>,
+    {
+        self.0.get(index)
+    }
+
+    /// Get the first [`PathElement`], or `None` if the path is empty
+    ///
+    /// # Example
+    /// ```rust
+    /// # use serde_json::json;
+    /// # use serde_json_path::JsonPath;
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let value = json!(["foo", true, {"bar": false}, {"bar": true}]);
+    /// let path = JsonPath::parse("$..[? @ == false]")?;
+    /// let location = path.query_located(&value).exactly_one()?.to_location();
+    /// assert_eq!(location.to_string(), "$[2]['bar']");
+    /// assert!(location.first().is_some_and(|p| *p == 2));
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn first(&self) -> Option<&PathElement<'a>> {
+        self.0.first()
+    }
+
+    /// Get the last [`PathElement`], or `None` if the path is empty
+    ///
+    /// # Example
+    /// ```rust
+    /// # use serde_json::json;
+    /// # use serde_json_path::JsonPath;
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let value = json!({"foo": {"bar": [1, 2, 3]}});
+    /// let path = JsonPath::parse("$..[? @ == 2]")?;
+    /// let location = path.query_located(&value).exactly_one()?.to_location();
+    /// assert_eq!(location.to_string(), "$['foo']['bar'][1]");
+    /// assert!(location.last().is_some_and(|p| *p == 1));
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn last(&self) -> Option<&PathElement<'a>> {
+        self.0.last()
+    }
 }
 
 impl<'a> IntoIterator for NormalizedPath<'a> {
@@ -167,6 +233,33 @@ impl<'a> PartialOrd for PathElement<'a> {
             (PathElement::Name(a), PathElement::Name(b)) => a.partial_cmp(b),
             (PathElement::Index(a), PathElement::Index(b)) => a.partial_cmp(b),
             _ => None,
+        }
+    }
+}
+
+impl<'a> PartialEq<str> for PathElement<'a> {
+    fn eq(&self, other: &str) -> bool {
+        match self {
+            PathElement::Name(s) => s.eq(&other),
+            PathElement::Index(_) => false,
+        }
+    }
+}
+
+impl<'a, 'b> PartialEq<&str> for PathElement<'a> {
+    fn eq(&self, other: &&str) -> bool {
+        match self {
+            PathElement::Name(s) => s.eq(other),
+            PathElement::Index(_) => false,
+        }
+    }
+}
+
+impl<'a> PartialEq<usize> for PathElement<'a> {
+    fn eq(&self, other: &usize) -> bool {
+        match self {
+            PathElement::Name(_) => false,
+            PathElement::Index(i) => i.eq(other),
         }
     }
 }
