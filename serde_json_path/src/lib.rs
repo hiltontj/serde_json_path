@@ -274,7 +274,8 @@
 //!             "baz": 1
 //!         },
 //!         "baz": 2
-//!     }
+//!     },
+//!     "baz": 3,
 //! });
 //! let path = JsonPath::parse("$.foo..baz")?;
 //! let nodes = path.query(&value).all();
