@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+## Added: `NormalizedPath` and `PathElement` types ([#78])
+
+The `NormalizedPath` struct represents the location of a node within a JSON object. Its representation is like so:
+
+```rust
+pub struct NormalizedPath<'a>(Vec<PathElement<'a>);
+
+pub enum PathElement<'a> {
+    Name(&'a str),
+    Index(usize),
+}
+```
+
+Several methods were included to interact with a `NormalizedPath`, e.g., `first`, `last`, `get`, `iter`, etc., but notably there is a `to_json_pointer` method, which allows direct conversion to a JSON Pointer to be used with the [`serde_json::Value::pointer`][pointer] or [`serde_json::Value::pointer_mut`][pointer-mut] methods.
+
+[pointer]: https://docs.rs/serde_json/latest/serde_json/enum.Value.html#method.pointer
+[pointer-mut]: https://docs.rs/serde_json/latest/serde_json/enum.Value.html#method.pointer_mut
+
+The new `PathElement` type also comes equipped with several methods, and both it and `NormalizedPath` have eagerly implemented traits from the standard library / `serde` to help improve interoperability.
+
+## Added: `LocatedNodeList` and `LocatedNode` types ([#78])
+
+The `LocatedNodeList` struct was built to have a similar API surface to the `NodeList` struct, but includes additional methods that give access to the location of each node produced by the original query. For example, it has the `locations` and `nodes` methods to provide dedicated iterators over locations or nodes, respectively, but also provides the `iter` method to iterate over the location/node pairs. Here is an example:
+
+```rust
+use serde_json::{json, Value};
+use serde_json_path::JsonPath;
+let value = json!({"foo": {"bar": 1, "baz": 2}});
+let path = JsonPath::parse("$.foo.*")?;
+let query = path.query_located(&value);
+let nodes: Vec<&Value> = query.nodes().collect();
+assert_eq!(nodes, vec![1, 2]);
+let locs: Vec<String> = query
+    .locations()
+    .map(|loc| loc.to_string())
+    .collect();
+assert_eq!(locs, ["$['foo']['bar']", "$['foo']['baz']"]);
+```
+
+The location/node pairs are represented by the `LocatedNode` type.
+
+The `LocatedNodeList` provides one unique bit of functionality over `NodeList`: deduplication of the query results, via the `LocatedNodeList::dedup` and `LocatedNodeList::dedup_in_place` methods.
+
+[#78]: https://github.com/hiltontj/serde_json_path/pull/78
+
+## Other Changes
+
 - **internal**: address new clippy lints in Rust 1.75 ([#75])
 - **internal**: address new clippy lints in Rust 1.74 ([#70])
 - **internal**: code clean-up ([#72])
