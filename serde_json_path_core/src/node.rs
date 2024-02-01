@@ -634,7 +634,7 @@ impl ExactlyOneError {
 
 #[cfg(test)]
 mod tests {
-    use crate::node::NodeList;
+    use crate::node::{LocatedNodeList, NodeList};
     use serde_json::{json, to_value};
     use serde_json_path::JsonPath;
 
@@ -642,12 +642,14 @@ mod tests {
     fn test_send() {
         fn assert_send<T: Send>() {}
         assert_send::<NodeList>();
+        assert_send::<LocatedNodeList>();
     }
 
     #[test]
     fn test_sync() {
         fn assert_sync<T: Sync>() {}
         assert_sync::<NodeList>();
+        assert_sync::<LocatedNodeList>();
     }
 
     #[test]
