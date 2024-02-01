@@ -360,6 +360,24 @@ impl<'a> LocatedNodeList<'a> {
     ///
     /// To iterate over just locations, see [`locations`][LocatedNodeList::locations]. To iterate
     /// over just nodes, see [`nodes`][LocatedNodeList::nodes].
+    ///
+    /// # Example
+    /// ```rust
+    /// # use serde_json::{json, Value};
+    /// # use serde_json_path::JsonPath;
+    /// # fn main() -> Result<(), serde_json_path::ParseError> {
+    /// let value = json!({"foo": ["bar", "baz"]});
+    /// let path = JsonPath::parse("$.foo.*")?;
+    /// let pairs: Vec<(String, &Value)> = path
+    ///     .query_located(&value)
+    ///     .iter()
+    ///     .map(|q| (q.location().to_string(), q.node()))
+    ///     .collect();
+    /// assert_eq!(pairs[0], ("$['foo'][0]".to_owned(), &json!("bar")));
+    /// assert_eq!(pairs[1], ("$['foo'][1]".to_owned(), &json!("baz")));
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn iter(&self) -> Iter<'_, LocatedNode<'a>> {
         self.0.iter()
     }

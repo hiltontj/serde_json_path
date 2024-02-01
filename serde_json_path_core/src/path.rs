@@ -41,7 +41,7 @@ impl<'a> NormalizedPath<'a> {
     ///     .query_located(&value)
     ///     .exactly_one()?
     ///     .location()
-    ///     .as_json_pointer();
+    ///     .to_json_pointer();
     /// *value.pointer_mut(&pointer).unwrap() = "bop".into();
     /// assert_eq!(value, json!({"foo": ["bop", "baz"]}));
     /// # Ok(())
@@ -49,10 +49,10 @@ impl<'a> NormalizedPath<'a> {
     /// ```
     ///
     /// [json-pointer]: https://datatracker.ietf.org/doc/html/rfc6901
-    pub fn as_json_pointer(&self) -> String {
+    pub fn to_json_pointer(&self) -> String {
         self.0
             .iter()
-            .map(PathElement::as_json_pointer)
+            .map(PathElement::to_json_pointer)
             .fold(String::from(""), |mut acc, s| {
                 acc.push('/');
                 acc.push_str(&s);
@@ -219,7 +219,7 @@ pub enum PathElement<'a> {
 }
 
 impl<'a> PathElement<'a> {
-    fn as_json_pointer(&self) -> String {
+    fn to_json_pointer(&self) -> String {
         match self {
             PathElement::Name(s) => s.replace('~', "~0").replace('/', "~1"),
             PathElement::Index(i) => i.to_string(),
@@ -334,7 +334,7 @@ mod tests {
             PathElement::Index(42),
             PathElement::Name("bar"),
         ]);
-        assert_eq!(np.as_json_pointer(), "/foo/42/bar",);
+        assert_eq!(np.to_json_pointer(), "/foo/42/bar");
     }
 
     #[test]
@@ -344,6 +344,6 @@ mod tests {
             PathElement::Index(42),
             PathElement::Name("baz/bop"),
         ]);
-        assert_eq!(np.as_json_pointer(), "/foo~0bar/42/baz~1bop",);
+        assert_eq!(np.to_json_pointer(), "/foo~0bar/42/baz~1bop");
     }
 }
