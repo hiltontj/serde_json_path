@@ -24,7 +24,7 @@ struct TestCase {
 }
 
 #[test]
-fn compliace_test_suite() {
+fn compliance_test_suite() {
     let cts_json_str = fs::read_to_string("../jsonpath-compliance-test-suite/cts.json")
         .expect("read cts.json file");
 
@@ -50,12 +50,25 @@ fn compliace_test_suite() {
                 "{name}: parsing {selector:?} should have failed",
             );
         } else {
-            let actual = path.expect("valid JSON Path string").query(document).all();
+            let path = path.expect("valid JSON Path string");
             let expected = result.iter().collect::<Vec<&Value>>();
-            assert_eq!(
-                expected, actual,
-                "{name}: incorrect result, expected {expected:?}, got {actual:?}"
-            );
+            {
+                // Query using JsonPath::query
+                let actual = path.query(document).all();
+                assert_eq!(
+                    expected, actual,
+                    "{name}: incorrect result, expected {expected:?}, got {actual:?}"
+                );
+            }
+            {
+                // Query using JsonPath::query_located
+                let q = path.query_located(document);
+                let actual = q.nodes().collect::<Vec<&Value>>();
+                assert_eq!(
+                    expected, actual,
+                    "(located) {name}: incorrect result, expected {expected:?}, got {actual:?}"
+                );
+            }
         }
     }
 }
