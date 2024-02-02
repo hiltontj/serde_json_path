@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+# 0.1.2 (2 February 2024)
+
 - **internal**: address new clippy lints in Rust 1.74 ([#70])
 - **internal**: code clean-up ([#72])
 
