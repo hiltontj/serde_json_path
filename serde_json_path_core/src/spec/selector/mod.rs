@@ -6,6 +6,8 @@ pub mod slice;
 
 use serde_json::Value;
 
+use crate::{node::LocatedNode, path::NormalizedPath};
+
 use self::{filter::Filter, index::Index, name::Name, slice::Slice};
 
 use super::query::Queryable;
@@ -69,5 +71,39 @@ impl Queryable for Selector {
             Selector::Filter(filter) => query.append(&mut filter.query(current, root)),
         }
         query
+    }
+
+    fn query_located<'b>(
+        &self,
+        current: &'b Value,
+        root: &'b Value,
+        parent: NormalizedPath<'b>,
+    ) -> Vec<LocatedNode<'b>> {
+        match self {
+            Selector::Name(name) => name.query_located(current, root, parent),
+            Selector::Wildcard => {
+                if let Some(list) = current.as_array() {
+                    list.iter()
+                        .enumerate()
+                        .map(|(i, node)| LocatedNode {
+                            loc: parent.clone_and_push(i),
+                            node,
+                        })
+                        .collect()
+                } else if let Some(obj) = current.as_object() {
+                    obj.iter()
+                        .map(|(k, node)| LocatedNode {
+                            loc: parent.clone_and_push(k),
+                            node,
+                        })
+                        .collect()
+                } else {
+                    vec![]
+                }
+            }
+            Selector::Index(index) => index.query_located(current, root, parent),
+            Selector::ArraySlice(slice) => slice.query_located(current, root, parent),
+            Selector::Filter(filter) => filter.query_located(current, root, parent),
+        }
     }
 }

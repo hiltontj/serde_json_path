@@ -1,6 +1,8 @@
 //! Types representing segments in JSONPath
 use serde_json::Value;
 
+use crate::{node::LocatedNode, path::NormalizedPath};
+
 use super::{query::Queryable, selector::Selector};
 
 /// A segment of a JSONPath query
@@ -55,6 +57,21 @@ impl Queryable for QuerySegment {
         }
         query
     }
+
+    fn query_located<'b>(
+        &self,
+        current: &'b Value,
+        root: &'b Value,
+        parent: NormalizedPath<'b>,
+    ) -> Vec<LocatedNode<'b>> {
+        if matches!(self.kind, QuerySegmentKind::Descendant) {
+            let mut result = self.segment.query_located(current, root, parent.clone());
+            result.append(&mut descend_paths(self, current, root, parent));
+            result
+        } else {
+            self.segment.query_located(current, root, parent)
+        }
+    }
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(name = "Descend", level = "trace", parent = None, ret))]
@@ -70,6 +87,25 @@ fn descend<'b>(segment: &QuerySegment, current: &'b Value, root: &'b Value) -> V
         }
     }
     query
+}
+
+fn descend_paths<'b>(
+    segment: &QuerySegment,
+    current: &'b Value,
+    root: &'b Value,
+    parent: NormalizedPath<'b>,
+) -> Vec<LocatedNode<'b>> {
+    let mut result = Vec::new();
+    if let Some(list) = current.as_array() {
+        for (i, v) in list.iter().enumerate() {
+            result.append(&mut segment.query_located(v, root, parent.clone_and_push(i)));
+        }
+    } else if let Some(obj) = current.as_object() {
+        for (k, v) in obj {
+            result.append(&mut segment.query_located(v, root, parent.clone_and_push(k)));
+        }
+    }
+    result
 }
 
 /// Represents the different forms of JSONPath segment
@@ -173,5 +209,48 @@ impl Queryable for Segment {
             }
         }
         query
+    }
+
+    fn query_located<'b>(
+        &self,
+        current: &'b Value,
+        root: &'b Value,
+        mut parent: NormalizedPath<'b>,
+    ) -> Vec<LocatedNode<'b>> {
+        let mut result = vec![];
+        match self {
+            Segment::LongHand(selectors) => {
+                for s in selectors {
+                    result.append(&mut s.query_located(current, root, parent.clone()));
+                }
+            }
+            Segment::DotName(name) => {
+                if let Some((k, v)) = current.as_object().and_then(|o| o.get_key_value(name)) {
+                    parent.push(k);
+                    result.push(LocatedNode {
+                        loc: parent,
+                        node: v,
+                    });
+                }
+            }
+            Segment::Wildcard => {
+                if let Some(list) = current.as_array() {
+                    for (i, v) in list.iter().enumerate() {
+                        result.push(LocatedNode {
+                            loc: parent.clone_and_push(i),
+                            node: v,
+                        });
+                    }
+                } else if let Some(obj) = current.as_object() {
+                    for (k, v) in obj {
+                        result.push(LocatedNode {
+                            loc: parent.clone_and_push(k),
+                            node: v,
+                        });
+                    }
+                }
+            }
+        }
+        result
     }
 }

@@ -3,7 +3,7 @@ use std::str::FromStr;
 use serde::{de::Visitor, Deserialize, Serialize};
 use serde_json::Value;
 use serde_json_path_core::{
-    node::NodeList,
+    node::{LocatedNodeList, NodeList},
     spec::query::{Query, Queryable},
 };
 
@@ -65,8 +65,8 @@ impl JsonPath {
     /// # use serde_json::json;
     /// # use serde_json_path::JsonPath;
     /// # fn main() -> Result<(), serde_json_path::ParseError> {
-    /// let path = JsonPath::parse("$.foo[::2]")?;
     /// let value = json!({"foo": [1, 2, 3, 4]});
+    /// let path = JsonPath::parse("$.foo[::2]")?;
     /// let nodes = path.query(&value);
     /// assert_eq!(nodes.all(), vec![1, 3]);
     /// # Ok(())
@@ -74,6 +74,32 @@ impl JsonPath {
     /// ```
     pub fn query<'b>(&self, value: &'b Value) -> NodeList<'b> {
         self.0.query(value, value).into()
+    }
+
+    /// Query a [`serde_json::Value`] using this [`JsonPath`] to produce a [`LocatedNodeList`]
+    ///
+    /// # Example
+    /// ```rust
+    /// # use serde_json::{json, Value};
+    /// # use serde_json_path::{JsonPath,NormalizedPath};
+    /// # fn main() -> Result<(), serde_json_path::ParseError> {
+    /// let value = json!({"foo": {"bar": 1, "baz": 2}});
+    /// let path = JsonPath::parse("$.foo.*")?;
+    /// let query = path.query_located(&value);
+    /// let nodes: Vec<&Value> = query.nodes().collect();
+    /// assert_eq!(nodes, vec![1, 2]);
+    /// let locs: Vec<String> = query
+    ///     .locations()
+    ///     .map(|loc| loc.to_string())
+    ///     .collect();
+    /// assert_eq!(locs, ["$['foo']['bar']", "$['foo']['baz']"]);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn query_located<'b>(&self, value: &'b Value) -> LocatedNodeList<'b> {
+        self.0
+            .query_located(value, value, Default::default())
+            .into()
     }
 }
 

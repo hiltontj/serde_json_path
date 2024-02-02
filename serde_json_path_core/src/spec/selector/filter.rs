@@ -1,10 +1,14 @@
 //! Types representing filter selectors in JSONPath
 use serde_json::{Number, Value};
 
-use crate::spec::{
-    functions::{FunctionExpr, JsonPathValue, Validated},
-    query::{Query, QueryKind, Queryable},
-    segment::{QuerySegment, Segment},
+use crate::{
+    node::LocatedNode,
+    path::NormalizedPath,
+    spec::{
+        functions::{FunctionExpr, JsonPathValue, Validated},
+        query::{Query, QueryKind, Queryable},
+        segment::{QuerySegment, Segment},
+    },
 };
 
 use super::{index::Index, name::Name, Selector};
@@ -64,6 +68,34 @@ impl Queryable for Filter {
             obj.iter()
                 .map(|(_, v)| v)
                 .filter(|v| self.0.test_filter(v, root))
+                .collect()
+        } else {
+            vec![]
+        }
+    }
+
+    fn query_located<'b>(
+        &self,
+        current: &'b Value,
+        root: &'b Value,
+        parent: NormalizedPath<'b>,
+    ) -> Vec<LocatedNode<'b>> {
+        if let Some(list) = current.as_array() {
+            list.iter()
+                .enumerate()
+                .filter(|(_, v)| self.0.test_filter(v, root))
+                .map(|(i, v)| LocatedNode {
+                    loc: parent.clone_and_push(i),
+                    node: v,
+                })
+                .collect()
+        } else if let Some(obj) = current.as_object() {
+            obj.iter()
+                .filter(|(_, v)| self.0.test_filter(v, root))
+                .map(|(k, v)| LocatedNode {
+                    loc: parent.clone_and_push(k),
+                    node: v,
+                })
                 .collect()
         } else {
             vec![]
@@ -555,15 +587,6 @@ impl TryFrom<Query> for SingularQuery {
             .map(TryFrom::try_from)
             .collect::<Result<Vec<SingularQuerySegment>, Self::Error>>()?;
         Ok(Self { kind, segments })
-    }
-}
-
-impl Queryable for SingularQuery {
-    fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value> {
-        match self.eval_query(current, root) {
-            Some(v) => vec![v],
-            None => vec![],
-        }
     }
 }
 

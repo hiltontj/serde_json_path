@@ -1,6 +1,8 @@
 //! Types representing queries in JSONPath
 use serde_json::Value;
 
+use crate::{node::LocatedNode, path::NormalizedPath};
+
 use super::segment::QuerySegment;
 
 mod sealed {
@@ -33,6 +35,14 @@ mod sealed {
 pub trait Queryable: sealed::Sealed {
     /// Query `self` using a current node, and the root node
     fn query<'b>(&self, current: &'b Value, root: &'b Value) -> Vec<&'b Value>;
+    /// Query `self` using a current node, the root node, and the normalized path of the current
+    /// node's parent
+    fn query_located<'b>(
+        &self,
+        current: &'b Value,
+        root: &'b Value,
+        parent: NormalizedPath<'b>,
+    ) -> Vec<LocatedNode<'b>>;
 }
 
 /// Represents a JSONPath expression
@@ -96,5 +106,31 @@ impl Queryable for Query {
             query = new_query;
         }
         query
+    }
+
+    fn query_located<'b>(
+        &self,
+        current: &'b Value,
+        root: &'b Value,
+        parent: NormalizedPath<'b>,
+    ) -> Vec<LocatedNode<'b>> {
+        let mut result: Vec<LocatedNode<'b>> = match self.kind {
+            QueryKind::Root => vec![LocatedNode {
+                loc: Default::default(),
+                node: root,
+            }],
+            QueryKind::Current => vec![LocatedNode {
+                loc: parent,
+                node: current,
+            }],
+        };
+        for s in &self.segments {
+            let mut r = vec![];
+            for LocatedNode { loc, node } in result {
+                r.append(&mut s.query_located(node, root, loc.clone()));
+            }
+            result = r;
+        }
+        result
     }
 }

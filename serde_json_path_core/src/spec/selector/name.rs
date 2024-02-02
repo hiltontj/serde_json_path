@@ -1,7 +1,7 @@
 //! Name selector for selecting object keys in JSONPath
 use serde_json::Value;
 
-use crate::spec::query::Queryable;
+use crate::{node::LocatedNode, path::NormalizedPath, spec::query::Queryable};
 
 /// Select a single JSON object key
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -25,6 +25,20 @@ impl Queryable for Name {
     fn query<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {
         if let Some(obj) = current.as_object() {
             obj.get(&self.0).into_iter().collect()
+        } else {
+            vec![]
+        }
+    }
+
+    fn query_located<'b>(
+        &self,
+        current: &'b Value,
+        _root: &'b Value,
+        mut parent: NormalizedPath<'b>,
+    ) -> Vec<LocatedNode<'b>> {
+        if let Some((name, node)) = current.as_object().and_then(|o| o.get_key_value(&self.0)) {
+            parent.push(name);
+            vec![LocatedNode { loc: parent, node }]
         } else {
             vec![]
         }
