@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+# 0.6.5 (2 February 2024)
+
 ## Added: `NormalizedPath` and `PathElement` types ([#78])
 
 The `NormalizedPath` struct represents the location of a node within a JSON object. Its representation is like so:

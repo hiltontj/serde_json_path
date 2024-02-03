@@ -1,6 +1,6 @@
 [package]
 name = "serde_json_path_macros_internal"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT"
 authors = ["Trevor Hilton <trevor.hilton@gmail.com>"]
