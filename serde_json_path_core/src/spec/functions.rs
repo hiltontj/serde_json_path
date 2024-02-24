@@ -1,8 +1,10 @@
 //! Function Extensions in JSONPath
 //!
-//! Function Extensions in JSONPath serve as a way to extend the capability of queries in a way that
+//! [Function Extensions][func-ext] in JSONPath serve as a way to extend the capability of queries in a way that
 //! the standard query syntax can not support. There are various functions included in JSONPath, all
 //! of which conform to a specified type system.
+//!
+//! [func-ext]: https://www.rfc-editor.org/rfc/rfc9535.html#name-function-extensions
 //!
 //! # The JSONPath Type System
 //!

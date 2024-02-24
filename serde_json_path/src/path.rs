@@ -12,7 +12,7 @@ use crate::{parser::parse_query_main, ParseError};
 /// A parsed JSON Path query string
 ///
 /// This type represents a valid, parsed JSON Path query string. Please refer to the
-/// [IETF JSONPath specification][jp_spec] for the details on what constitutes a valid JSON Path
+/// JSONPath ([RFC 9535][rfc]) for the details on what constitutes a valid JSON Path
 /// query.
 ///
 /// # Usage
@@ -36,7 +36,7 @@ use crate::{parser::parse_query_main, ParseError};
 /// # }
 /// ```
 ///
-/// [jp_spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-10.html
+/// [rfc]: https://www.rfc-editor.org/rfc/rfc9535.html
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct JsonPath(Query);
 

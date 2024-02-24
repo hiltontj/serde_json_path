@@ -1,12 +1,9 @@
 //! This crate allows you to use JSONPath queries to extract nodelists from a [`serde_json::Value`].
 //!
-//! The crate intends to adhere to the [IETF JSONPath specification][ietf-spec]. Check out the
-//! specification to read more about JSONPath, and to find many examples of its usage.
+//! The crate intends to adhere to the IETF JSONPath standard ([RFC 9535][rfc]). Check out the
+//! specification to read more about JSONPath query syntax and to find many examples of its usage.
 //!
-//! [ietf-spec]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-20.html
-//!
-//! Please note that the specification has not yet been published as an RFC; therefore, this crate
-//! may evolve as JSONPath becomes standardized.
+//! [rfc]: https://www.rfc-editor.org/rfc/rfc9535.html
 //!
 //! # Features
 //!
@@ -83,10 +80,10 @@
 //! ## Querying for multiple nodes
 //!
 //! For queries that are expected to return zero or many nodes, use the [`all`][NodeList::all]
-//! method. There are several [selectors][ietf-selectors] in JSONPath whose combination can produce
+//! method. There are several [selectors][rfc-selectors] in JSONPath whose combination can produce
 //! useful and powerful queries.
 //!
-//! [ietf-selectors]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-20.html#name-selectors-2
+//! [rfc-selectors]: https://www.rfc-editor.org/rfc/rfc9535.html#name-selectors-2
 //!
 //! #### Wildcards (`*`)
 //!
@@ -198,12 +195,12 @@
 //!
 //! #### Filter expressions (`?`)
 //!
-//! [Filter selectors][ietf-filter-selectors] allow you to use logical expressions to evaluate which
+//! [Filter selectors][rfc-filter-selectors] allow you to use logical expressions to evaluate which
 //! members in a JSON object or array will be selected. You can use the boolean `&&` and `||`
 //! operators as well as parentheses to group logical expressions in your filters. The current node
 //! (`@`) operator allows you to utilize the node being filtered in your filter logic:
 //!
-//! [ietf-filter-selectors]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-20.html#name-filter-selector
+//! [rfc-filter-selectors]: https://www.rfc-editor.org/rfc/rfc9535.html#name-filter-selector
 //!
 //! ```rust
 //! # use serde_json::json;
@@ -260,9 +257,9 @@
 //!
 //! #### Descendant Operator (`..`)
 //!
-//! JSONPath query segments following a descendant operator (`..`) will visit the input node and each of its [descendants][ietf-descendants-def].
+//! JSONPath query segments following a descendant operator (`..`) will visit the input node and each of its [descendants][rfc-descendants-def].
 //!
-//! [ietf-descendants-def]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-20.html#section-1.1-6.28.1
+//! [rfc-descendants-def]: https://www.rfc-editor.org/rfc/rfc9535.html#section-1.1-7.28.1
 //!
 //! ```rust
 //! # use serde_json::json;
@@ -385,7 +382,7 @@ pub use serde_json_path_core::node::{
 /// A [`NormalizedPath`] is used to represent the location of a node within a query result
 /// produced by the [`JsonPath::query_located`] method.
 ///
-/// [norm-path]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-21.html#name-normalized-paths
+/// [norm-path]: https://www.rfc-editor.org/rfc/rfc9535.html#name-normalized-paths
 pub use serde_json_path_core::path::NormalizedPath;
 #[doc(inline)]
 pub use serde_json_path_core::path::PathElement;

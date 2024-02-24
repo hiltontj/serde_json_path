@@ -1,6 +1,6 @@
 //! Types for representing [Normalized Paths][norm-paths] from the JSONPath specification
 //!
-//! [norm-paths]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-21.html#name-normalized-paths
+//! [norm-paths]: https://www.rfc-editor.org/rfc/rfc9535.html#name-normalized-paths
 use std::{
     cmp::Ordering,
     fmt::Display,
@@ -187,7 +187,7 @@ impl<'a> Display for NormalizedPath<'a> {
     /// # }
     /// ```
     ///
-    /// [norm-paths]: https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-21.html#name-normalized-paths
+    /// [norm-paths]: https://www.rfc-editor.org/rfc/rfc9535.html#name-normalized-paths
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "$")?;
         for elem in &self.0 {
