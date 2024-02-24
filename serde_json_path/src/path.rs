@@ -12,7 +12,7 @@ use crate::{parser::parse_query_main, ParseError};
 /// A parsed JSON Path query string
 ///
 /// This type represents a valid, parsed JSON Path query string. Please refer to the
-/// JSONPath ([RFC 9535][rfc]) for the details on what constitutes a valid JSON Path
+/// JSONPath standard ([RFC 9535][rfc]) for the details on what constitutes a valid JSON Path
 /// query.
 ///
 /// # Usage
