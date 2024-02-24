@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
-# 0.1.5 (2 February 2024)
+# 0.1.5 (23 February 2024)
 
 - **docs**: update links to refer to RFC 9535 ([#81])
 
