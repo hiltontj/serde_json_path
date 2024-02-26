@@ -9,6 +9,13 @@ use serde_json_path_core::spec::functions::{Function, LogicalType, NodesType, Va
 ///
 /// These come directly from the JSONPath specification, which includes a registry of standardized
 /// functions.
+///
+/// # Note
+///
+/// There is a function in `serde_json_path_core/src/spec/functions.rs` that gives
+/// the return type for each function registered here. When adding new functions to
+/// the register, i.e., when new functions are standardized, the function there needs
+/// to be updated too.
 pub(crate) static REGISTRY: Lazy<HashMap<&'static str, &'static Function>> = Lazy::new(|| {
     let mut m = HashMap::new();
     m.insert("length", &LENGTH_FUNC);
