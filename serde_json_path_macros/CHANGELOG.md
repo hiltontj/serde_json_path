@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+- **fixed**: bug preventing registered functions from being used as arguments to other functions ([#84])
+
+[#84]: https://github.com/hiltontj/serde_json_path/pull/84
+
 # 0.1.3 (23 February 2024)
 
 - **internal**: update serde_json_path_core dependency

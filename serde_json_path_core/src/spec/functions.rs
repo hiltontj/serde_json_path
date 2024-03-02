@@ -618,11 +618,33 @@ impl FunctionExprArg {
                         return Ok(f.result_type);
                     }
                 }
-                Err(FunctionValidationError::Undefined {
-                    name: func.name.to_owned(),
+                registered_function_result_type(&func.name).ok_or_else(|| {
+                    FunctionValidationError::Undefined {
+                        name: func.name.to_owned(),
+                    }
                 })
             }
         }
+    }
+}
+
+/// Get the result type of a registered function
+///
+/// This is a hack, but must be done, because the REGISTRY defined in `serde_json_path`
+/// is not accessible here. Therefore, this must also be maintained when new functions
+/// are added to the registry in the standard.
+///
+/// An alternative would be to define the registry of functions in core, we would then
+/// just not have the convenience macro for defining them, along with their validators
+/// and evaluators.
+fn registered_function_result_type(name: &str) -> Option<FunctionArgType> {
+    match name {
+        "length" => Some(FunctionArgType::Value),
+        "count" => Some(FunctionArgType::Value),
+        "match" => Some(FunctionArgType::Logical),
+        "search" => Some(FunctionArgType::Logical),
+        "value" => Some(FunctionArgType::Value),
+        _ => None,
     }
 }
 
