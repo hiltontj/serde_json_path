@@ -16,11 +16,39 @@ struct TestCase {
     name: String,
     selector: String,
     #[serde(default)]
-    invalid_selector: bool,
-    #[serde(default)]
     document: Value,
-    #[serde(default)]
-    result: Vec<Value>,
+    #[serde(flatten)]
+    result: TestResult,
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum TestResult {
+    Deterministic { result: Vec<Value> },
+    NonDeterministic { results: Vec<Vec<Value>> },
+    InvalidSelector { invalid_selector: bool },
+}
+
+impl TestResult {
+    fn verify(&self, name: &str, actual: Vec<&Value>) {
+        match self {
+            TestResult::Deterministic { result } => assert_eq!(
+                result.iter().collect::<Vec<&Value>>(),
+                actual,
+                "{name}: incorrect result, expected {result:?}, got {actual:?}"
+            ),
+            TestResult::NonDeterministic { results } => {
+                assert!(results
+                    .iter()
+                    .any(|r| r.iter().collect::<Vec<&Value>>().eq(&actual)))
+            }
+            TestResult::InvalidSelector { .. } => unreachable!(),
+        }
+    }
+
+    fn is_invalid_selector(&self) -> bool {
+        matches!(self, Self::InvalidSelector { invalid_selector } if *invalid_selector)
+    }
 }
 
 #[test]
@@ -36,7 +64,6 @@ fn compliance_test_suite() {
         TestCase {
             name,
             selector,
-            invalid_selector,
             document,
             result,
         },
@@ -44,36 +71,29 @@ fn compliance_test_suite() {
     {
         println!("Test ({i}): {name}");
         let path = JsonPath::parse(selector);
-        if *invalid_selector {
+        if result.is_invalid_selector() {
             assert!(
                 path.is_err(),
                 "{name}: parsing {selector:?} should have failed",
             );
         } else {
             let path = path.expect("valid JSON Path string");
-            let expected = result.iter().collect::<Vec<&Value>>();
             {
                 // Query using JsonPath::query
                 let actual = path.query(document).all();
-                assert_eq!(
-                    expected, actual,
-                    "{name}: incorrect result, expected {expected:?}, got {actual:?}"
-                );
+                result.verify(name, actual);
             }
             {
                 // Query using JsonPath::query_located
                 let q = path.query_located(document);
                 let actual = q.nodes().collect::<Vec<&Value>>();
-                assert_eq!(
-                    expected, actual,
-                    "(located) {name}: incorrect result, expected {expected:?}, got {actual:?}"
-                );
+                result.verify(name, actual);
             }
         }
     }
 }
 
-const TEST_CASE_N: usize = 388;
+const TEST_CASE_N: usize = 10;
 
 #[test]
 #[ignore = "this is only for testing individual CTS test cases as needed"]
@@ -87,24 +107,29 @@ fn compliance_single() {
     let TestCase {
         name,
         selector,
-        invalid_selector,
         document,
         result,
     } = &test_cases.tests[TEST_CASE_N];
     println!("Test Case: {name}");
     let path = JsonPath::parse(selector);
-    if *invalid_selector {
+    if result.is_invalid_selector() {
         println!("...this test should fail");
         assert!(
             path.is_err(),
             "{name}: parsing {selector:?} should have failed",
         );
     } else {
-        let actual = path.expect("valid JSON Path string").query(document).all();
-        let expected = result.iter().collect::<Vec<&Value>>();
-        assert_eq!(
-            expected, actual,
-            "{name}: incorrect result, expected {expected:?}, got {actual:?}"
-        );
+        let path = path.expect("valid JSON Path string");
+        {
+            // Query using JsonPath::query
+            let actual = path.query(document).all();
+            result.verify(name, actual);
+        }
+        {
+            // Query using JsonPath::query_located
+            let q = path.query_located(document);
+            let actual = q.nodes().collect::<Vec<&Value>>();
+            result.verify(name, actual);
+        }
     }
 }
