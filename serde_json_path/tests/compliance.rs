@@ -96,7 +96,7 @@ fn compliance_test_suite() {
 const TEST_CASE_N: usize = 10;
 
 #[test]
-// #[ignore = "this is only for testing individual CTS test cases as needed"]
+#[ignore = "this is only for testing individual CTS test cases as needed"]
 fn compliance_single() {
     let cts_json_str = fs::read_to_string("../jsonpath-compliance-test-suite/cts.json")
         .expect("read cts.json file");
