@@ -7,8 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+- **testing**: support tests for non-determinism in compliance test suite ([#85])
 - **fixed**: bug preventing registered functions from being used as arguments to other functions ([#84])
 
+[#85]: https://github.com/hiltontj/serde_json_path/pull/85
 [#84]: https://github.com/hiltontj/serde_json_path/pull/84
 
 # 0.6.6 (23 February 2024)
