@@ -1,6 +1,6 @@
 [package]
 name = "serde_json_path_macros"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 license = "MIT"
 authors = ["Trevor Hilton <trevor.hilton@gmail.com>"]
@@ -13,7 +13,7 @@ keywords = ["json", "jsonpath", "json_path", "serde", "serde_json"]
 
 [dependencies]
 serde_json_path_macros_internal = { path = "src/internal", version = "0.1.1" }
-serde_json_path_core = { path = "../serde_json_path_core", version = "0.1.5" }
+serde_json_path_core = { path = "../serde_json_path_core", version = "0.1.6" }
 inventory = "0.3"
 once_cell = "1"
 
