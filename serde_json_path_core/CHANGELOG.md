@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
-# 0.1.4 (3 March 2024)
+# 0.1.6 (3 March 2024)
 
 - **testing**: support tests for non-determinism in compliance test suite ([#85])
 - **fixed**: bug preventing registered functions from being used as arguments to other functions ([#84])
