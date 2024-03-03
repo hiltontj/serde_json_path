@@ -23,7 +23,8 @@ jobs:
       - name: 📝 Check Rust Code Formatting
         run: cargo fmt --all -- --check
 
-  cargo-deny:
+  audit:
+    name: Audit
     runs-on: ubuntu-latest
     steps:
     - name: 📦 Checkout
