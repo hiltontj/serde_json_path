@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+- **fixed**: edge case where `.` in regexes for `match` and `search` functions was matching `\r\n` properly ([#92])
+
+[#92]: https://github.com/hiltontj/serde_json_path/pull/92
+
 # 0.6.7 (3 March 2024)
 
 - **testing**: support tests for non-determinism in compliance test suite ([#85])
