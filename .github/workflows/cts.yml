@@ -1,4 +1,4 @@
-name: CTS Submodule Update and Test
+name: Compliance
 
 on:
   workflow_dispatch:
