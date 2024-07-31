@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use once_cell::sync::Lazy;
-use regex::Regex;
 use serde_json::Value;
 use serde_json_path_core::spec::functions::{Function, LogicalType, NodesType, ValueType};
 
@@ -20,8 +19,11 @@ pub(crate) static REGISTRY: Lazy<HashMap<&'static str, &'static Function>> = Laz
     let mut m = HashMap::new();
     m.insert("length", &LENGTH_FUNC);
     m.insert("count", &COUNT_FUNC);
-    m.insert("match", &MATCH_FUNC);
-    m.insert("search", &SEARCH_FUNC);
+    #[cfg(feature = "regex")]
+    {
+        m.insert("match", &MATCH_FUNC);
+        m.insert("search", &SEARCH_FUNC);
+    }
     m.insert("value", &VALUE_FUNC);
     m
 });
@@ -50,11 +52,12 @@ fn count(nodes: NodesType) -> ValueType {
     nodes.len().into()
 }
 
+#[cfg(feature = "regex")]
 #[serde_json_path_macros::register(name = "match", target = MATCH_FUNC)]
 fn match_func(value: ValueType, rgx: ValueType) -> LogicalType {
     match (value.as_value(), rgx.as_value()) {
         (Some(Value::String(s)), Some(Value::String(r))) => {
-            Regex::new(format!("(?R)^({r})$").as_str())
+            regex::Regex::new(format!("(?R)^({r})$").as_str())
                 .map(|r| r.is_match(s))
                 .map(Into::into)
                 .unwrap_or_default()
@@ -63,11 +66,12 @@ fn match_func(value: ValueType, rgx: ValueType) -> LogicalType {
     }
 }
 
+#[cfg(feature = "regex")]
 #[serde_json_path_macros::register(target = SEARCH_FUNC)]
 fn search(value: ValueType, rgx: ValueType) -> LogicalType {
     match (value.as_value(), rgx.as_value()) {
         (Some(Value::String(s)), Some(Value::String(r))) => {
-            Regex::new(format!("(?R)({r})").as_str())
+            regex::Regex::new(format!("(?R)({r})").as_str())
                 .map(|r| r.is_match(s))
                 .map(Into::into)
                 .unwrap_or_default()
