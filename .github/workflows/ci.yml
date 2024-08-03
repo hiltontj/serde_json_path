@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📦 Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: 🦀 Rust Toolchain & Cache
         uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: 📝 Check Rust Code Formatting
@@ -28,16 +28,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: 📦 Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: 👮 Check Rust Code with Cargo Deny
-      uses: EmbarkStudios/cargo-deny-action@v1
+      uses: EmbarkStudios/cargo-deny-action@v2
 
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
     steps:
       - name: 📦 Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: 🦀 Rust Toolchain & Cache
         uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: 📎 Check Rust Code with Clippy
@@ -48,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📦 Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: 🦀 Rust Toolchain & Cache
         uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: 📓 Check Docs
@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📦 Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: true
       - name: 🦀 Rust Toolchain & Cache
