@@ -316,7 +316,7 @@
 //!
 //! The following feature flags are supported:
 //!
-//! - `tracing` - Enable internal tracing via [tracing]
+//! - `tracing` - Enable internal tracing via [tracing](https://docs.rs/tracing/latest/tracing/)
 //! - `functions` - Enable user-defined functions
 //! - `regex` - Enable the `match` and `search` functions
 
