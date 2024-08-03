@@ -6,3 +6,20 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    reviewers:
+    - "hiltontj"
+    commit-message:
+      prefix: "chore"
+    rebase-strategy: "disabled"
+
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    reviewers:
+    - "hiltontj"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    rebase-strategy: "disabled"
+      
