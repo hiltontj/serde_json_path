@@ -1,7 +1,11 @@
 //! Slice selectors for selecting array slices in JSONPath
 use serde_json::Value;
 
-use crate::{node::LocatedNode, path::NormalizedPath, spec::query::Queryable};
+use crate::{
+    node::LocatedNode,
+    path::NormalizedPath,
+    spec::{integer::Integer, query::Queryable},
+};
 
 /// A slice selector
 #[derive(Debug, PartialEq, Eq, Default, Clone, Copy)]
@@ -10,16 +14,16 @@ pub struct Slice {
     ///
     /// This can be negative to start the slice from a position relative to the end of the array
     /// being sliced.
-    pub start: Option<isize>,
+    pub start: Option<Integer>,
     /// The end of the slice
     ///
     /// This can be negative to end the slice at a position relative to the end of the array being
     /// sliced.
-    pub end: Option<isize>,
+    pub end: Option<Integer>,
     /// The step slice for the slice
     ///
     /// This can be negative to step in reverse order.
-    pub step: Option<isize>,
+    pub step: Option<Integer>,
 }
 
 impl std::fmt::Display for Slice {
@@ -45,46 +49,74 @@ impl Slice {
         Self::default()
     }
 
-    pub fn with_start(mut self, start: isize) -> Self {
-        self.start = Some(start);
+    /// Set the slice `start`
+    ///
+    /// # Panics
+    ///
+    /// This will panic if the provided value is outside the range [-(2<sup>53</sup>) + 1, (2<sup>53</sup>) - 1].
+    pub fn with_start(mut self, start: i64) -> Self {
+        self.start = Some(Integer::from_i64_unchecked(start));
         self
     }
 
-    pub fn with_end(mut self, end: isize) -> Self {
-        self.end = Some(end);
+    /// Set the slice `end`
+    ///
+    /// # Panics
+    ///
+    /// This will panic if the provided value is outside the range [-(2<sup>53</sup>) + 1, (2<sup>53</sup>) - 1].
+    pub fn with_end(mut self, end: i64) -> Self {
+        self.end = Some(Integer::from_i64_unchecked(end));
         self
     }
 
-    pub fn with_step(mut self, step: isize) -> Self {
-        self.step = Some(step);
+    /// Set the slice `step`
+    ///
+    /// # Panics
+    ///
+    /// This will panic if the provided value is outside the range [-(2<sup>53</sup>) + 1, (2<sup>53</sup>) - 1].
+    pub fn with_step(mut self, step: i64) -> Self {
+        self.step = Some(Integer::from_i64_unchecked(step));
         self
     }
 
     #[inline]
-    fn bounds_on_forward_slice(&self, len: isize) -> (isize, isize) {
-        let start_default = self.start.unwrap_or(0);
+    fn bounds_on_forward_slice(&self, len: Integer) -> (Integer, Integer) {
+        let start_default = self.start.unwrap_or(Integer::zero());
         let end_default = self.end.unwrap_or(len);
         let start = normalize_slice_index(start_default, len)
-            .unwrap_or(0)
-            .max(0);
-        let end = normalize_slice_index(end_default, len).unwrap_or(0).max(0);
+            .unwrap_or(Integer::zero())
+            .max(Integer::zero());
+        let end = normalize_slice_index(end_default, len)
+            .unwrap_or(Integer::zero())
+            .max(Integer::zero());
         let lower = start.min(len);
         let upper = end.min(len);
         (lower, upper)
     }
 
     #[inline]
-    fn bounds_on_reverse_slice(&self, len: isize) -> Option<(isize, isize)> {
-        let start_default = self.start.or_else(|| len.checked_sub(1))?;
-        let end_default = self
-            .end
-            .or_else(|| len.checked_mul(-1).and_then(|l| l.checked_sub(1)))?;
+    fn bounds_on_reverse_slice(&self, len: Integer) -> Option<(Integer, Integer)> {
+        let start_default = self
+            .start
+            .or_else(|| len.checked_sub(Integer::from_i64_unchecked(1)))?;
+        let end_default = self.end.or_else(|| {
+            let l = len.checked_mul(Integer::from_i64_unchecked(-1))?;
+            l.checked_sub(Integer::from_i64_unchecked(1))
+        })?;
         let start = normalize_slice_index(start_default, len)
-            .unwrap_or(0)
-            .max(-1);
-        let end = normalize_slice_index(end_default, len).unwrap_or(0).max(-1);
-        let lower = end.min(len.checked_sub(1).unwrap_or(len));
-        let upper = start.min(len.checked_sub(1).unwrap_or(len));
+            .unwrap_or(Integer::zero())
+            .max(Integer::from_i64_unchecked(-1));
+        let end = normalize_slice_index(end_default, len)
+            .unwrap_or(Integer::zero())
+            .max(Integer::from_i64_unchecked(-1));
+        let lower = end.min(
+            len.checked_sub(Integer::from_i64_unchecked(1))
+                .unwrap_or(len),
+        );
+        let upper = start.min(
+            len.checked_sub(Integer::from_i64_unchecked(1))
+                .unwrap_or(len),
+        );
         Some((lower, upper))
     }
 }
@@ -94,11 +126,11 @@ impl Queryable for Slice {
     fn query<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {
         if let Some(list) = current.as_array() {
             let mut query = Vec::new();
-            let step = self.step.unwrap_or(1);
+            let step = self.step.unwrap_or(Integer::from_i64_unchecked(1));
             if step == 0 {
                 return vec![];
             }
-            let Ok(len) = isize::try_from(list.len()) else {
+            let Ok(len) = Integer::try_from(list.len()) else {
                 return vec![];
             };
             if step > 0 {
@@ -108,7 +140,11 @@ impl Queryable for Slice {
                     if let Some(v) = usize::try_from(i).ok().and_then(|i| list.get(i)) {
                         query.push(v);
                     }
-                    i += step;
+                    i = if let Some(i) = i.checked_add(step) {
+                        i
+                    } else {
+                        break;
+                    };
                 }
             } else {
                 let Some((lower, upper)) = self.bounds_on_reverse_slice(len) else {
@@ -119,7 +155,11 @@ impl Queryable for Slice {
                     if let Some(v) = usize::try_from(i).ok().and_then(|i| list.get(i)) {
                         query.push(v);
                     }
-                    i += step;
+                    i = if let Some(i) = i.checked_add(step) {
+                        i
+                    } else {
+                        break;
+                    };
                 }
             }
             query
@@ -136,11 +176,11 @@ impl Queryable for Slice {
     ) -> Vec<LocatedNode<'b>> {
         if let Some(list) = current.as_array() {
             let mut result = Vec::new();
-            let step = self.step.unwrap_or(1);
+            let step = self.step.unwrap_or(Integer::from_i64_unchecked(1));
             if step == 0 {
                 return vec![];
             }
-            let Ok(len) = isize::try_from(list.len()) else {
+            let Ok(len) = Integer::try_from(list.len()) else {
                 return vec![];
             };
             if step > 0 {
@@ -156,7 +196,11 @@ impl Queryable for Slice {
                             node,
                         });
                     }
-                    i += step;
+                    i = if let Some(i) = i.checked_add(step) {
+                        i
+                    } else {
+                        break;
+                    };
                 }
             } else {
                 let Some((lower, upper)) = self.bounds_on_reverse_slice(len) else {
@@ -173,7 +217,11 @@ impl Queryable for Slice {
                             node,
                         });
                     }
-                    i += step;
+                    i = if let Some(i) = i.checked_add(step) {
+                        i
+                    } else {
+                        break;
+                    };
                 }
             }
             result
@@ -183,7 +231,7 @@ impl Queryable for Slice {
     }
 }
 
-fn normalize_slice_index(index: isize, len: isize) -> Option<isize> {
+fn normalize_slice_index(index: Integer, len: Integer) -> Option<Integer> {
     if index >= 0 {
         Some(index)
     } else {

@@ -1,13 +1,17 @@
 //! Index selectors in JSONPath
 use serde_json::Value;
 
-use crate::{node::LocatedNode, path::NormalizedPath, spec::query::Queryable};
+use crate::{
+    node::LocatedNode,
+    path::NormalizedPath,
+    spec::{integer::Integer, query::Queryable},
+};
 
 /// For selecting array elements by their index
 ///
 /// Can use negative indices to index from the end of an array
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct Index(pub isize);
+pub struct Index(pub Integer);
 
 impl std::fmt::Display for Index {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -63,11 +67,5 @@ impl Queryable for Index {
         } else {
             vec![]
         }
-    }
-}
-
-impl From<isize> for Index {
-    fn from(i: isize) -> Self {
-        Self(i)
     }
 }

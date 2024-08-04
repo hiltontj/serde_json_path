@@ -4,17 +4,17 @@ use nom::{
     combinator::{map, opt},
     sequence::{preceded, separated_pair, terminated},
 };
-use serde_json_path_core::spec::selector::slice::Slice;
+use serde_json_path_core::spec::{integer::Integer, selector::slice::Slice};
 
 use crate::parser::{primitive::int::parse_int, PResult};
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_int_space_after(input: &str) -> PResult<isize> {
+fn parse_int_space_after(input: &str) -> PResult<Integer> {
     terminated(parse_int, multispace0)(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_int_space_before(input: &str) -> PResult<isize> {
+fn parse_int_space_before(input: &str) -> PResult<Integer> {
     preceded(multispace0, parse_int)(input)
 }
 

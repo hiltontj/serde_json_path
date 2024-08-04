@@ -68,7 +68,10 @@ pub(crate) fn parse_selector(input: &str) -> PResult<Selector> {
 
 #[cfg(test)]
 mod tests {
-    use serde_json_path_core::spec::selector::{name::Name, slice::Slice};
+    use serde_json_path_core::spec::{
+        integer::Integer,
+        selector::{name::Name, slice::Slice},
+    };
 
     use super::{parse_selector, parse_wildcard_selector, Index, Selector};
 
@@ -84,11 +87,11 @@ mod tests {
     fn all_selectors() {
         {
             let (_, s) = parse_selector("0").unwrap();
-            assert_eq!(s, Selector::Index(Index(0)));
+            assert_eq!(s, Selector::Index(Index(Integer::from_i64_unchecked(0))));
         }
         {
             let (_, s) = parse_selector("10").unwrap();
-            assert_eq!(s, Selector::Index(Index(10)));
+            assert_eq!(s, Selector::Index(Index(Integer::from_i64_unchecked(10))));
         }
         {
             let (_, s) = parse_selector("'name'").unwrap();
