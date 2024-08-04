@@ -14,7 +14,7 @@ use std::{
 /// The value must be within the range [-(2<sup>53</sup>)+1, (2<sup>53</sup>)-1]).
 ///
 /// [ijson]: https://www.rfc-editor.org/rfc/rfc7493#section-2.2
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Integer(i64);
 
 /// The maximum allowed value, 2^53 - 1
@@ -24,15 +24,15 @@ const MIN: i64 = -9_007_199_254_740_992 + 1;
 
 impl Integer {
     fn try_new(value: i64) -> Result<Self, IntegerError> {
-        if value < MIN || value > MAX {
-            return Err(IntegerError::OutOfBounds);
+        if !(MIN..=MAX).contains(&value) {
+            Err(IntegerError::OutOfBounds)
         } else {
-            return Ok(Self(value));
+            Ok(Self(value))
         }
     }
 
     fn check(&self) -> bool {
-        self.0 >= MIN && self.0 <= MAX
+        (MIN..=MAX).contains(&self.0)
     }
 
     /// Get an [`Integer`] from an `i64`
@@ -69,12 +69,6 @@ impl Integer {
     pub fn checked_mul(mut self, rhs: Self) -> Option<Self> {
         self.0 = self.0.checked_mul(rhs.0)?;
         self.check().then_some(self)
-    }
-}
-
-impl Default for Integer {
-    fn default() -> Self {
-        Self(0)
     }
 }
 
