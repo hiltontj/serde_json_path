@@ -9,10 +9,17 @@ use std::{
     str::FromStr,
 };
 
+/// An integer for internet JSON ([RFC7493][ijson])
+///
+/// The value must be within the range [-(2<sup>53</sup>)+1, (2<sup>53</sup>)-1]).
+///
+/// [ijson]: https://www.rfc-editor.org/rfc/rfc7493#section-2.2
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Integer(i64);
 
+/// The maximum allowed value, 2^53 - 1
 const MAX: i64 = 9_007_199_254_740_992 - 1;
+/// The minimum allowed value (-2^53) + 1
 const MIN: i64 = -9_007_199_254_740_992 + 1;
 
 impl Integer {
@@ -28,25 +35,37 @@ impl Integer {
         self.0 >= MIN && self.0 <= MAX
     }
 
+    /// Get an [`Integer`] from an `i64`
+    ///
+    /// This will produce `None` if the inputted value is out of the valid range
+    /// [-(2<sup>53</sup>)+1, (2<sup>53</sup>)-1]).
     pub fn from_i64_opt(value: i64) -> Option<Self> {
         Self::try_new(value).ok()
     }
 
+    /// Take the absolute value, producing `None` if the resulting value is outside
+    /// the valid range [-(2<sup>53</sup>)+1, (2<sup>53</sup>)-1]).
     pub fn checked_abs(mut self) -> Option<Self> {
         self.0 = self.0.checked_abs()?;
         self.check().then_some(self)
     }
 
+    /// Add the two values, producing `None` if the resulting value is outside the
+    /// valid range [-(2<sup>53</sup>)+1, (2<sup>53</sup>)-1]).
     pub fn checked_add(mut self, rhs: Self) -> Option<Self> {
         self.0 = self.0.checked_add(rhs.0)?;
         self.check().then_some(self)
     }
 
+    /// Subtract the `rhs` from `self`, producing `None` if the resulting value is
+    /// outside the valid range [-(2<sup>53</sup>)+1, (2<sup>53</sup>)-1]).
     pub fn checked_sub(mut self, rhs: Self) -> Option<Self> {
         self.0 = self.0.checked_sub(rhs.0)?;
         self.check().then_some(self)
     }
 
+    /// Multiply the two values, producing `None` if the resulting value is outside
+    /// the valid range [-(2<sup>53</sup>)+1, (2<sup>53</sup>)-1]).
     pub fn checked_mul(mut self, rhs: Self) -> Option<Self> {
         self.0 = self.0.checked_mul(rhs.0)?;
         self.check().then_some(self)
@@ -111,10 +130,13 @@ impl PartialOrd<i64> for Integer {
     }
 }
 
+/// An error for the [`Integer`] type
 #[derive(Debug, thiserror::Error)]
 pub enum IntegerError {
+    /// The provided value was outside the valid range [-(2**53)+1, (2**53)-1])
     #[error("the provided integer was outside the valid range, see https://www.rfc-editor.org/rfc/rfc9535.html#section-2.1-4.1")]
     OutOfBounds,
+    /// Integer parsing error
     #[error(transparent)]
     Parse(#[from] ParseIntError),
 }

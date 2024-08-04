@@ -50,17 +50,17 @@ impl Slice {
     }
 
     pub fn with_start(mut self, start: i64) -> Self {
-        self.start = Integer::from_i64_opt(start);
+        self.start = Some(Integer::from_i64_opt(start).expect("valid start"));
         self
     }
 
     pub fn with_end(mut self, end: i64) -> Self {
-        self.end = Integer::from_i64_opt(end);
+        self.end = Some(Integer::from_i64_opt(end).expect("valid end"));
         self
     }
 
     pub fn with_step(mut self, step: i64) -> Self {
-        self.step = Integer::from_i64_opt(step);
+        self.step = Some(Integer::from_i64_opt(step).expect("valid step"));
         self
     }
 
