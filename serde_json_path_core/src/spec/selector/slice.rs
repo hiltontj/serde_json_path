@@ -49,16 +49,31 @@ impl Slice {
         Self::default()
     }
 
+    /// Set the slice `start`
+    ///
+    /// # Panics
+    ///
+    /// This will panic if the provided value is outside the range [-(2<sup>53</sup>) + 1, (2<sup>53</sup>) - 1].
     pub fn with_start(mut self, start: i64) -> Self {
         self.start = Some(Integer::from_i64_opt(start).expect("valid start"));
         self
     }
 
+    /// Set the slice `end`
+    ///
+    /// # Panics
+    ///
+    /// This will panic if the provided value is outside the range [-(2<sup>53</sup>) + 1, (2<sup>53</sup>) - 1].
     pub fn with_end(mut self, end: i64) -> Self {
         self.end = Some(Integer::from_i64_opt(end).expect("valid end"));
         self
     }
 
+    /// Set the slice `step`
+    ///
+    /// # Panics
+    ///
+    /// This will panic if the provided value is outside the range [-(2<sup>53</sup>) + 1, (2<sup>53</sup>) - 1].
     pub fn with_step(mut self, step: i64) -> Self {
         self.step = Some(Integer::from_i64_opt(step).expect("valid step"));
         self
