@@ -43,7 +43,7 @@
 //! ## `count`
 //!
 //! The `count` function extension provides a way to obtain the number of nodes in a nodelist and
-//! make that available for further processing inthe filter expression.
+//! make that available for further processing in the filter expression.
 //!
 //! ### Parameters
 //!
@@ -185,7 +185,7 @@ impl Function {
 #[cfg(feature = "functions")]
 inventory::collect!(Function);
 
-/// JSONPath type epresenting a Nodelist
+/// JSONPath type representing a Nodelist
 ///
 /// This is a thin wrapper around a [`NodeList`], and generally represents the result of a JSONPath
 /// query. It may also be produced by a function.

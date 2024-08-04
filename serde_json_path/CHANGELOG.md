@@ -1,6 +1,6 @@
 # Changelog
 
-All noteable changes to this project will be documented in this file.
+All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -101,7 +101,7 @@ The `LocatedNodeList` provides one unique bit of functionality over `NodeList`: 
 
 - **documentation**: Add line describing Descendant Operator ([#53])
 - **documentation**: Improve example in Filter Selector section of main docs ([#54])
-- **documentation**: Improve examples in Slice Slector section of main docs ([#55])
+- **documentation**: Improve examples in Slice Selector section of main docs ([#55])
 - **documentation**: Other improvements to documentation ([#56])
 - **fixed**: Formulate the regex used by the `match` function to correctly handle regular expressions with leading or trailing `|` characters ([#61])
 
@@ -236,7 +236,7 @@ This split was done to accommodate the new `#[function]` attribute macro, which 
 
 # 0.5.3 (14 March 2023)
 
-- **fixed:** Fix serialization behaviour of `NodeList` ([#30])
+- **fixed:** Fix serialization behavior of `NodeList` ([#30])
 
 [#30]: https://github.com/hiltontj/serde_json_path/pull/30
 

@@ -239,7 +239,7 @@ mod tests {
     }
 
     #[test]
-    fn descendant_semgent() {
+    fn descendant_segment() {
         {
             let (_, sk) = parse_descendant_segment("..['name']").unwrap();
             let s = sk.as_long_hand().unwrap();

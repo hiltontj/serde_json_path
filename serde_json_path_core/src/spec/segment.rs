@@ -40,7 +40,7 @@ impl std::fmt::Display for QuerySegment {
 pub enum QuerySegmentKind {
     /// A normal child
     ///
-    /// Addresses the direct descented of the preceding segment
+    /// Addresses the direct descendant of the preceding segment
     Child,
     /// A descendant child
     ///
