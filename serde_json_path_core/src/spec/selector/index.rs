@@ -69,9 +69,3 @@ impl Queryable for Index {
         }
     }
 }
-
-// impl From<isize> for Index {
-//     fn from(i: isize) -> Self {
-//         Self(i)
-//     }
-// }
