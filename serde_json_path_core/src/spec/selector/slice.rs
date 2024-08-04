@@ -235,6 +235,6 @@ fn normalize_slice_index(index: Integer, len: Integer) -> Option<Integer> {
     if index >= 0 {
         Some(index)
     } else {
-        index.checked_abs().and_then(|i| len.checked_sub(i))
+        len.checked_sub(index.abs())
     }
 }

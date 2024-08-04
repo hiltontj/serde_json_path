@@ -22,17 +22,17 @@ const MAX: i64 = 9_007_199_254_740_992 - 1;
 /// The minimum allowed value (-2^53) + 1
 const MIN: i64 = -9_007_199_254_740_992 + 1;
 
+fn check_i64(v: i64) -> bool {
+    (MIN..=MAX).contains(&v)
+}
+
 impl Integer {
     fn try_new(value: i64) -> Result<Self, IntegerError> {
-        if !(MIN..=MAX).contains(&value) {
-            Err(IntegerError::OutOfBounds)
-        } else {
+        if check_i64(value) {
             Ok(Self(value))
+        } else {
+            Err(IntegerError::OutOfBounds)
         }
-    }
-
-    fn check(&self) -> bool {
-        (MIN..=MAX).contains(&self.0)
     }
 
     /// Produce an [`Integer`] with the value 0
@@ -52,32 +52,30 @@ impl Integer {
         Self::try_new(value).expect("value is out of the valid range")
     }
 
-    /// Take the absolute value, producing `None` if the resulting value is outside
-    /// the valid range [-(2<sup>53</sup>)+1, (2<sup>53</sup>)-1].
-    pub fn checked_abs(mut self) -> Option<Self> {
-        self.0 = self.0.checked_abs()?;
-        self.check().then_some(self)
+    /// Take the absolute value, producing a new instance of [`Integer`]
+    pub fn abs(&self) -> Self {
+        Self(self.0.abs())
     }
 
-    /// Add the two values, producing `None` if the resulting value is outside the
-    /// valid range [-(2<sup>53</sup>)+1, (2<sup>53</sup>)-1].
-    pub fn checked_add(mut self, rhs: Self) -> Option<Self> {
-        self.0 = self.0.checked_add(rhs.0)?;
-        self.check().then_some(self)
+    /// Add the two values, producing a new instance of [`Integer`] or `None` if the
+    /// resulting value is outside the valid range [-(2<sup>53</sup>)+1, (2<sup>53</sup>)-1]
+    pub fn checked_add(&self, rhs: Self) -> Option<Self> {
+        let i = self.0.checked_add(rhs.0)?;
+        check_i64(i).then_some(Self(i))
     }
 
-    /// Subtract the `rhs` from `self`, producing `None` if the resulting value is
-    /// outside the valid range [-(2<sup>53</sup>)+1, (2<sup>53</sup>)-1].
-    pub fn checked_sub(mut self, rhs: Self) -> Option<Self> {
-        self.0 = self.0.checked_sub(rhs.0)?;
-        self.check().then_some(self)
+    /// Subtract the `rhs` from `self`, producing a new instance of [`Integer`] or `None`
+    /// if the resulting value is outside the valid range [-(2<sup>53</sup>)+1, (2<sup>53</sup>)-1].
+    pub fn checked_sub(&self, rhs: Self) -> Option<Self> {
+        let i = self.0.checked_sub(rhs.0)?;
+        check_i64(i).then_some(Self(i))
     }
 
-    /// Multiply the two values, producing `None` if the resulting value is outside
-    /// the valid range [-(2<sup>53</sup>)+1, (2<sup>53</sup>)-1].
-    pub fn checked_mul(mut self, rhs: Self) -> Option<Self> {
-        self.0 = self.0.checked_mul(rhs.0)?;
-        self.check().then_some(self)
+    /// Multiply the two values, producing a new instance of [`Integer`] or `None` if the resulting
+    /// value is outside the valid range [-(2<sup>53</sup>)+1, (2<sup>53</sup>)-1].
+    pub fn checked_mul(&self, rhs: Self) -> Option<Self> {
+        let i = self.0.checked_mul(rhs.0)?;
+        check_i64(i).then_some(Self(i))
     }
 }
 
@@ -89,15 +87,42 @@ impl TryFrom<i64> for Integer {
     }
 }
 
-impl TryFrom<usize> for Integer {
-    type Error = IntegerError;
+macro_rules! impl_try_from {
+    ($type:ty) => {
+        impl TryFrom<$type> for Integer {
+            type Error = IntegerError;
 
-    fn try_from(value: usize) -> Result<Self, Self::Error> {
-        i64::try_from(value)
-            .map_err(|_| IntegerError::OutOfBounds)
-            .and_then(Self::try_new)
-    }
+            fn try_from(value: $type) -> Result<Self, Self::Error> {
+                i64::try_from(value)
+                    .map_err(|_| IntegerError::OutOfBounds)
+                    .and_then(Self::try_from)
+            }
+        }
+    };
 }
+
+impl_try_from!(i128);
+impl_try_from!(u64);
+impl_try_from!(u128);
+impl_try_from!(usize);
+impl_try_from!(isize);
+
+macro_rules! impl_from {
+    ($type:ty) => {
+        impl From<$type> for Integer {
+            fn from(value: $type) -> Self {
+                Self(value.into())
+            }
+        }
+    };
+}
+
+impl_from!(i8);
+impl_from!(i16);
+impl_from!(i32);
+impl_from!(u8);
+impl_from!(u16);
+impl_from!(u32);
 
 impl FromStr for Integer {
     type Err = IntegerError;
