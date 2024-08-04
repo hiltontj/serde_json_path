@@ -6,6 +6,7 @@ use nom::{
     combinator::{map_res, opt, recognize},
     sequence::tuple,
 };
+use serde_json_path_core::spec::integer::Integer;
 
 use crate::parser::PResult;
 
@@ -37,19 +38,30 @@ pub(crate) fn parse_int_string(input: &str) -> PResult<&str> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub(crate) fn parse_int(input: &str) -> PResult<isize> {
-    map_res(parse_int_string, |i_str| i_str.parse::<isize>())(input)
+pub(crate) fn parse_int(input: &str) -> PResult<Integer> {
+    map_res(parse_int_string, |i_str| i_str.parse())(input)
 }
 
 #[cfg(test)]
 mod tests {
+    use serde_json_path_core::spec::integer::Integer;
+
     use crate::parser::primitive::int::parse_int;
 
     #[test]
     fn parse_integers() {
-        assert_eq!(parse_int("0"), Ok(("", 0)));
-        assert_eq!(parse_int("10"), Ok(("", 10)));
-        assert_eq!(parse_int("-10"), Ok(("", -10)));
-        assert_eq!(parse_int("010"), Ok(("10", 0)));
+        assert_eq!(parse_int("0"), Ok(("", Integer::from_i64_opt(0).unwrap())));
+        assert_eq!(
+            parse_int("10"),
+            Ok(("", Integer::from_i64_opt(10).unwrap()))
+        );
+        assert_eq!(
+            parse_int("-10"),
+            Ok(("", Integer::from_i64_opt(-10).unwrap()))
+        );
+        assert_eq!(
+            parse_int("010"),
+            Ok(("10", Integer::from_i64_opt(0).unwrap()))
+        );
     }
 }

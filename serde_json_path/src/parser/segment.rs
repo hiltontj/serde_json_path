@@ -150,7 +150,10 @@ mod tests {
     use test_log::test;
 
     use nom::combinator::all_consuming;
-    use serde_json_path_core::spec::selector::{index::Index, name::Name, slice::Slice, Selector};
+    use serde_json_path_core::spec::{
+        integer::Integer,
+        selector::{index::Index, name::Name, slice::Slice, Selector},
+    };
 
     use super::{
         parse_child_long_hand, parse_child_segment, parse_descendant_segment,
@@ -194,7 +197,10 @@ mod tests {
             let (_, sk) = parse_child_long_hand(r#"['name',10,0:3]"#).unwrap();
             let s = sk.as_long_hand().unwrap();
             assert_eq!(s[0], Selector::Name(Name::from("name")));
-            assert_eq!(s[1], Selector::Index(Index(10)));
+            assert_eq!(
+                s[1],
+                Selector::Index(Index(Integer::from_i64_opt(10).unwrap()))
+            );
             assert_eq!(
                 s[2],
                 Selector::ArraySlice(Slice::new().with_start(0).with_end(3))
