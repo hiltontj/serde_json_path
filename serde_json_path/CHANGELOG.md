@@ -8,11 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # Unreleased
 
 - **fixed**: edge case where `.` in regexes for `match` and `search` functions was matching `\r\n` properly ([#92])
-- **breaking**: added `regex` feature flag that gates regex functions `match` and `search`
+- **breaking**: added `regex` feature flag that gates regex functions `match` and `search` ([#93])
     - Feature is enabled by default, but if you have `default-features = false` you'll need to explicitly add it to retain access to these functions
 - **breaking**(`serde_json_path_core`): ensure integers used as indices are within the [valid range for I-JSON][i-json-range] ([#98])
 
 [#92]: https://github.com/hiltontj/serde_json_path/pull/92
+[#93]: https://github.com/hiltontj/serde_json_path/pull/93
 [#98]: https://github.com/hiltontj/serde_json_path/pull/98
 [i-json-range]: https://www.rfc-editor.org/rfc/rfc9535.html#section-2.1-4.1
 
