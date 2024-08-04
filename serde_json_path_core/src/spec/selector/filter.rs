@@ -105,7 +105,7 @@ impl Queryable for Filter {
 
 /// The top level boolean expression type
 ///
-/// This is also `ligical-expression` in the JSONPath specification, but the naming was chosen to
+/// This is also `logical-expression` in the JSONPath specification, but the naming was chosen to
 /// make it more clear that it represents the logical OR, and to not have an extra wrapping type.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct LogicalOrExpr(pub Vec<LogicalAndExpr>);
