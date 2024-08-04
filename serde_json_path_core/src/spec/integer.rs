@@ -35,12 +35,21 @@ impl Integer {
         (MIN..=MAX).contains(&self.0)
     }
 
+    /// Produce an [`Integer`] with the value 0
+    pub fn zero() -> Self {
+        Self(0)
+    }
+
     /// Get an [`Integer`] from an `i64`
     ///
-    /// This will produce `None` if the inputted value is out of the valid range
+    /// This is intended for initializing an integer with small, non-zero numbers.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if the inputted value is out of the valid range
     /// [-(2<sup>53</sup>)+1, (2<sup>53</sup>)-1]).
-    pub fn from_i64_opt(value: i64) -> Option<Self> {
-        Self::try_new(value).ok()
+    pub fn from_i64_unchecked(value: i64) -> Self {
+        Self::try_new(value).expect("value is out of the valid range")
     }
 
     /// Take the absolute value, producing `None` if the resulting value is outside

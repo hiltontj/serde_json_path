@@ -50,18 +50,9 @@ mod tests {
 
     #[test]
     fn parse_integers() {
-        assert_eq!(parse_int("0"), Ok(("", Integer::from_i64_opt(0).unwrap())));
-        assert_eq!(
-            parse_int("10"),
-            Ok(("", Integer::from_i64_opt(10).unwrap()))
-        );
-        assert_eq!(
-            parse_int("-10"),
-            Ok(("", Integer::from_i64_opt(-10).unwrap()))
-        );
-        assert_eq!(
-            parse_int("010"),
-            Ok(("10", Integer::from_i64_opt(0).unwrap()))
-        );
+        assert_eq!(parse_int("0"), Ok(("", Integer::from_i64_unchecked(0))));
+        assert_eq!(parse_int("10"), Ok(("", Integer::from_i64_unchecked(10))));
+        assert_eq!(parse_int("-10"), Ok(("", Integer::from_i64_unchecked(-10))));
+        assert_eq!(parse_int("010"), Ok(("10", Integer::from_i64_unchecked(0))));
     }
 }

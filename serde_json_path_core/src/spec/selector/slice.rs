@@ -55,7 +55,7 @@ impl Slice {
     ///
     /// This will panic if the provided value is outside the range [-(2<sup>53</sup>) + 1, (2<sup>53</sup>) - 1].
     pub fn with_start(mut self, start: i64) -> Self {
-        self.start = Some(Integer::from_i64_opt(start).expect("valid start"));
+        self.start = Some(Integer::from_i64_unchecked(start));
         self
     }
 
@@ -65,7 +65,7 @@ impl Slice {
     ///
     /// This will panic if the provided value is outside the range [-(2<sup>53</sup>) + 1, (2<sup>53</sup>) - 1].
     pub fn with_end(mut self, end: i64) -> Self {
-        self.end = Some(Integer::from_i64_opt(end).expect("valid end"));
+        self.end = Some(Integer::from_i64_unchecked(end));
         self
     }
 
@@ -75,20 +75,20 @@ impl Slice {
     ///
     /// This will panic if the provided value is outside the range [-(2<sup>53</sup>) + 1, (2<sup>53</sup>) - 1].
     pub fn with_step(mut self, step: i64) -> Self {
-        self.step = Some(Integer::from_i64_opt(step).expect("valid step"));
+        self.step = Some(Integer::from_i64_unchecked(step));
         self
     }
 
     #[inline]
     fn bounds_on_forward_slice(&self, len: Integer) -> (Integer, Integer) {
-        let start_default = self.start.unwrap_or_default();
+        let start_default = self.start.unwrap_or(Integer::zero());
         let end_default = self.end.unwrap_or(len);
         let start = normalize_slice_index(start_default, len)
-            .unwrap_or_default()
-            .max(Integer::default());
+            .unwrap_or(Integer::zero())
+            .max(Integer::zero());
         let end = normalize_slice_index(end_default, len)
-            .unwrap_or_default()
-            .max(Integer::default());
+            .unwrap_or(Integer::zero())
+            .max(Integer::zero());
         let lower = start.min(len);
         let upper = end.min(len);
         (lower, upper)
@@ -98,23 +98,23 @@ impl Slice {
     fn bounds_on_reverse_slice(&self, len: Integer) -> Option<(Integer, Integer)> {
         let start_default = self
             .start
-            .or_else(|| Integer::from_i64_opt(1).and_then(|i| len.checked_sub(i)))?;
+            .or_else(|| len.checked_sub(Integer::from_i64_unchecked(1)))?;
         let end_default = self.end.or_else(|| {
-            let l = len.checked_mul(Integer::from_i64_opt(-1).unwrap())?;
-            l.checked_sub(Integer::from_i64_opt(1).unwrap())
+            let l = len.checked_mul(Integer::from_i64_unchecked(-1))?;
+            l.checked_sub(Integer::from_i64_unchecked(1))
         })?;
         let start = normalize_slice_index(start_default, len)
-            .unwrap_or_default()
-            .max(Integer::from_i64_opt(-1).unwrap());
+            .unwrap_or(Integer::zero())
+            .max(Integer::from_i64_unchecked(-1));
         let end = normalize_slice_index(end_default, len)
-            .unwrap_or_default()
-            .max(Integer::from_i64_opt(-1).unwrap());
+            .unwrap_or(Integer::zero())
+            .max(Integer::from_i64_unchecked(-1));
         let lower = end.min(
-            len.checked_sub(Integer::from_i64_opt(1).unwrap())
+            len.checked_sub(Integer::from_i64_unchecked(1))
                 .unwrap_or(len),
         );
         let upper = start.min(
-            len.checked_sub(Integer::from_i64_opt(1).unwrap())
+            len.checked_sub(Integer::from_i64_unchecked(1))
                 .unwrap_or(len),
         );
         Some((lower, upper))
@@ -126,7 +126,7 @@ impl Queryable for Slice {
     fn query<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {
         if let Some(list) = current.as_array() {
             let mut query = Vec::new();
-            let step = self.step.unwrap_or(Integer::from_i64_opt(1).unwrap());
+            let step = self.step.unwrap_or(Integer::from_i64_unchecked(1));
             if step == 0 {
                 return vec![];
             }
@@ -176,7 +176,7 @@ impl Queryable for Slice {
     ) -> Vec<LocatedNode<'b>> {
         if let Some(list) = current.as_array() {
             let mut result = Vec::new();
-            let step = self.step.unwrap_or(Integer::from_i64_opt(1).unwrap());
+            let step = self.step.unwrap_or(Integer::from_i64_unchecked(1));
             if step == 0 {
                 return vec![];
             }

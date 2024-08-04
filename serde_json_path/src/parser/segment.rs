@@ -199,7 +199,7 @@ mod tests {
             assert_eq!(s[0], Selector::Name(Name::from("name")));
             assert_eq!(
                 s[1],
-                Selector::Index(Index(Integer::from_i64_opt(10).unwrap()))
+                Selector::Index(Index(Integer::from_i64_unchecked(10)))
             );
             assert_eq!(
                 s[2],

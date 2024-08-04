@@ -87,14 +87,11 @@ mod tests {
     fn all_selectors() {
         {
             let (_, s) = parse_selector("0").unwrap();
-            assert_eq!(s, Selector::Index(Index(Integer::from_i64_opt(0).unwrap())));
+            assert_eq!(s, Selector::Index(Index(Integer::from_i64_unchecked(0))));
         }
         {
             let (_, s) = parse_selector("10").unwrap();
-            assert_eq!(
-                s,
-                Selector::Index(Index(Integer::from_i64_opt(10).unwrap()))
-            );
+            assert_eq!(s, Selector::Index(Index(Integer::from_i64_unchecked(10))));
         }
         {
             let (_, s) = parse_selector("'name'").unwrap();
