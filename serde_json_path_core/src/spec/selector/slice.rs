@@ -81,14 +81,14 @@ impl Slice {
 
     #[inline]
     fn bounds_on_forward_slice(&self, len: Integer) -> (Integer, Integer) {
-        let start_default = self.start.unwrap_or(Integer::zero());
+        let start_default = self.start.unwrap_or(Integer::ZERO);
         let end_default = self.end.unwrap_or(len);
         let start = normalize_slice_index(start_default, len)
-            .unwrap_or(Integer::zero())
-            .max(Integer::zero());
+            .unwrap_or(Integer::ZERO)
+            .max(Integer::ZERO);
         let end = normalize_slice_index(end_default, len)
-            .unwrap_or(Integer::zero())
-            .max(Integer::zero());
+            .unwrap_or(Integer::ZERO)
+            .max(Integer::ZERO);
         let lower = start.min(len);
         let upper = end.min(len);
         (lower, upper)
@@ -104,10 +104,10 @@ impl Slice {
             l.checked_sub(Integer::from_i64_unchecked(1))
         })?;
         let start = normalize_slice_index(start_default, len)
-            .unwrap_or(Integer::zero())
+            .unwrap_or(Integer::ZERO)
             .max(Integer::from_i64_unchecked(-1));
         let end = normalize_slice_index(end_default, len)
-            .unwrap_or(Integer::zero())
+            .unwrap_or(Integer::ZERO)
             .max(Integer::from_i64_unchecked(-1));
         let lower = end.min(
             len.checked_sub(Integer::from_i64_unchecked(1))

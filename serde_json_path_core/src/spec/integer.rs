@@ -22,22 +22,21 @@ const MAX: i64 = 9_007_199_254_740_992 - 1;
 /// The minimum allowed value (-2^53) + 1
 const MIN: i64 = -9_007_199_254_740_992 + 1;
 
-fn check_i64(v: i64) -> bool {
+#[inline]
+fn check_i64_is_valid(v: i64) -> bool {
     (MIN..=MAX).contains(&v)
 }
 
 impl Integer {
+    /// An [`Integer`] with the value 0
+    pub const ZERO: Self = Self(0);
+
     fn try_new(value: i64) -> Result<Self, IntegerError> {
-        if check_i64(value) {
+        if check_i64_is_valid(value) {
             Ok(Self(value))
         } else {
             Err(IntegerError::OutOfBounds)
         }
-    }
-
-    /// Produce an [`Integer`] with the value 0
-    pub fn zero() -> Self {
-        Self(0)
     }
 
     /// Get an [`Integer`] from an `i64`
@@ -53,29 +52,33 @@ impl Integer {
     }
 
     /// Take the absolute value, producing a new instance of [`Integer`]
-    pub fn abs(&self) -> Self {
+    ///
+    /// This is safe and will never panic since no instance of [`Integer`] can be constructed with
+    /// a value that is outside the valid range and since the absolute of the minimum allowed value
+    /// is the maximum value.
+    pub fn abs(self) -> Self {
         Self(self.0.abs())
     }
 
     /// Add the two values, producing a new instance of [`Integer`] or `None` if the
     /// resulting value is outside the valid range [-(2<sup>53</sup>)+1, (2<sup>53</sup>)-1]
-    pub fn checked_add(&self, rhs: Self) -> Option<Self> {
+    pub fn checked_add(self, rhs: Self) -> Option<Self> {
         let i = self.0.checked_add(rhs.0)?;
-        check_i64(i).then_some(Self(i))
+        check_i64_is_valid(i).then_some(Self(i))
     }
 
     /// Subtract the `rhs` from `self`, producing a new instance of [`Integer`] or `None`
     /// if the resulting value is outside the valid range [-(2<sup>53</sup>)+1, (2<sup>53</sup>)-1].
-    pub fn checked_sub(&self, rhs: Self) -> Option<Self> {
+    pub fn checked_sub(self, rhs: Self) -> Option<Self> {
         let i = self.0.checked_sub(rhs.0)?;
-        check_i64(i).then_some(Self(i))
+        check_i64_is_valid(i).then_some(Self(i))
     }
 
     /// Multiply the two values, producing a new instance of [`Integer`] or `None` if the resulting
     /// value is outside the valid range [-(2<sup>53</sup>)+1, (2<sup>53</sup>)-1].
-    pub fn checked_mul(&self, rhs: Self) -> Option<Self> {
+    pub fn checked_mul(self, rhs: Self) -> Option<Self> {
         let i = self.0.checked_mul(rhs.0)?;
-        check_i64(i).then_some(Self(i))
+        check_i64_is_valid(i).then_some(Self(i))
     }
 }
 
