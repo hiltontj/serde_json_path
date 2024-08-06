@@ -24,9 +24,9 @@ impl Queryable for Index {
     fn query<'b>(&self, current: &'b Value, _root: &'b Value) -> Vec<&'b Value> {
         if let Some(list) = current.as_array() {
             if self.0 < 0 {
-                self.0
-                    .checked_abs()
-                    .and_then(|i| usize::try_from(i).ok())
+                let abs = self.0.abs();
+                usize::try_from(abs)
+                    .ok()
                     .and_then(|i| list.len().checked_sub(i))
                     .and_then(|i| list.get(i))
                     .into_iter()
@@ -51,9 +51,9 @@ impl Queryable for Index {
     ) -> Vec<LocatedNode<'b>> {
         if let Some((index, node)) = current.as_array().and_then(|list| {
             if self.0 < 0 {
-                self.0
-                    .checked_abs()
-                    .and_then(|i| usize::try_from(i).ok())
+                let abs = self.0.abs();
+                usize::try_from(abs)
+                    .ok()
                     .and_then(|i| list.len().checked_sub(i))
                     .and_then(|i| list.get(i).map(|v| (i, v)))
             } else {
