@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+- **internal**: update `serde_json` to the latest version ([#107])
+
+[#107]: https://github.com/hiltontj/serde_json_path/pull/107
+
 # 0.2.0 (3 November 2024)
 
 - **breaking**: ensure integers used as indices are within the [valid range for I-JSON][i-json-range] ([#98])
