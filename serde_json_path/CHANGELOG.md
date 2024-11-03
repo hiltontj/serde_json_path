@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#93]: https://github.com/hiltontj/serde_json_path/pull/93
 [#98]: https://github.com/hiltontj/serde_json_path/pull/98
 [i-json-range]: https://www.rfc-editor.org/rfc/rfc9535.html#section-2.1-4.1
+[#105]: https://github.com/hiltontj/serde_json_path/pull/105
 
 # 0.6.7 (3 March 2024)
 
