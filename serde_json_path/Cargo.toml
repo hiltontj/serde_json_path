@@ -1,6 +1,6 @@
 [package]
 name = "serde_json_path"
-version = "0.7.0"
+version = "0.7.1"
 edition = "2021"
 license = "MIT"
 authors = ["Trevor Hilton <trevor.hilton@gmail.com>"]
@@ -27,7 +27,7 @@ thiserror = "1.0.67"
 tracing = { version = "0.1.40", optional = true }
 
 # local crates:
-serde_json_path_core = { path = "../serde_json_path_core", version = "0.2.0" }
+serde_json_path_core = { path = "../serde_json_path_core", version = "0.2.1" }
 serde_json_path_macros = { path = "../serde_json_path_macros", version = "0.1.5" }
 
 [dev-dependencies]

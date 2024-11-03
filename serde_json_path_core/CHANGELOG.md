@@ -7,18 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+# 0.2.1 (3 November 2024)
+
 - **internal**: update `serde_json` to the latest version ([#107])
-
-[#107]: https://github.com/hiltontj/serde_json_path/pull/107
-
-# 0.2.0 (3 November 2024)
-
 - **breaking**: ensure integers used as indices are within the [valid range for I-JSON][i-json-range] ([#98])
 - **internal**: remove use of `once_cell` and use specific versions for crate dependencies ([#105])
 
 [#98]: https://github.com/hiltontj/serde_json_path/pull/98
 [i-json-range]: https://www.rfc-editor.org/rfc/rfc9535.html#section-2.1-4.1
 [#105]: https://github.com/hiltontj/serde_json_path/pull/105
+[#107]: https://github.com/hiltontj/serde_json_path/pull/107
 
 # 0.1.6 (3 March 2024)
 
