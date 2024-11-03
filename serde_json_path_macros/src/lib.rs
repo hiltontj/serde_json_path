@@ -48,7 +48,4 @@ pub use serde_json_path_macros_internal::register;
 pub use ::inventory;
 
 #[doc(hidden)]
-pub use ::once_cell;
-
-#[doc(hidden)]
 pub use ::serde_json_path_core;

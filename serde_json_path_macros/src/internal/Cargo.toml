@@ -1,6 +1,6 @@
 [package]
 name = "serde_json_path_macros_internal"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 license = "MIT"
 authors = ["Trevor Hilton <trevor.hilton@gmail.com>"]
@@ -14,6 +14,6 @@ proc-macro = true
 path = "mod.rs"
 
 [dependencies]
-proc-macro2 = "1.0"
-quote = "1.0"
-syn = { version = "2.0", features = ["full"] }
+proc-macro2 = "1.0.89"
+quote = "1.0.37"
+syn = { version = "2.0.87", features = ["full"] }
