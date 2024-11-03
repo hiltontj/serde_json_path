@@ -137,9 +137,9 @@
 use std::{
     collections::VecDeque,
     ops::{Deref, DerefMut},
+    sync::LazyLock,
 };
 
-use once_cell::sync::Lazy;
 use serde_json::Value;
 
 use crate::{node::NodeList, spec::query::Queryable};
@@ -151,11 +151,11 @@ use super::{
 
 #[doc(hidden)]
 pub type Validator =
-    Lazy<Box<dyn Fn(&[FunctionExprArg]) -> Result<(), FunctionValidationError> + Send + Sync>>;
+    LazyLock<Box<dyn Fn(&[FunctionExprArg]) -> Result<(), FunctionValidationError> + Send + Sync>>;
 
 #[doc(hidden)]
 pub type Evaluator =
-    Lazy<Box<dyn for<'a> Fn(VecDeque<JsonPathValue<'a>>) -> JsonPathValue<'a> + Sync + Send>>;
+    LazyLock<Box<dyn for<'a> Fn(VecDeque<JsonPathValue<'a>>) -> JsonPathValue<'a> + Sync + Send>>;
 
 #[doc(hidden)]
 #[allow(missing_debug_implementations)]

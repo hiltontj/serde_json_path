@@ -1,6 +1,5 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::LazyLock};
 
-use once_cell::sync::Lazy;
 use serde_json::Value;
 use serde_json_path_core::spec::functions::{Function, LogicalType, NodesType, ValueType};
 
@@ -15,18 +14,19 @@ use serde_json_path_core::spec::functions::{Function, LogicalType, NodesType, Va
 /// the return type for each function registered here. When adding new functions to
 /// the register, i.e., when new functions are standardized, the function there needs
 /// to be updated too.
-pub(crate) static REGISTRY: Lazy<HashMap<&'static str, &'static Function>> = Lazy::new(|| {
-    let mut m = HashMap::new();
-    m.insert("length", &LENGTH_FUNC);
-    m.insert("count", &COUNT_FUNC);
-    #[cfg(feature = "regex")]
-    {
-        m.insert("match", &MATCH_FUNC);
-        m.insert("search", &SEARCH_FUNC);
-    }
-    m.insert("value", &VALUE_FUNC);
-    m
-});
+pub(crate) static REGISTRY: LazyLock<HashMap<&'static str, &'static Function>> =
+    LazyLock::new(|| {
+        let mut m = HashMap::new();
+        m.insert("length", &LENGTH_FUNC);
+        m.insert("count", &COUNT_FUNC);
+        #[cfg(feature = "regex")]
+        {
+            m.insert("match", &MATCH_FUNC);
+            m.insert("search", &SEARCH_FUNC);
+        }
+        m.insert("value", &VALUE_FUNC);
+        m
+    });
 
 fn value_length(value: &Value) -> Option<usize> {
     match value {
