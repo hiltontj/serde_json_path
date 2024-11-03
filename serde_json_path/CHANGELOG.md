@@ -7,12 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+# 0.7.1 (3 November 2024)
+
 - **internal**: update `serde_json` to the latest version ([#107])
-
-[#107]: https://github.com/hiltontj/serde_json_path/pull/107
-
-# 0.7.0 (3 November 2024)
-
 - **fixed**: edge case where `.` in regexes for `match` and `search` functions was matching `\r\n` properly ([#92])
 - **breaking**: added `regex` feature flag that gates regex functions `match` and `search` ([#93], thanks [@LucasPickering])
     - Feature is enabled by default, but if you have `default-features = false` you'll need to explicitly add it to retain access to these functions
@@ -25,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#98]: https://github.com/hiltontj/serde_json_path/pull/98
 [i-json-range]: https://www.rfc-editor.org/rfc/rfc9535.html#section-2.1-4.1
 [#105]: https://github.com/hiltontj/serde_json_path/pull/105
+[#107]: https://github.com/hiltontj/serde_json_path/pull/107
 
 # 0.6.7 (3 March 2024)
 
