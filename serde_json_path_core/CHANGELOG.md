@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+# 0.2.0 (3 November 2024)
+
 - **breaking**: ensure integers used as indices are within the [valid range for I-JSON][i-json-range] ([#98])
 - **internal**: remove use of `once_cell` and use specific versions for crate dependencies ([#105])
 
