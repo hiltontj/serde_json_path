@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+# 0.1.5 (3 November 2024)
+
 - **internal**: remove use of `once_cell` and use specific versions for crate dependencies ([#105])
 
 [#105]: https://github.com/hiltontj/serde_json_path/pull/105
