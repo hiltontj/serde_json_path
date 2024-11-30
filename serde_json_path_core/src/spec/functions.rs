@@ -228,7 +228,7 @@ impl<'a> Deref for NodesType<'a> {
     }
 }
 
-impl<'a> DerefMut for NodesType<'a> {
+impl DerefMut for NodesType<'_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
@@ -341,7 +341,7 @@ pub enum ValueType<'a> {
     Nothing,
 }
 
-impl<'a> ValueType<'a> {
+impl ValueType<'_> {
     #[doc(hidden)]
     pub const fn json_path_type() -> JsonPathType {
         JsonPathType::Value
@@ -387,7 +387,7 @@ impl<'a> TryFrom<JsonPathValue<'a>> for ValueType<'a> {
     }
 }
 
-impl<'a, T> From<T> for ValueType<'a>
+impl<T> From<T> for ValueType<'_>
 where
     T: Into<Value>,
 {
@@ -422,7 +422,7 @@ impl<'a> From<ValueType<'a>> for JsonPathValue<'a> {
     }
 }
 
-impl<'a> From<LogicalType> for JsonPathValue<'a> {
+impl From<LogicalType> for JsonPathValue<'_> {
     fn from(value: LogicalType) -> Self {
         Self::Logical(value)
     }
@@ -507,7 +507,7 @@ impl FunctionExpr<Validated> {
         &'a self,
         current: &'b Value,
         root: &'b Value,
-    ) -> JsonPathValue<'_> {
+    ) -> JsonPathValue<'a> {
         let args: VecDeque<JsonPathValue> = self
             .args
             .iter()

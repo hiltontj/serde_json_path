@@ -552,19 +552,19 @@ impl<'a> Iterator for Locations<'a> {
     }
 }
 
-impl<'a> DoubleEndedIterator for Locations<'a> {
+impl DoubleEndedIterator for Locations<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.inner.next_back().map(|l| l.location())
     }
 }
 
-impl<'a> ExactSizeIterator for Locations<'a> {
+impl ExactSizeIterator for Locations<'_> {
     fn len(&self) -> usize {
         self.inner.len()
     }
 }
 
-impl<'a> FusedIterator for Locations<'a> {}
+impl FusedIterator for Locations<'_> {}
 
 /// An iterator over the nodes in a [`LocatedNodeList`]
 ///
@@ -582,19 +582,19 @@ impl<'a> Iterator for Nodes<'a> {
     }
 }
 
-impl<'a> DoubleEndedIterator for Nodes<'a> {
+impl DoubleEndedIterator for Nodes<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.inner.next_back().map(|l| l.node())
     }
 }
 
-impl<'a> ExactSizeIterator for Nodes<'a> {
+impl ExactSizeIterator for Nodes<'_> {
     fn len(&self) -> usize {
         self.inner.len()
     }
 }
 
-impl<'a> FusedIterator for Nodes<'a> {}
+impl FusedIterator for Nodes<'_> {}
 
 /// Error produced when expecting no more than one node from a query
 #[derive(Debug, thiserror::Error)]

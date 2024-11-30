@@ -170,7 +170,7 @@ impl<'a> IntoIterator for NormalizedPath<'a> {
     }
 }
 
-impl<'a> Display for NormalizedPath<'a> {
+impl Display for NormalizedPath<'_> {
     /// Format the [`NormalizedPath`] as a JSONPath string using the canonical bracket notation
     /// as per the [JSONPath Specification][norm-paths]
     ///
@@ -200,7 +200,7 @@ impl<'a> Display for NormalizedPath<'a> {
     }
 }
 
-impl<'a> Serialize for NormalizedPath<'a> {
+impl Serialize for NormalizedPath<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -218,7 +218,7 @@ pub enum PathElement<'a> {
     Index(usize),
 }
 
-impl<'a> PathElement<'a> {
+impl PathElement<'_> {
     fn to_json_pointer(&self) -> String {
         match self {
             PathElement::Name(s) => s.replace('~', "~0").replace('/', "~1"),
@@ -253,7 +253,7 @@ impl<'a> PathElement<'a> {
     }
 }
 
-impl<'a> PartialOrd for PathElement<'a> {
+impl PartialOrd for PathElement<'_> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match (self, other) {
             (PathElement::Name(a), PathElement::Name(b)) => a.partial_cmp(b),
@@ -263,7 +263,7 @@ impl<'a> PartialOrd for PathElement<'a> {
     }
 }
 
-impl<'a> PartialEq<str> for PathElement<'a> {
+impl PartialEq<str> for PathElement<'_> {
     fn eq(&self, other: &str) -> bool {
         match self {
             PathElement::Name(s) => s.eq(&other),
@@ -272,7 +272,7 @@ impl<'a> PartialEq<str> for PathElement<'a> {
     }
 }
 
-impl<'a> PartialEq<&str> for PathElement<'a> {
+impl PartialEq<&str> for PathElement<'_> {
     fn eq(&self, other: &&str) -> bool {
         match self {
             PathElement::Name(s) => s.eq(other),
@@ -281,7 +281,7 @@ impl<'a> PartialEq<&str> for PathElement<'a> {
     }
 }
 
-impl<'a> PartialEq<usize> for PathElement<'a> {
+impl PartialEq<usize> for PathElement<'_> {
     fn eq(&self, other: &usize) -> bool {
         match self {
             PathElement::Name(_) => false,
@@ -290,7 +290,7 @@ impl<'a> PartialEq<usize> for PathElement<'a> {
     }
 }
 
-impl<'a> Display for PathElement<'a> {
+impl Display for PathElement<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             PathElement::Name(n) => write!(f, "{n}"),
@@ -305,13 +305,13 @@ impl<'a> From<&'a String> for PathElement<'a> {
     }
 }
 
-impl<'a> From<usize> for PathElement<'a> {
+impl From<usize> for PathElement<'_> {
     fn from(index: usize) -> Self {
         Self::Index(index)
     }
 }
 
-impl<'a> Serialize for PathElement<'a> {
+impl Serialize for PathElement<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
