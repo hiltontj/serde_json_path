@@ -133,7 +133,7 @@ impl<'de> Deserialize<'de> for JsonPath {
     {
         struct JsonPathVisitor;
 
-        impl<'de> Visitor<'de> for JsonPathVisitor {
+        impl Visitor<'_> for JsonPathVisitor {
             type Value = JsonPath;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
