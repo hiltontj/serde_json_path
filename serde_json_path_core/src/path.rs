@@ -293,7 +293,26 @@ impl PartialEq<usize> for PathElement<'_> {
 impl Display for PathElement<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PathElement::Name(n) => write!(f, "{n}"),
+            PathElement::Name(n) => {
+                // https://www.rfc-editor.org/rfc/rfc9535#section-2.7
+                for c in n.chars() {
+                    match c {
+                        '\u{0008}' => write!(f, r#"\b"#)?, // b BS backspace
+                        '\u{000C}' => write!(f, r#"\f"#)?, // f FF form feed
+                        '\u{000A}' => write!(f, r#"\n"#)?, // n LF line feed
+                        '\u{000D}' => write!(f, r#"\r"#)?, // r CR carriage return
+                        '\u{0009}' => write!(f, r#"\t"#)?, // t HT horizontal tab
+                        '\u{0027}' => write!(f, r#"\'"#)?, // ' apostrophe
+                        '\u{005C}' => write!(f, r#"\"#)?,  // \ backslash (reverse solidus)
+                        ('\x00'..='\x07') | '\x0b' | '\x0e' | '\x0f' => {
+                            // "00"-"07", "0b", "0e"-"0f"
+                            write!(f, "\\u000{:x}", c as i32)?
+                        }
+                        _ => write!(f, "{c}")?,
+                    }
+                }
+                Ok(())
+            }
             PathElement::Index(i) => write!(f, "{i}"),
         }
     }
@@ -345,5 +364,38 @@ mod tests {
             PathElement::Name("baz/bop"),
         ]);
         assert_eq!(np.to_json_pointer(), "/foo~0bar/42/baz~1bop");
+    }
+
+    #[test]
+    fn normalized_element_fmt() {
+        for (name, elem, exp) in [
+            ("simple name", PathElement::Name("foo"), "foo"),
+            ("index", PathElement::Index(1), "1"),
+            ("escape_apostrophes", PathElement::Name("'hi'"), r#"\'hi\'"#),
+            (
+                "escapes",
+                PathElement::Name(r#"'\b\f\n\r\t\\'"#),
+                r#"\'\b\f\n\r\t\\\'"#,
+            ),
+            (
+                "escape_vertical_unicode",
+                PathElement::Name("\u{000B}"),
+                r#"\u000b"#,
+            ),
+            (
+                "escape_unicode_null",
+                PathElement::Name("\u{0000}"),
+                r#"\u0000"#,
+            ),
+            (
+                "escape_unicode_runes",
+                PathElement::Name(
+                    "\u{0001}\u{0002}\u{0003}\u{0004}\u{0005}\u{0006}\u{0007}\u{000e}\u{000F}",
+                ),
+                r#"\u0001\u0002\u0003\u0004\u0005\u0006\u0007\u000e\u000f"#,
+            ),
+        ] {
+            assert_eq!(exp, elem.to_string(), "{name}");
+        }
     }
 }
