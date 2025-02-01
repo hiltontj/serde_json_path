@@ -26,6 +26,17 @@ fn test_length_invalid_args() {
 }
 
 #[test]
+fn test_length_incorrect_use() {
+    let error = JsonPath::parse("$[?length(@.author)]").unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("in long-hand segment, function with incorrect return type used"),
+        "error did not contain the expected message"
+    );
+}
+
+#[test]
 fn test_count() {
     let value = json!([
         {"foo": [1]},
