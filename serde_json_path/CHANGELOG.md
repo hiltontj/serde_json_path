@@ -8,8 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # Unreleased
 
 - **added**: better error message for invalid use of function in selector ([#118])
+- **fixed**: properly format normalized path names ([#113], thanks [@theory])
+- **internal**: fix clippy lints from 1.83.0 ([#110])
 
 [#118]: https://github.com/hiltontj/serde_json_path/pull/118
+[#113]: https://github.com/hiltontj/serde_json_path/pull/113
+[@theory]: https://github.com/theory
+[#110]: https://github.com/hiltontj/serde_json_path/pull/110
 
 # 0.7.1 (3 November 2024)
 
