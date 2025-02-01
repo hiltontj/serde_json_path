@@ -26,6 +26,12 @@ fn test_length_invalid_args() {
 }
 
 #[test]
+fn test_length_incorrect_use() {
+    let error = JsonPath::parse("$[?length(@.author)]").unwrap_err();
+    println!("{error:?}");
+}
+
+#[test]
 fn test_count() {
     let value = json!([
         {"foo": [1]},
