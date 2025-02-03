@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+# 0.7.2 (2 February 2025)
+
 - **added**: better error message for invalid use of function in selector ([#118])
 - **fixed**: properly format normalized path names ([#113], thanks [@theory])
 - **internal**: fix clippy lints from 1.83.0 ([#110])
