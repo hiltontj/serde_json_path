@@ -1,6 +1,6 @@
 [package]
 name = "serde_json_path"
-version = "0.7.1"
+version = "0.7.2"
 edition = "2021"
 license = "MIT"
 authors = ["Trevor Hilton <trevor.hilton@gmail.com>"]
@@ -18,8 +18,8 @@ functions = ["serde_json_path_core/functions"]
 
 [dependencies]
 # local crates:
-serde_json_path_core = { path = "../serde_json_path_core", version = "0.2.1" }
-serde_json_path_macros = { path = "../serde_json_path_macros", version = "0.1.5" }
+serde_json_path_core = { path = "../serde_json_path_core", version = "0.2.2" }
+serde_json_path_macros = { path = "../serde_json_path_macros", version = "0.1.6" }
 
 # crates.io crates:
 inventory.workspace = true
