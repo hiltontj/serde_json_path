@@ -12,9 +12,12 @@ keywords = ["json", "jsonpath", "json_path", "serde", "serde_json"]
 [lib]
 
 [dependencies]
-inventory = "0.3.15"
+# local crates:
 serde_json_path_macros_internal = { path = "src/internal", version = "0.1.2" }
 serde_json_path_core = { path = "../serde_json_path_core", version = "0.2.0" }
+
+# crates.io crates:
+inventory.workspace = true
 
 [dev-dependencies]
 serde_json = "1"
