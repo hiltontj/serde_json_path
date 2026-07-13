@@ -1,3 +1,5 @@
+//! Regression tests for reported issues
+
 use serde_json::json;
 use serde_json_path::JsonPath;
 #[cfg(feature = "trace")]

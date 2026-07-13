@@ -1,3 +1,5 @@
+//! Tests for serialization/deserialization of JSONPath types
+
 use serde::Deserialize;
 use serde_json::{from_value, json};
 use serde_json_path::JsonPath;
