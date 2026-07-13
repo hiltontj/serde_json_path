@@ -18,42 +18,42 @@ pub(crate) mod function;
 pub(crate) mod slice;
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub(crate) fn parse_wildcard_selector(input: &str) -> PResult<Selector> {
+pub(crate) fn parse_wildcard_selector(input: &str) -> PResult<'_, Selector> {
     map(char('*'), |_| Selector::Wildcard)(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub(crate) fn parse_name(input: &str) -> PResult<Name> {
+pub(crate) fn parse_name(input: &str) -> PResult<'_, Name> {
     map(parse_string_literal, Name)(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_name_selector(input: &str) -> PResult<Selector> {
+fn parse_name_selector(input: &str) -> PResult<'_, Selector> {
     map(parse_name, Selector::Name)(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_index(input: &str) -> PResult<Index> {
+fn parse_index(input: &str) -> PResult<'_, Index> {
     map(parse_int, Index)(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_index_selector(input: &str) -> PResult<Selector> {
+fn parse_index_selector(input: &str) -> PResult<'_, Selector> {
     map(parse_index, Selector::Index)(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_array_slice_selector(input: &str) -> PResult<Selector> {
+fn parse_array_slice_selector(input: &str) -> PResult<'_, Selector> {
     map(parse_array_slice, Selector::ArraySlice)(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_filter_selector(input: &str) -> PResult<Selector> {
+fn parse_filter_selector(input: &str) -> PResult<'_, Selector> {
     map(parse_filter, Selector::Filter)(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub(crate) fn parse_selector(input: &str) -> PResult<Selector> {
+pub(crate) fn parse_selector(input: &str) -> PResult<'_, Selector> {
     context(
         "selector",
         alt((

@@ -22,12 +22,12 @@ use self::registry::REGISTRY;
 use super::filter::{parse_literal, parse_logical_or_expr, parse_singular_path};
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_function_name_first(input: &str) -> PResult<char> {
+fn parse_function_name_first(input: &str) -> PResult<'_, char> {
     satisfy(|c| c.is_ascii_lowercase())(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_function_name_char(input: &str) -> PResult<char> {
+fn parse_function_name_char(input: &str) -> PResult<'_, char> {
     alt((
         parse_function_name_first,
         char('_'),
@@ -36,7 +36,7 @@ fn parse_function_name_char(input: &str) -> PResult<char> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_function_name(input: &str) -> PResult<String> {
+fn parse_function_name(input: &str) -> PResult<'_, String> {
     map(
         pair(
             parse_function_name_first,
@@ -54,7 +54,7 @@ fn parse_function_name(input: &str) -> PResult<String> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_function_argument(input: &str) -> PResult<FunctionExprArg> {
+fn parse_function_argument(input: &str) -> PResult<'_, FunctionExprArg> {
     alt((
         map(parse_literal, FunctionExprArg::Literal),
         map(parse_singular_path, FunctionExprArg::SingularQuery),
@@ -65,7 +65,7 @@ fn parse_function_argument(input: &str) -> PResult<FunctionExprArg> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub(crate) fn parse_function_expr(input: &str) -> PResult<FunctionExpr<Validated>> {
+pub(crate) fn parse_function_expr(input: &str) -> PResult<'_, FunctionExpr<Validated>> {
     cut(map_res(
         pair(
             parse_function_name,

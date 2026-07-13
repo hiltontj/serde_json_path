@@ -27,22 +27,22 @@ fn is_non_ascii_unicode(chr: char) -> bool {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_non_ascii_unicode(input: &str) -> PResult<&str> {
+fn parse_non_ascii_unicode(input: &str) -> PResult<'_, &str> {
     take_while1(is_non_ascii_unicode)(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_name_first(input: &str) -> PResult<&str> {
+fn parse_name_first(input: &str) -> PResult<'_, &str> {
     alt((alpha1, recognize(char('_')), parse_non_ascii_unicode))(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_name_char(input: &str) -> PResult<&str> {
+fn parse_name_char(input: &str) -> PResult<'_, &str> {
     alt((digit1, parse_name_first))(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub(crate) fn parse_dot_member_name(input: &str) -> PResult<String> {
+pub(crate) fn parse_dot_member_name(input: &str) -> PResult<'_, String> {
     map(
         recognize(pair(
             cut_with(parse_name_first, |_| {
@@ -58,7 +58,7 @@ pub(crate) fn parse_dot_member_name(input: &str) -> PResult<String> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_dot_member_name_shorthand(input: &str) -> PResult<Segment> {
+fn parse_dot_member_name_shorthand(input: &str) -> PResult<'_, Segment> {
     map(
         preceded(char('.'), context("dot member name", parse_dot_member_name)),
         Segment::DotName,
@@ -66,7 +66,7 @@ fn parse_dot_member_name_shorthand(input: &str) -> PResult<Segment> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_multi_selector(input: &str) -> PResult<Vec<Selector>> {
+fn parse_multi_selector(input: &str) -> PResult<'_, Vec<Selector>> {
     separated_list1(
         delimited(multispace0, char(','), multispace0),
         parse_selector,
@@ -74,7 +74,7 @@ fn parse_multi_selector(input: &str) -> PResult<Vec<Selector>> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_child_long_hand(input: &str) -> PResult<Segment> {
+fn parse_child_long_hand(input: &str) -> PResult<'_, Segment> {
     context(
         "long-hand segment",
         preceded(
@@ -91,14 +91,14 @@ fn parse_child_long_hand(input: &str) -> PResult<Segment> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_dot_wildcard_shorthand(input: &str) -> PResult<Segment> {
+fn parse_dot_wildcard_shorthand(input: &str) -> PResult<'_, Segment> {
     map(preceded(char('.'), parse_wildcard_selector), |_| {
         Segment::Wildcard
     })(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_child_segment(input: &str) -> PResult<Segment> {
+fn parse_child_segment(input: &str) -> PResult<'_, Segment> {
     preceded(
         multispace0,
         alt((
@@ -110,7 +110,7 @@ fn parse_child_segment(input: &str) -> PResult<Segment> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_descendant_segment(input: &str) -> PResult<Segment> {
+fn parse_descendant_segment(input: &str) -> PResult<'_, Segment> {
     preceded(
         tag(".."),
         alt((
@@ -122,7 +122,7 @@ fn parse_descendant_segment(input: &str) -> PResult<Segment> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub(crate) fn parse_segment(input: &str) -> PResult<QuerySegment> {
+pub(crate) fn parse_segment(input: &str) -> PResult<'_, QuerySegment> {
     alt((
         map(parse_descendant_segment, |inner| QuerySegment {
             kind: QuerySegmentKind::Descendant,

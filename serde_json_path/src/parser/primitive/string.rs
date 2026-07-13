@@ -30,7 +30,7 @@ fn is_hex_digit(chr: char) -> bool {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_digit(input: &str) -> PResult<char> {
+fn parse_digit(input: &str) -> PResult<'_, char> {
     verify(anychar, is_digit)(input)
 }
 
@@ -40,7 +40,7 @@ fn parse_n_hex_digits(n: usize) -> impl Fn(&str) -> PResult<&str> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_non_surrogate(input: &str) -> PResult<char> {
+fn parse_non_surrogate(input: &str) -> PResult<'_, char> {
     let non_d_base = alt((parse_digit, one_of("ABCEFabcdef")));
     let non_d_based = pair(non_d_base, parse_n_hex_digits(3));
     let zero_to_7 = verify(anychar, |c: &char| ('0'..='7').contains(c));
@@ -52,7 +52,7 @@ fn parse_non_surrogate(input: &str) -> PResult<char> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_low_surrogate(input: &str) -> PResult<u16> {
+fn parse_low_surrogate(input: &str) -> PResult<'_, u16> {
     context(
         "low surrogate",
         map_res(
@@ -67,7 +67,7 @@ fn parse_low_surrogate(input: &str) -> PResult<u16> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_high_surrogate(input: &str) -> PResult<u16> {
+fn parse_high_surrogate(input: &str) -> PResult<'_, u16> {
     context(
         "high surrogate",
         map_res(
@@ -78,7 +78,7 @@ fn parse_high_surrogate(input: &str) -> PResult<u16> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_surrogate(input: &str) -> PResult<String> {
+fn parse_surrogate(input: &str) -> PResult<'_, String> {
     context(
         "surrogate pair",
         map_res(
@@ -89,12 +89,12 @@ fn parse_surrogate(input: &str) -> PResult<String> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_hex_char(input: &str) -> PResult<String> {
+fn parse_hex_char(input: &str) -> PResult<'_, String> {
     alt((map(parse_non_surrogate, String::from), parse_surrogate))(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_unicode_sequence(input: &str) -> PResult<String> {
+fn parse_unicode_sequence(input: &str) -> PResult<'_, String> {
     context("unicode sequence", preceded(char('u'), parse_hex_char))(input)
 }
 
@@ -182,7 +182,7 @@ fn parse_internal(quoted_with: Quotes) -> impl Fn(&str) -> PResult<String> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_single_quoted(input: &str) -> PResult<String> {
+fn parse_single_quoted(input: &str) -> PResult<'_, String> {
     context(
         "single quoted",
         delimited(
@@ -194,7 +194,7 @@ fn parse_single_quoted(input: &str) -> PResult<String> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_double_quoted(input: &str) -> PResult<String> {
+fn parse_double_quoted(input: &str) -> PResult<'_, String> {
     context(
         "double quoted",
         delimited(char('"'), parse_internal(Quotes::Double), cut(char('"'))),
@@ -202,7 +202,7 @@ fn parse_double_quoted(input: &str) -> PResult<String> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub(crate) fn parse_string_literal(input: &str) -> PResult<String> {
+pub(crate) fn parse_string_literal(input: &str) -> PResult<'_, String> {
     context(
         "string literal",
         alt((parse_single_quoted, parse_double_quoted)),
