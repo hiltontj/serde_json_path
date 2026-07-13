@@ -35,7 +35,7 @@ fn parse_digit(input: &str) -> PResult<'_, char> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None))]
-fn parse_n_hex_digits(n: usize) -> impl Fn(&str) -> PResult<&str> {
+fn parse_n_hex_digits(n: usize) -> impl Fn(&str) -> PResult<'_, &str> {
     move |input: &str| take_while_m_n(n, n, is_hex_digit)(input)
 }
 
@@ -98,14 +98,14 @@ fn parse_unicode_sequence(input: &str) -> PResult<'_, String> {
     context("unicode sequence", preceded(char('u'), parse_hex_char))(input)
 }
 
-fn parse_escaped_quote(quoted_with: Quotes) -> impl Fn(&str) -> PResult<char> {
+fn parse_escaped_quote(quoted_with: Quotes) -> impl Fn(&str) -> PResult<'_, char> {
     move |input: &str| match quoted_with {
         Quotes::Single => value('\u{0027}', char('\''))(input),
         Quotes::Double => value('\u{0022}', char('"'))(input),
     }
 }
 
-fn parse_escaped_char(quoted_with: Quotes) -> impl Fn(&str) -> PResult<String> {
+fn parse_escaped_char(quoted_with: Quotes) -> impl Fn(&str) -> PResult<'_, String> {
     move |input: &str| {
         context(
             "escaped character",
@@ -147,7 +147,7 @@ fn is_valid_unescaped_char(chr: char, quoted_with: Quotes) -> bool {
     }
 }
 
-fn parse_unescaped(quoted_with: Quotes) -> impl Fn(&str) -> PResult<&str> {
+fn parse_unescaped(quoted_with: Quotes) -> impl Fn(&str) -> PResult<'_, &str> {
     move |input: &str| {
         context(
             "unescaped character",
@@ -159,7 +159,7 @@ fn parse_unescaped(quoted_with: Quotes) -> impl Fn(&str) -> PResult<&str> {
     }
 }
 
-fn parse_fragment(quoted_with: Quotes) -> impl Fn(&str) -> PResult<String> {
+fn parse_fragment(quoted_with: Quotes) -> impl Fn(&str) -> PResult<'_, String> {
     move |input: &str| {
         alt((
             map(parse_unescaped(quoted_with), String::from),
@@ -168,7 +168,7 @@ fn parse_fragment(quoted_with: Quotes) -> impl Fn(&str) -> PResult<String> {
     }
 }
 
-fn parse_internal(quoted_with: Quotes) -> impl Fn(&str) -> PResult<String> {
+fn parse_internal(quoted_with: Quotes) -> impl Fn(&str) -> PResult<'_, String> {
     move |input: &str| {
         fold_many0(
             parse_fragment(quoted_with),

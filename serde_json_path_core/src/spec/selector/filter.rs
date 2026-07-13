@@ -244,7 +244,7 @@ pub struct ComparisonExpr {
     pub right: Comparable,
 }
 
-fn check_equal_to(left: &JsonPathValue, right: &JsonPathValue) -> bool {
+fn check_equal_to(left: &JsonPathValue<'_>, right: &JsonPathValue<'_>) -> bool {
     match (left, right) {
         (JsonPathValue::Node(v1), JsonPathValue::Node(v2)) => value_equal_to(v1, v2),
         (JsonPathValue::Node(v1), JsonPathValue::Value(v2)) => value_equal_to(v1, v2),
@@ -282,7 +282,7 @@ fn value_less_than(left: &Value, right: &Value) -> bool {
     }
 }
 
-fn check_less_than(left: &JsonPathValue, right: &JsonPathValue) -> bool {
+fn check_less_than(left: &JsonPathValue<'_>, right: &JsonPathValue<'_>) -> bool {
     match (left, right) {
         (JsonPathValue::Node(v1), JsonPathValue::Node(v2)) => value_less_than(v1, v2),
         (JsonPathValue::Node(v1), JsonPathValue::Value(v2)) => value_less_than(v1, v2),
@@ -301,7 +301,7 @@ fn value_same_type(left: &Value, right: &Value) -> bool {
         | matches!((left, right), (Value::Object(_), Value::Object(_)))
 }
 
-fn check_same_type(left: &JsonPathValue, right: &JsonPathValue) -> bool {
+fn check_same_type(left: &JsonPathValue<'_>, right: &JsonPathValue<'_>) -> bool {
     match (left, right) {
         (JsonPathValue::Node(v1), JsonPathValue::Node(v2)) => value_same_type(v1, v2),
         (JsonPathValue::Node(v1), JsonPathValue::Value(v2)) => value_same_type(v1, v2),

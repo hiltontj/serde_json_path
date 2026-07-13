@@ -38,7 +38,7 @@ fn value_length(value: &Value) -> Option<usize> {
 }
 
 #[serde_json_path_macros::register(target = LENGTH_FUNC)]
-fn length(value: ValueType) -> ValueType {
+fn length(value: ValueType<'_>) -> ValueType<'_> {
     match value {
         ValueType::Value(v) => value_length(&v),
         ValueType::Node(v) => value_length(v),
@@ -48,13 +48,13 @@ fn length(value: ValueType) -> ValueType {
 }
 
 #[serde_json_path_macros::register(target = COUNT_FUNC)]
-fn count(nodes: NodesType) -> ValueType {
+fn count(nodes: NodesType<'_>) -> ValueType<'_> {
     nodes.len().into()
 }
 
 #[cfg(feature = "regex")]
 #[serde_json_path_macros::register(name = "match", target = MATCH_FUNC)]
-fn match_func(value: ValueType, rgx: ValueType) -> LogicalType {
+fn match_func(value: ValueType<'_>, rgx: ValueType<'_>) -> LogicalType {
     match (value.as_value(), rgx.as_value()) {
         (Some(Value::String(s)), Some(Value::String(r))) => {
             regex::Regex::new(format!("(?R)^({r})$").as_str())
@@ -68,7 +68,7 @@ fn match_func(value: ValueType, rgx: ValueType) -> LogicalType {
 
 #[cfg(feature = "regex")]
 #[serde_json_path_macros::register(target = SEARCH_FUNC)]
-fn search(value: ValueType, rgx: ValueType) -> LogicalType {
+fn search(value: ValueType<'_>, rgx: ValueType<'_>) -> LogicalType {
     match (value.as_value(), rgx.as_value()) {
         (Some(Value::String(s)), Some(Value::String(r))) => {
             regex::Regex::new(format!("(?R)({r})").as_str())
@@ -81,7 +81,7 @@ fn search(value: ValueType, rgx: ValueType) -> LogicalType {
 }
 
 #[serde_json_path_macros::register(target = VALUE_FUNC)]
-fn value(nodes: NodesType) -> ValueType {
+fn value(nodes: NodesType<'_>) -> ValueType<'_> {
     if nodes.len() > 1 {
         ValueType::Nothing
     } else {

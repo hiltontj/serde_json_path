@@ -136,7 +136,7 @@ impl<'de> Deserialize<'de> for JsonPath {
         impl Visitor<'_> for JsonPathVisitor {
             type Value = JsonPath;
 
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 write!(formatter, "a string representing a JSON Path query")
             }
 

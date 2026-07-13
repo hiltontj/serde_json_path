@@ -27,7 +27,7 @@ pub(crate) struct IdentArg<T> {
 }
 
 impl<T: Parse> Parse for IdentArg<T> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
+    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
         let _ = input.parse::<T>()?;
         let _ = input.parse::<Token![=]>()?;
         let value = input.parse()?;
