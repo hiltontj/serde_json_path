@@ -554,21 +554,12 @@ impl SingularQuery {
         for segment in &self.segments {
             match segment {
                 SingularQuerySegment::Name(name) => {
-                    if let Some(t) = target.as_object().and_then(|o| o.get(name.as_str())) {
-                        target = t;
-                    } else {
-                        return None;
-                    }
+                    target = target.as_object().and_then(|o| o.get(name.as_str()))?;
                 }
                 SingularQuerySegment::Index(index) => {
-                    if let Some(t) = target
+                    target = target
                         .as_array()
-                        .and_then(|l| usize::try_from(index.0).ok().and_then(|i| l.get(i)))
-                    {
-                        target = t;
-                    } else {
-                        return None;
-                    }
+                        .and_then(|l| usize::try_from(index.0).ok().and_then(|i| l.get(i)))?;
                 }
             }
         }
