@@ -641,15 +641,15 @@ mod tests {
     #[test]
     fn test_send() {
         fn assert_send<T: Send>() {}
-        assert_send::<NodeList>();
-        assert_send::<LocatedNodeList>();
+        assert_send::<NodeList<'_>>();
+        assert_send::<LocatedNodeList<'_>>();
     }
 
     #[test]
     fn test_sync() {
         fn assert_sync<T: Sync>() {}
-        assert_sync::<NodeList>();
-        assert_sync::<LocatedNodeList>();
+        assert_sync::<NodeList<'_>>();
+        assert_sync::<LocatedNodeList<'_>>();
     }
 
     #[test]

@@ -127,7 +127,7 @@ fn get_some_books() -> Value {
 }
 
 #[serde_json_path::function]
-fn first(nodes: NodesType) -> ValueType {
+fn first(nodes: NodesType<'_>) -> ValueType<'_> {
     match nodes.first() {
         Some(v) => ValueType::Node(v),
         None => ValueType::Nothing,

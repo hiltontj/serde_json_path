@@ -15,7 +15,7 @@ struct RegisterMacroArgsBuilder {
 }
 
 impl RegisterMacroArgsBuilder {
-    fn build(self, input: &syn::parse::ParseStream) -> syn::Result<RegisterMacroArgs> {
+    fn build(self, input: &syn::parse::ParseStream<'_>) -> syn::Result<RegisterMacroArgs> {
         if let Some(target) = self.target {
             Ok(RegisterMacroArgs {
                 name: self.name,
@@ -28,7 +28,7 @@ impl RegisterMacroArgsBuilder {
 }
 
 impl Parse for RegisterMacroArgs {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+    fn parse(input: syn::parse::ParseStream<'_>) -> syn::Result<Self> {
         let mut builder = RegisterMacroArgsBuilder::default();
         while !input.is_empty() {
             let lookahead = input.lookahead1();

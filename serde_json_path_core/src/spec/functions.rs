@@ -508,7 +508,7 @@ impl FunctionExpr<Validated> {
         current: &'b Value,
         root: &'b Value,
     ) -> JsonPathValue<'a> {
-        let args: VecDeque<JsonPathValue> = self
+        let args: VecDeque<JsonPathValue<'_>> = self
             .args
             .iter()
             .map(|a| a.evaluate(current, root))

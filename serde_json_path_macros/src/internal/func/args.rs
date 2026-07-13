@@ -8,7 +8,7 @@ pub(crate) struct FunctionMacroArgs {
 }
 
 impl Parse for FunctionMacroArgs {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+    fn parse(input: syn::parse::ParseStream<'_>) -> syn::Result<Self> {
         let mut args = Self::default();
         while !input.is_empty() {
             let lookahead = input.lookahead1();
