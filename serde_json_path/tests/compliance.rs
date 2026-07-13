@@ -1,3 +1,5 @@
+//! Tests for the JSONPath Compliance Test Suite
+
 use std::fs;
 
 use serde::Deserialize;

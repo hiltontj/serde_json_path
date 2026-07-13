@@ -1,3 +1,5 @@
+//! Tests for JSONPath function extensions
+
 use std::cmp::Ordering;
 
 use serde_json::{json, Value};

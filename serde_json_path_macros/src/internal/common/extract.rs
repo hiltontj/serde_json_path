@@ -7,7 +7,7 @@ use syn::{
     Path, Result, ReturnType, Signature, Type,
 };
 
-pub struct Components {
+pub(crate) struct Components {
     pub name: Ident,
     pub generics: Generics,
     pub validator_name: Ident,
@@ -18,7 +18,7 @@ pub struct Components {
     pub args: VecDeque<FnArgument>,
 }
 
-pub struct FnArgument {
+pub(crate) struct FnArgument {
     pub ident: Ident,
     pub ty: TokenStream,
 }
@@ -70,7 +70,7 @@ fn extract_json_path_type(p: &Path) -> Result<TokenStream> {
     Ok(ts)
 }
 
-pub fn extract_components(input: Signature) -> Result<Components> {
+pub(crate) fn extract_components(input: Signature) -> Result<Components> {
     let name = input.ident.clone();
     let generics = input.generics.clone();
     let inputs = input.inputs.clone();
