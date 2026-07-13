@@ -19,11 +19,11 @@ use crate::{JsonPath, NodeList};
 /// ```
 pub trait JsonPathExt {
     /// Query a [`serde_json::Value`] with a JSONPath query string
-    fn json_path(&self, path: &JsonPath) -> NodeList;
+    fn json_path(&self, path: &JsonPath) -> NodeList<'_>;
 }
 
 impl JsonPathExt for Value {
-    fn json_path(&self, path: &JsonPath) -> NodeList {
+    fn json_path(&self, path: &JsonPath) -> NodeList<'_> {
         path.query(self)
     }
 }

@@ -130,12 +130,12 @@ where
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_path_segments(input: &str) -> PResult<Vec<QuerySegment>> {
+fn parse_path_segments(input: &str) -> PResult<'_, Vec<QuerySegment>> {
     many0(parse_segment)(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_root_query(input: &str) -> PResult<Query> {
+fn parse_root_query(input: &str) -> PResult<'_, Query> {
     map(preceded(char('$'), parse_path_segments), |segments| Query {
         kind: QueryKind::Root,
         segments,
@@ -143,7 +143,7 @@ fn parse_root_query(input: &str) -> PResult<Query> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_current_query(input: &str) -> PResult<Query> {
+fn parse_current_query(input: &str) -> PResult<'_, Query> {
     map(preceded(char('@'), parse_path_segments), |segments| Query {
         kind: QueryKind::Current,
         segments,
@@ -151,12 +151,12 @@ fn parse_current_query(input: &str) -> PResult<Query> {
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_query(input: &str) -> PResult<Query> {
+fn parse_query(input: &str) -> PResult<'_, Query> {
     alt((parse_root_query, parse_current_query))(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub(crate) fn parse_query_main(input: &str) -> PResult<Query> {
+pub(crate) fn parse_query_main(input: &str) -> PResult<'_, Query> {
     all_consuming(parse_root_query)(input)
 }
 

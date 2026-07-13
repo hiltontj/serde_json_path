@@ -9,17 +9,17 @@ use serde_json_path_core::spec::{integer::Integer, selector::slice::Slice};
 use crate::parser::{primitive::int::parse_int, PResult};
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_int_space_after(input: &str) -> PResult<Integer> {
+fn parse_int_space_after(input: &str) -> PResult<'_, Integer> {
     terminated(parse_int, multispace0)(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-fn parse_int_space_before(input: &str) -> PResult<Integer> {
+fn parse_int_space_before(input: &str) -> PResult<'_, Integer> {
     preceded(multispace0, parse_int)(input)
 }
 
 #[cfg_attr(feature = "trace", tracing::instrument(level = "trace", parent = None, ret, err))]
-pub(crate) fn parse_array_slice(input: &str) -> PResult<Slice> {
+pub(crate) fn parse_array_slice(input: &str) -> PResult<'_, Slice> {
     map(
         separated_pair(
             opt(parse_int_space_after),
