@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+- **fixed**: escape member names in normalized paths, and escape `\` and `U+0010`-`U+001F` per RFC 9535 ([#123])
+
+[#123]: https://github.com/hiltontj/serde_json_path/pull/123
+
 # 0.2.1 (3 November 2024)
 
 - **internal**: update `serde_json` to the latest version ([#107])
