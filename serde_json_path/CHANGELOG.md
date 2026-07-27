@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+- **fixed**: escape member names in normalized paths ([#123])
+- **testing**: check the compliance test suite's normalized path expectations ([#123])
+
+[#123]: https://github.com/hiltontj/serde_json_path/pull/123
+
 # 0.7.2 (2 February 2025)
 
 - **added**: better error message for invalid use of function in selector ([#118])

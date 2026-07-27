@@ -191,9 +191,10 @@ impl Display for NormalizedPath<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "$")?;
         for elem in &self.0 {
+            // `elem` must be formatted via its own Display, which does the escaping
             match elem {
-                PathElement::Name(name) => write!(f, "['{name}']")?,
-                PathElement::Index(index) => write!(f, "[{index}]")?,
+                PathElement::Name(_) => write!(f, "['{elem}']")?,
+                PathElement::Index(_) => write!(f, "[{elem}]")?,
             }
         }
         Ok(())
@@ -303,11 +304,9 @@ impl Display for PathElement<'_> {
                         '\u{000D}' => write!(f, r#"\r"#)?, // r CR carriage return
                         '\u{0009}' => write!(f, r#"\t"#)?, // t HT horizontal tab
                         '\u{0027}' => write!(f, r#"\'"#)?, // ' apostrophe
-                        '\u{005C}' => write!(f, r#"\"#)?,  // \ backslash (reverse solidus)
-                        ('\x00'..='\x07') | '\x0b' | '\x0e' | '\x0f' => {
-                            // "00"-"07", "0b", "0e"-"0f"
-                            write!(f, "\\u000{:x}", c as i32)?
-                        }
+                        '\u{005C}' => write!(f, r#"\\"#)?, // \ backslash (reverse solidus)
+                        // every remaining control code, i.e. "00"-"07", "0b", "0e"-"1f"
+                        c if c < '\u{0020}' => write!(f, "\\u{:04x}", c as u32)?,
                         _ => write!(f, "{c}")?,
                     }
                 }
@@ -373,9 +372,16 @@ mod tests {
             ("index", PathElement::Index(1), "1"),
             ("escape_apostrophes", PathElement::Name("'hi'"), r#"\'hi\'"#),
             (
+                // the characters that have a short-hand escape
                 "escapes",
-                PathElement::Name(r#"'\b\f\n\r\t\\'"#),
+                PathElement::Name("'\u{0008}\u{000C}\n\r\t\\'"),
                 r#"\'\b\f\n\r\t\\\'"#,
+            ),
+            (
+                // literal backslashes, each of which becomes a doubled one
+                "literal_backslashes",
+                PathElement::Name(r#"'\b\f\n\r\t\\'"#),
+                r#"\'\\b\\f\\n\\r\\t\\\\\'"#,
             ),
             (
                 "escape_vertical_unicode",
@@ -394,8 +400,56 @@ mod tests {
                 ),
                 r#"\u0001\u0002\u0003\u0004\u0005\u0006\u0007\u000e\u000f"#,
             ),
+            (
+                "escape_unicode_runes_10_to_17",
+                PathElement::Name(
+                    "\u{0010}\u{0011}\u{0012}\u{0013}\u{0014}\u{0015}\u{0016}\u{0017}",
+                ),
+                r#"\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017"#,
+            ),
+            (
+                "escape_unicode_runes_18_to_1f",
+                PathElement::Name(
+                    "\u{0018}\u{0019}\u{001A}\u{001B}\u{001C}\u{001D}\u{001E}\u{001F}",
+                ),
+                r#"\u0018\u0019\u001a\u001b\u001c\u001d\u001e\u001f"#,
+            ),
         ] {
             assert_eq!(exp, elem.to_string(), "{name}");
+        }
+    }
+
+    #[test]
+    fn normalized_path_fmt() {
+        for (name, path, exp) in [
+            (
+                "simple",
+                NormalizedPath(vec![PathElement::Name("foo"), PathElement::Index(42)]),
+                "$['foo'][42]",
+            ),
+            (
+                "apostrophe",
+                NormalizedPath(vec![PathElement::Name("O'Reilly")]),
+                r#"$['O\'Reilly']"#,
+            ),
+            (
+                "backslash",
+                NormalizedPath(vec![PathElement::Name(r#"a\b"#)]),
+                r#"$['a\\b']"#,
+            ),
+            (
+                "control_codes",
+                NormalizedPath(vec![PathElement::Name("a\nb\u{001F}")]),
+                r#"$['a\nb\u001f']"#,
+            ),
+        ] {
+            assert_eq!(exp, path.to_string(), "{name}");
+            // Serialize goes through Display, so it must escape identically
+            assert_eq!(
+                serde_json::to_string(&path).unwrap(),
+                serde_json::to_string(exp).unwrap(),
+                "{name} (serialized)"
+            );
         }
     }
 }

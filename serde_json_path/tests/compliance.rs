@@ -4,7 +4,7 @@ use std::fs;
 
 use serde::Deserialize;
 use serde_json::Value;
-use serde_json_path::JsonPath;
+use serde_json_path::{JsonPath, LocatedNodeList};
 #[cfg(feature = "trace")]
 use test_log::test;
 
@@ -26,20 +26,28 @@ struct TestCase {
 #[derive(Deserialize)]
 #[serde(untagged)]
 enum TestResult {
-    Deterministic { result: Vec<Value> },
-    NonDeterministic { results: Vec<Vec<Value>> },
-    InvalidSelector { invalid_selector: bool },
+    Deterministic {
+        result: Vec<Value>,
+        result_paths: Vec<String>,
+    },
+    NonDeterministic {
+        results: Vec<Vec<Value>>,
+        results_paths: Vec<Vec<String>>,
+    },
+    InvalidSelector {
+        invalid_selector: bool,
+    },
 }
 
 impl TestResult {
     fn verify(&self, name: &str, actual: Vec<&Value>) {
         match self {
-            TestResult::Deterministic { result } => assert_eq!(
+            TestResult::Deterministic { result, .. } => assert_eq!(
                 result.iter().collect::<Vec<&Value>>(),
                 actual,
                 "{name}: incorrect result, expected {result:?}, got {actual:?}"
             ),
-            TestResult::NonDeterministic { results } => {
+            TestResult::NonDeterministic { results, .. } => {
                 assert!(results
                     .iter()
                     .any(|r| r.iter().collect::<Vec<&Value>>().eq(&actual)))
@@ -48,8 +56,38 @@ impl TestResult {
         }
     }
 
+    /// Verify the normalized paths of the located nodes, see RFC 9535, section 2.7
+    fn verify_paths(&self, name: &str, actual: Vec<String>) {
+        match self {
+            TestResult::Deterministic { result_paths, .. } => assert_eq!(
+                result_paths, &actual,
+                "{name}: incorrect result paths, expected {result_paths:?}, got {actual:?}"
+            ),
+            TestResult::NonDeterministic { results_paths, .. } => assert!(
+                results_paths.contains(&actual),
+                "{name}: incorrect result paths, expected one of {results_paths:?}, got {actual:?}"
+            ),
+            TestResult::InvalidSelector { .. } => unreachable!(),
+        }
+    }
+
     fn is_invalid_selector(&self) -> bool {
         matches!(self, Self::InvalidSelector { invalid_selector } if *invalid_selector)
+    }
+}
+
+/// A normalized path is itself a valid JSONPath query that selects the node it names
+fn verify_paths_round_trip(name: &str, document: &Value, q: &LocatedNodeList<'_>) {
+    for node in q.iter() {
+        let path = node.location().to_string();
+        let reparsed = JsonPath::parse(&path)
+            .unwrap_or_else(|e| panic!("{name}: normalized path {path:?} does not parse: {e}"));
+        let selected = reparsed.query(document).all();
+        assert!(
+            selected.len() == 1 && std::ptr::eq(selected[0], node.node()),
+            "{name}: normalized path {path:?} selected {} nodes instead of the node it names",
+            selected.len(),
+        );
     }
 }
 
@@ -90,6 +128,9 @@ fn compliance_test_suite() {
                 let q = path.query_located(document);
                 let actual = q.nodes().collect::<Vec<&Value>>();
                 result.verify(name, actual);
+                let paths = q.locations().map(|l| l.to_string()).collect();
+                result.verify_paths(name, paths);
+                verify_paths_round_trip(name, document, &q);
             }
         }
     }
@@ -132,6 +173,9 @@ fn compliance_single() {
             let q = path.query_located(document);
             let actual = q.nodes().collect::<Vec<&Value>>();
             result.verify(name, actual);
+            let paths = q.locations().map(|l| l.to_string()).collect();
+            result.verify_paths(name, paths);
+            verify_paths_round_trip(name, document, &q);
         }
     }
 }
