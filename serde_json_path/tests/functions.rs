@@ -93,6 +93,37 @@ fn test_search() {
     assert_eq!(3, nodes.len());
 }
 
+#[test]
+fn test_match_and_search_with_several_patterns() {
+    let value = json!([
+        {"name": "widget-7", "sku": "SKU-000017"},
+        {"name": "widget-17", "sku": "SKU-000020"},
+        {"name": "gadget-7", "sku": "SKU-000011"}
+    ]);
+    let path =
+        JsonPath::parse("$[? match(@.name, 'widget-[0-9]*7') && search(@.sku, '0{3}1')].name")
+            .unwrap();
+    assert_eq!(path.query(&value).all(), vec![&json!("widget-7")]);
+
+    // more distinct patterns in one filter than the cache holds
+    let value = json!(["a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "a9", "a10"]);
+    let filter = (0..10)
+        .map(|i| format!("match(@, 'a{i}')"))
+        .collect::<Vec<_>>()
+        .join(" || ");
+    let path = JsonPath::parse(&format!("$[? {filter}]")).unwrap();
+    assert_eq!(
+        path.query(&value).all(),
+        (0..10).map(|i| &value[i]).collect::<Vec<_>>()
+    );
+
+    // an invalid pattern matches nothing
+    let path = JsonPath::parse("$[? match(@, 'a[')]").unwrap();
+    assert!(path.query(&value).is_empty());
+    let path = JsonPath::parse("$[? search(@, '1')]").unwrap();
+    assert_eq!(path.query(&value).all(), vec![&json!("a1"), &json!("a10")]);
+}
+
 fn get_some_books() -> Value {
     json!([
         {

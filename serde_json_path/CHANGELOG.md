@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Unreleased
 
+- **fixed**: reuse compiled regexes in `match` and `search` instead of compiling the pattern for every node ([#126])
+
+[#126]: https://github.com/hiltontj/serde_json_path/pull/126
+
 # 0.7.2 (2 February 2025)
 
 - **added**: better error message for invalid use of function in selector ([#118])
