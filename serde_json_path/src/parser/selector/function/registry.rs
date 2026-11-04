@@ -1,3 +1,5 @@
+#[cfg(feature = "regex")]
+use std::{cell::RefCell, rc::Rc};
 use std::{collections::HashMap, sync::LazyLock};
 
 use serde_json::Value;
@@ -56,12 +58,10 @@ fn count(nodes: NodesType<'_>) -> ValueType<'_> {
 #[serde_json_path_macros::register(name = "match", target = MATCH_FUNC)]
 fn match_func(value: ValueType<'_>, rgx: ValueType<'_>) -> LogicalType {
     match (value.as_value(), rgx.as_value()) {
-        (Some(Value::String(s)), Some(Value::String(r))) => {
-            regex::Regex::new(format!("(?R)^({r})$").as_str())
-                .map(|r| r.is_match(s))
-                .map(Into::into)
-                .unwrap_or_default()
-        }
+        (Some(Value::String(s)), Some(Value::String(r))) => cached_regex(&format!("(?R)^({r})$"))
+            .map(|r| r.is_match(s))
+            .map(Into::into)
+            .unwrap_or_default(),
         _ => LogicalType::False,
     }
 }
@@ -70,14 +70,45 @@ fn match_func(value: ValueType<'_>, rgx: ValueType<'_>) -> LogicalType {
 #[serde_json_path_macros::register(target = SEARCH_FUNC)]
 fn search(value: ValueType<'_>, rgx: ValueType<'_>) -> LogicalType {
     match (value.as_value(), rgx.as_value()) {
-        (Some(Value::String(s)), Some(Value::String(r))) => {
-            regex::Regex::new(format!("(?R)({r})").as_str())
-                .map(|r| r.is_match(s))
-                .map(Into::into)
-                .unwrap_or_default()
-        }
+        (Some(Value::String(s)), Some(Value::String(r))) => cached_regex(&format!("(?R)({r})"))
+            .map(|r| r.is_match(s))
+            .map(Into::into)
+            .unwrap_or_default(),
         _ => LogicalType::False,
     }
+}
+
+/// How many compiled patterns each thread keeps for `match()` and `search()`.
+#[cfg(feature = "regex")]
+const REGEX_CACHE_SIZE: usize = 8;
+
+#[cfg(feature = "regex")]
+thread_local! {
+    // match() and search() run once per node, usually with the same few patterns,
+    // so each thread keeps the patterns it compiled last.
+    static REGEX_CACHE: RefCell<Vec<(String, Rc<regex::Regex>)>> =
+        const { RefCell::new(Vec::new()) };
+}
+
+/// Returns the compiled `pattern`, reusing it if it is among the last `REGEX_CACHE_SIZE` compiled
+/// on this thread.
+#[cfg(feature = "regex")]
+fn cached_regex(pattern: &str) -> Result<Rc<regex::Regex>, regex::Error> {
+    REGEX_CACHE
+        .try_with(|cache| {
+            let mut cache = cache.borrow_mut();
+            if let Some((_, regex)) = cache.iter().find(|(p, _)| p == pattern) {
+                return Ok(Rc::clone(regex));
+            }
+            let regex = Rc::new(regex::Regex::new(pattern)?);
+            if cache.len() == REGEX_CACHE_SIZE {
+                cache.remove(0);
+            }
+            cache.push((pattern.to_owned(), Rc::clone(&regex)));
+            Ok(regex)
+        })
+        // The cache is gone while the thread's locals are being destroyed.
+        .unwrap_or_else(|_| regex::Regex::new(pattern).map(Rc::new))
 }
 
 #[serde_json_path_macros::register(target = VALUE_FUNC)]
