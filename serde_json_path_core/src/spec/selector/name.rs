@@ -16,7 +16,21 @@ impl Name {
 
 impl std::fmt::Display for Name {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "'{name}'", name = self.0)
+        f.write_str("'")?;
+        for ch in self.0.chars() {
+            match ch {
+                '\'' => f.write_str("\\'")?,
+                '\\' => f.write_str("\\\\")?,
+                '\x08' => f.write_str("\\b")?,
+                '\x0c' => f.write_str("\\f")?,
+                '\n' => f.write_str("\\n")?,
+                '\r' => f.write_str("\\r")?,
+                '\t' => f.write_str("\\t")?,
+                c if (c as u32) < 0x20 => write!(f, "\\u{:04x}", c as u32)?,
+                c => write!(f, "{c}")?,
+            }
+        }
+        f.write_str("'")
     }
 }
 
